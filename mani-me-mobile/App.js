@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as Notifications from 'expo-notifications';
+import { StripeProvider } from '@stripe/stripe-react-native';
 import { UserProvider, useUser } from './context/UserContext';
 import { registerForPushNotificationsAsync, updatePushToken } from './utils/notifications';
 
@@ -14,6 +15,10 @@ import ProfileScreen from './screens/ProfileScreen';
 import BookingScreen from './screens/BookingScreen';
 import ReceiverDetailsScreen from './screens/ReceiverDetailsScreen';
 import TrackingScreen from './screens/TrackingScreen';
+import PaymentScreen from './screens/PaymentScreen';
+import PaymentConfirmationScreen from './screens/PaymentConfirmationScreen';
+
+const STRIPE_PUBLISHABLE_KEY = 'pk_test_51...'; // Add your Stripe publishable key here
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -68,6 +73,8 @@ function AppNavigator() {
         <Stack.Screen name="Home" component={TabNavigator} />
         <Stack.Screen name="Booking" component={BookingScreen} />
         <Stack.Screen name="ReceiverDetails" component={ReceiverDetailsScreen} />
+        <Stack.Screen name="Payment" component={PaymentScreen} />
+        <Stack.Screen name="PaymentConfirmation" component={PaymentConfirmationScreen} />
         <Stack.Screen name="Tracking" component={TrackingScreen} />
       </Stack.Navigator>
     </NavigationContainer>
@@ -76,8 +83,10 @@ function AppNavigator() {
 
 export default function App() {
   return (
-    <UserProvider>
-      <AppNavigator />
-    </UserProvider>
+    <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
+      <UserProvider>
+        <AppNavigator />
+      </UserProvider>
+    </StripeProvider>
   );
 }

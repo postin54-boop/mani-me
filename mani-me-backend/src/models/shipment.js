@@ -96,6 +96,11 @@ module.exports = (sequelize) => {
       type: DataTypes.ENUM('pending', 'paid', 'refunded'),
       defaultValue: 'pending'
     },
+    payment_intent_id: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: 'Stripe payment intent ID'
+    },
     total_cost: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,

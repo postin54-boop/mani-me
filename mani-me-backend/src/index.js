@@ -7,6 +7,7 @@ const { sequelize } = require('./models');
 // Import route files (we will create these later)
 const authRoutes = require('./routes/auth');
 const shipmentRoutes = require('./routes/shipment');
+const paymentRoutes = require('./routes/payment');
 
 const app = express();
 app.use(cors());
@@ -15,6 +16,7 @@ app.use(bodyParser.json());
 // Use the routes
 app.use('/api/auth', authRoutes);
 app.use('/api/shipments', shipmentRoutes);
+app.use('/api/payments', paymentRoutes);
 
 const PORT = process.env.PORT || 4000;
 

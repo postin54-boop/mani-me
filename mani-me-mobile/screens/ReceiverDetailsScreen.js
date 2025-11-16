@@ -19,7 +19,7 @@ export default function ReceiverDetailsScreen({ route, navigation }) {
   // Payment Method
   const [paymentMethod, setPaymentMethod] = useState('card');
 
-  const handleBookParcel = async () => {
+  const handleBookParcel = () => {
     // Validate receiver details
     if (!receiverName || !receiverPhone || !deliveryAddress || !deliveryCity || !deliveryRegion) {
       Alert.alert('Error', 'Please fill in all required receiver details');
@@ -35,40 +35,11 @@ export default function ReceiverDetailsScreen({ route, navigation }) {
       delivery_address: deliveryAddress,
       delivery_city: deliveryCity,
       delivery_region: deliveryRegion,
-      payment_method: paymentMethod,
       user_id: user?.id
     };
 
-    try {
-      // Backend URL using computer's IP address
-      const response = await fetch('http://192.168.0.138:4000/api/shipments/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(bookingData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        Alert.alert(
-          'Success!',
-          `Parcel booked successfully!\nTracking Number: ${data.tracking_number}`,
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.navigate('Orders')
-            }
-          ]
-        );
-      } else {
-        Alert.alert('Error', data.error || 'Failed to book parcel');
-      }
-    } catch (error) {
-      console.error('Booking error:', error);
-      Alert.alert('Error', 'Unable to connect to server. Please try again.');
-    }
+    // Navigate to payment screen
+    navigation.navigate('Payment', { bookingData });
   };
 
   return (
