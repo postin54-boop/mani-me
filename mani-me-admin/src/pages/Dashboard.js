@@ -120,7 +120,7 @@ function Dashboard() {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Total Revenue"
-            value={`GH₵${stats.totalRevenue.toFixed(2)}`}
+            value={`£${stats.totalRevenue.toFixed(2)}`}
             icon={<AttachMoneyIcon />}
             color="#ed6c02"
           />

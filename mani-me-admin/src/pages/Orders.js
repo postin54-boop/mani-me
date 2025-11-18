@@ -139,7 +139,7 @@ function Orders() {
                     size="small"
                   />
                 </TableCell>
-                <TableCell>GH₵{order.price?.toFixed(2) || '0.00'}</TableCell>
+                <TableCell>£{order.price?.toFixed(2) || '0.00'}</TableCell>
                 <TableCell>
                   {new Date(order.createdAt).toLocaleDateString()}
                 </TableCell>
@@ -202,7 +202,7 @@ function Orders() {
                 <Typography>Type: {selectedOrder.parcel_type}</Typography>
                 <Typography>Size: {selectedOrder.parcel_size}</Typography>
                 <Typography>Weight: {selectedOrder.parcel_weight} kg</Typography>
-                <Typography>Price: GH₵{selectedOrder.price?.toFixed(2)}</Typography>
+                <Typography>Price: £{selectedOrder.price?.toFixed(2)}</Typography>
               </Box>
 
               <Box mt={3}>
