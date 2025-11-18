@@ -8,6 +8,7 @@ const { sequelize } = require('./models');
 const authRoutes = require('./routes/auth');
 const shipmentRoutes = require('./routes/shipment');
 const paymentRoutes = require('./routes/payment');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 app.use(cors());
@@ -17,6 +18,7 @@ app.use(bodyParser.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/shipments', shipmentRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/admin', adminRoutes);
 
 const PORT = process.env.PORT || 4000;
 

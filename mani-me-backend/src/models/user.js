@@ -31,6 +31,22 @@ module.exports = (sequelize) => {
     push_token: {
       type: DataTypes.STRING,
       allowNull: true
+    },
+    is_active: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true
+    },
+    region: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    city: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    address: {
+      type: DataTypes.STRING,
+      allowNull: true
     }
   }, {
     tableName: 'users',
