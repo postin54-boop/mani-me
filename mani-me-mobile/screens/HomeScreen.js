@@ -1,80 +1,90 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SIZES, SHADOWS, FONTS } from '../constants/theme';
+import { useUser } from '../context/UserContext';
+import { useThemeColors, SIZES, SHADOWS, FONTS } from '../constants/theme';
 
 export default function HomeScreen({ navigation }) {
+  const { colors, isDark } = useThemeColors();
+  const { user } = useUser();
+  
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
+      <StatusBar 
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.primary}
+      />
       {/* Header with Gradient */}
       <LinearGradient
-        colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+        colors={[colors.primary, colors.primaryLight]}
         style={styles.header}
       >
-        <Text style={styles.title}>Mani Me</Text>
-        <Text style={styles.subtitle}>UK to Ghana Parcel Delivery</Text>
-        <View style={styles.headerIconsContainer}>
-          <View style={styles.headerIconBadge}>
-            <Ionicons name="airplane" size={24} color={COLORS.surface} />
+        <View style={styles.headerTop}>
+          <View style={styles.logoContainer}>
+            <Image 
+              source={require('../assets/logo.png')} 
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
         </View>
+        <Text style={[styles.greeting, { color: colors.accent }]}>Hello{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!</Text>
+        <Text style={[styles.title, { color: colors.accent }]}>UK to Ghana Deliveries</Text>
+        <Text style={[styles.subtitle, { color: colors.accent + 'CC' }]}>Fast, Secure, and Reliable</Text>
       </LinearGradient>
 
       <View style={styles.content}>
         {/* Book Pickup Card - Primary Action */}
         <TouchableOpacity 
-          style={styles.primaryCard}
+          style={[styles.primaryCard, { backgroundColor: colors.primary }, SHADOWS.large]}
           onPress={() => navigation.navigate('Booking')}
           activeOpacity={0.9}
         >
-          <LinearGradient
-            colors={[COLORS.success, COLORS.secondaryLight]}
-            style={styles.primaryCardGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <View style={styles.primaryCardIcon}>
-              <Ionicons name="cube-outline" size={40} color={COLORS.surface} />
+          <View style={styles.primaryCardContent}>
+            <View style={[styles.primaryCardIcon, { backgroundColor: colors.secondary + '20' }]}>
+              <Ionicons name="cube" size={40} color={colors.secondary} />
             </View>
-            <Text style={styles.primaryCardTitle}>Book Pickup</Text>
-            <Text style={styles.primaryCardDescription}>
-              Send parcels to Ghana from anywhere in the UK
-            </Text>
-            <View style={styles.primaryCardArrow}>
-              <Ionicons name="arrow-forward" size={24} color={COLORS.surface} />
+            <View style={styles.primaryCardText}>
+              <Text style={[styles.primaryCardTitle, { color: colors.accent }]}>Book a Pickup</Text>
+              <Text style={[styles.primaryCardDescription, { color: colors.accent + 'CC' }]}>
+                Send parcels to Ghana from anywhere in the UK
+              </Text>
             </View>
-          </LinearGradient>
+            <View style={[styles.primaryCardArrow, { backgroundColor: colors.secondary }]}>
+              <Ionicons name="arrow-forward" size={24} color={colors.accent} />
+            </View>
+          </View>
         </TouchableOpacity>
 
         {/* Quick Actions Grid */}
         <View style={styles.actionsGrid}>
           {/* Track Parcel Card */}
           <TouchableOpacity 
-            style={styles.actionCard}
+            style={[styles.actionCard, { backgroundColor: colors.surface }]}
             onPress={() => navigation.navigate('Orders')}
             activeOpacity={0.8}
           >
-            <View style={[styles.actionIconContainer, { backgroundColor: COLORS.info + '15' }]}>
-              <Ionicons name="location-outline" size={28} color={COLORS.info} />
+            <View style={[styles.actionIconContainer, { backgroundColor: colors.secondary + '20' }]}>
+              <Ionicons name="location" size={28} color={colors.secondary} />
             </View>
-            <Text style={styles.actionTitle}>Track Parcels</Text>
-            <Text style={styles.actionDescription}>View & track deliveries</Text>
+            <Text style={[styles.actionTitle, { color: colors.text }]}>Track Parcels</Text>
+            <Text style={[styles.actionDescription, { color: colors.textSecondary }]}>View & track deliveries</Text>
           </TouchableOpacity>
 
           {/* Shop Card (Coming Soon) */}
           <TouchableOpacity 
-            style={[styles.actionCard, styles.actionCardDisabled]}
+            style={[styles.actionCard, { backgroundColor: colors.surface, opacity: 0.7 }]}
             onPress={() => alert("Shop feature coming soon!\n\nGhanians in Ghana will be able to order UK groceries and products.")}
             activeOpacity={0.8}
           >
-            <View style={[styles.actionIconContainer, { backgroundColor: COLORS.warning + '15' }]}>
-              <Ionicons name="cart-outline" size={28} color={COLORS.warning} />
+            <View style={[styles.actionIconContainer, { backgroundColor: colors.textLight + '20' }]}>
+              <Ionicons name="cart" size={28} color={colors.textLight} />
             </View>
-            <Text style={styles.actionTitle}>Shop</Text>
-            <Text style={styles.actionDescription}>Order UK products</Text>
-            <View style={styles.comingSoonBadge}>
-              <Text style={styles.comingSoonText}>SOON</Text>
+            <Text style={[styles.actionTitle, { color: colors.text }]}>Shop</Text>
+            <Text style={[styles.actionDescription, { color: colors.textSecondary }]}>Order UK products</Text>
+            <View style={[styles.comingSoonBadge, { backgroundColor: colors.secondary }]}>
+              <Text style={[styles.comingSoonText, { color: colors.accent }]}>SOON</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -88,38 +98,38 @@ export default function HomeScreen({ navigation }) {
               <Ionicons name="rocket" size={24} color={COLORS.success} />
             </View>
             <View style={styles.featureContent}>
-              <Text style={styles.featureText}>Fast & Reliable Delivery</Text>
-              <Text style={styles.featureSubtext}>Express shipping UK-Ghana</Text>
+              <Text style={[styles.featureText, { color: colors.text }]}>Fast & Reliable</Text>
+              <Text style={[styles.featureSubtext, { color: colors.textSecondary }]}>Express UK-Ghana shipping</Text>
             </View>
           </View>
 
           <View style={styles.featureItem}>
-            <View style={[styles.featureIcon, { backgroundColor: COLORS.info + '15' }]}>
-              <Ionicons name="location" size={24} color={COLORS.info} />
+            <View style={[styles.featureIcon, { backgroundColor: colors.secondary + '20' }]}>
+              <Ionicons name="location" size={24} color={colors.secondary} />
             </View>
             <View style={styles.featureContent}>
-              <Text style={styles.featureText}>Real-time Tracking</Text>
-              <Text style={styles.featureSubtext}>Track every step of the way</Text>
+              <Text style={[styles.featureText, { color: colors.text }]}>Real-time Tracking</Text>
+              <Text style={[styles.featureSubtext, { color: colors.textSecondary }]}>Track every step</Text>
             </View>
           </View>
 
           <View style={styles.featureItem}>
-            <View style={[styles.featureIcon, { backgroundColor: COLORS.warning + '15' }]}>
-              <Ionicons name="card" size={24} color={COLORS.warning} />
+            <View style={[styles.featureIcon, { backgroundColor: colors.secondary + '20' }]}>
+              <Ionicons name="card" size={24} color={colors.secondary} />
             </View>
             <View style={styles.featureContent}>
-              <Text style={styles.featureText}>Flexible Payment</Text>
-              <Text style={styles.featureSubtext}>Pay by card or cash on pickup</Text>
+              <Text style={[styles.featureText, { color: colors.text }]}>Flexible Payment</Text>
+              <Text style={[styles.featureSubtext, { color: colors.textSecondary }]}>Card or cash on pickup</Text>
             </View>
           </View>
 
           <View style={styles.featureItem}>
-            <View style={[styles.featureIcon, { backgroundColor: COLORS.primary + '15' }]}>
-              <Ionicons name="home" size={24} color={COLORS.primary} />
+            <View style={[styles.featureIcon, { backgroundColor: colors.secondary + '20' }]}>
+              <Ionicons name="home" size={24} color={colors.secondary} />
             </View>
             <View style={styles.featureContent}>
-              <Text style={styles.featureText}>Door-to-Door Service</Text>
-              <Text style={styles.featureSubtext}>We pickup and deliver</Text>
+              <Text style={[styles.featureText, { color: colors.text }]}>Door-to-Door</Text>
+              <Text style={[styles.featureSubtext, { color: colors.textSecondary }]}>We pickup & deliver</Text>
             </View>
           </View>
         </View>
@@ -133,76 +143,80 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
-    paddingTop: 50,
-    paddingBottom: 30,
+    paddingTop: SIZES.xxl + SIZES.lg,
+    paddingBottom: SIZES.xl,
     paddingHorizontal: SIZES.lg,
+  },
+  headerTop: {
     alignItems: 'center',
+    marginBottom: SIZES.md,
+  },
+  logoContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: SIZES.radiusMd,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SIZES.sm,
+  },
+  logoImage: {
+    width: 48,
+    height: 48,
+  },
+  greeting: {
+    fontSize: SIZES.body,
+    ...FONTS.medium,
+    marginBottom: SIZES.xs,
   },
   title: {
-    fontSize: SIZES.h1,
+    fontSize: SIZES.h2,
     ...FONTS.bold,
-    color: COLORS.surface,
     marginBottom: SIZES.xs,
   },
   subtitle: {
-    fontSize: SIZES.body,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: SIZES.md,
-  },
-  headerIconsContainer: {
-    marginTop: SIZES.sm,
-  },
-  headerIconBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontSize: SIZES.bodySmall,
+    ...FONTS.regular,
   },
   content: {
     padding: SIZES.md,
-    marginTop: -20,
   },
   primaryCard: {
     borderRadius: SIZES.radiusLg,
-    overflow: 'hidden',
     marginBottom: SIZES.lg,
-    ...SHADOWS.large,
+    overflow: 'hidden',
   },
-  primaryCardGradient: {
-    padding: SIZES.xl,
+  primaryCardContent: {
+    padding: SIZES.lg,
+    flexDirection: 'row',
     alignItems: 'center',
   },
   primaryCardIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 64,
+    height: 64,
+    borderRadius: SIZES.radiusMd,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SIZES.md,
+    marginRight: SIZES.md,
+  },
+  primaryCardText: {
+    flex: 1,
   },
   primaryCardTitle: {
-    fontSize: SIZES.h3,
+    fontSize: SIZES.h4,
     ...FONTS.bold,
-    color: COLORS.surface,
-    marginBottom: SIZES.sm,
+    marginBottom: SIZES.xs,
   },
   primaryCardDescription: {
-    fontSize: SIZES.body,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    marginBottom: SIZES.md,
+    fontSize: SIZES.bodySmall,
+    ...FONTS.regular,
   },
   primaryCardArrow: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: SIZES.radiusMd,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -213,14 +227,10 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     flex: 1,
-    backgroundColor: COLORS.surface,
     borderRadius: SIZES.radiusMd,
     padding: SIZES.md,
     marginHorizontal: SIZES.xs,
     ...SHADOWS.medium,
-  },
-  actionCardDisabled: {
-    opacity: 0.8,
   },
   actionIconContainer: {
     width: 56,
@@ -233,38 +243,33 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontSize: SIZES.h6,
     ...FONTS.semiBold,
-    color: COLORS.text,
     marginBottom: SIZES.xs,
   },
   actionDescription: {
     fontSize: SIZES.caption,
-    color: COLORS.textSecondary,
     lineHeight: 16,
+    ...FONTS.regular,
   },
   comingSoonBadge: {
     position: 'absolute',
     top: SIZES.sm,
     right: SIZES.sm,
-    backgroundColor: COLORS.warning,
     paddingHorizontal: SIZES.sm,
     paddingVertical: SIZES.xs,
     borderRadius: SIZES.radiusSm,
   },
   comingSoonText: {
-    color: COLORS.surface,
     fontSize: 10,
     ...FONTS.bold,
   },
   featuresSection: {
-    backgroundColor: COLORS.surface,
     borderRadius: SIZES.radiusMd,
     padding: SIZES.lg,
     ...SHADOWS.small,
   },
   featuresTitle: {
-    fontSize: SIZES.h4,
+    fontSize: SIZES.h5,
     ...FONTS.bold,
-    color: COLORS.text,
     marginBottom: SIZES.lg,
   },
   featureItem: {
@@ -286,11 +291,10 @@ const styles = StyleSheet.create({
   featureText: {
     fontSize: SIZES.body,
     ...FONTS.semiBold,
-    color: COLORS.text,
     marginBottom: SIZES.xs,
   },
   featureSubtext: {
     fontSize: SIZES.bodySmall,
-    color: COLORS.textSecondary,
+    ...FONTS.regular,
   },
 });

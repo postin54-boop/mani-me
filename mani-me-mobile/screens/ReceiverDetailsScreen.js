@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, StatusBar } from 'react-native';
 import { useUser } from '../context/UserContext';
+import { useThemeColors } from '../constants/theme';
 
 export default function ReceiverDetailsScreen({ route, navigation }) {
   const { senderData } = route.params;
   const { user } = useUser();
+  const { colors, isDark } = useThemeColors();
 
   // Receiver Details
   const [receiverName, setReceiverName] = useState('');
@@ -43,97 +45,104 @@ export default function ReceiverDetailsScreen({ route, navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Receiver Details</Text>
-      <Text style={styles.subtitle}>Who will receive this parcel in Ghana?</Text>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <Text style={[styles.title, { color: colors.text }]}>Receiver Details</Text>
+      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Who will receive this parcel in Ghana?</Text>
 
       {/* Receiver Information */}
-      <Text style={styles.sectionTitle}>Receiver Information</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Receiver Information</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
         placeholder="Receiver Full Name *"
+        placeholderTextColor={colors.textSecondary}
         value={receiverName}
         onChangeText={setReceiverName}
       />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
         placeholder="Receiver Phone Number *"
+        placeholderTextColor={colors.textSecondary}
         value={receiverPhone}
         onChangeText={setReceiverPhone}
         keyboardType="phone-pad"
       />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
         placeholder="Alternate Phone Number"
+        placeholderTextColor={colors.textSecondary}
         value={alternatePhone}
         onChangeText={setAlternatePhone}
         keyboardType="phone-pad"
       />
 
       {/* Delivery Address in Ghana */}
-      <Text style={styles.sectionTitle}>Delivery Address (Ghana)</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Delivery Address (Ghana)</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
         placeholder="Street Address / House Number *"
+        placeholderTextColor={colors.textSecondary}
         value={deliveryAddress}
         onChangeText={setDeliveryAddress}
         multiline
       />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
         placeholder="City / Town *"
+        placeholderTextColor={colors.textSecondary}
         value={deliveryCity}
         onChangeText={setDeliveryCity}
       />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
         placeholder="Region *"
+        placeholderTextColor={colors.textSecondary}
         value={deliveryRegion}
         onChangeText={setDeliveryRegion}
       />
 
       {/* Payment Method */}
-      <Text style={styles.sectionTitle}>Payment Method</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment Method</Text>
       <View style={styles.paymentContainer}>
         <TouchableOpacity
-          style={[styles.paymentOption, paymentMethod === 'card' && styles.paymentOptionSelected]}
+          style={[styles.paymentOption, { borderColor: paymentMethod === 'card' ? colors.secondary : colors.border, backgroundColor: paymentMethod === 'card' ? colors.surface : 'transparent' }]}
           onPress={() => setPaymentMethod('card')}
         >
-          <Text style={[styles.paymentText, paymentMethod === 'card' && styles.paymentTextSelected]}>
+          <Text style={[styles.paymentText, { color: paymentMethod === 'card' ? colors.secondary : colors.textSecondary }]}>
             💳 Card Payment
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.paymentOption, paymentMethod === 'cash' && styles.paymentOptionSelected]}
+          style={[styles.paymentOption, { borderColor: paymentMethod === 'cash' ? colors.secondary : colors.border, backgroundColor: paymentMethod === 'cash' ? colors.surface : 'transparent' }]}
           onPress={() => setPaymentMethod('cash')}
         >
-          <Text style={[styles.paymentText, paymentMethod === 'cash' && styles.paymentTextSelected]}>
+          <Text style={[styles.paymentText, { color: paymentMethod === 'cash' ? colors.secondary : colors.textSecondary }]}>
             💵 Cash on Pickup
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Estimated Cost */}
-      <View style={styles.costContainer}>
-        <Text style={styles.costLabel}>Estimated Cost:</Text>
-        <Text style={styles.costValue}>
+      <View style={[styles.costContainer, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.costLabel, { color: colors.text }]}>Estimated Cost:</Text>
+        <Text style={[styles.costValue, { color: colors.secondary }]}>
           £{(5 + (senderData.weight_kg * 2)).toFixed(2)}
         </Text>
       </View>
-      <Text style={styles.costNote}>
+      <Text style={[styles.costNote, { color: colors.textSecondary }]}>
         Base fee: £5.00 + £2.00 per kg
       </Text>
 
       {/* Book Button */}
-      <TouchableOpacity style={styles.bookButton} onPress={handleBookParcel}>
-        <Text style={styles.bookButtonText}>Book Parcel Pickup</Text>
+      <TouchableOpacity style={[styles.bookButton, { backgroundColor: colors.primary }]} onPress={handleBookParcel}>
+        <Text style={[styles.bookButtonText, { color: colors.accent }]}>Book Parcel Pickup</Text>
       </TouchableOpacity>
 
       <TouchableOpacity 
         style={styles.backButton} 
         onPress={() => navigation.goBack()}
       >
-        <Text style={styles.backButtonText}>← Back</Text>
+        <Text style={[styles.backButtonText, { color: colors.secondary }]}>← Back</Text>
       </TouchableOpacity>
 
       <View style={{ height: 30 }} />
@@ -144,18 +153,15 @@ export default function ReceiverDetailsScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
     padding: 20,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 5,
-    color: '#333',
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
     marginBottom: 25,
   },
   sectionTitle: {
@@ -163,16 +169,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 15,
     marginBottom: 10,
-    color: '#444',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
     fontSize: 16,
-    backgroundColor: '#f9f9f9',
   },
   paymentContainer: {
     flexDirection: 'row',
@@ -182,29 +185,18 @@ const styles = StyleSheet.create({
   paymentOption: {
     flex: 1,
     borderWidth: 2,
-    borderColor: '#ddd',
     borderRadius: 8,
     padding: 15,
     marginHorizontal: 5,
     alignItems: 'center',
   },
-  paymentOptionSelected: {
-    borderColor: '#007AFF',
-    backgroundColor: '#E3F2FD',
-  },
   paymentText: {
     fontSize: 16,
-    color: '#666',
-  },
-  paymentTextSelected: {
-    color: '#007AFF',
-    fontWeight: '600',
   },
   costContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
     padding: 15,
     borderRadius: 8,
     marginTop: 10,
@@ -212,29 +204,24 @@ const styles = StyleSheet.create({
   costLabel: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
   },
   costValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#007AFF',
   },
   costNote: {
     fontSize: 14,
-    color: '#666',
     marginTop: 5,
     marginBottom: 20,
     textAlign: 'center',
   },
   bookButton: {
-    backgroundColor: '#28a745',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 10,
   },
   bookButtonText: {
-    color: '#fff',
     fontSize: 18,
     fontWeight: '600',
   },
@@ -244,7 +231,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   backButtonText: {
-    color: '#007AFF',
     fontSize: 16,
   },
 });

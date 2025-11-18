@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView, StatusBar } from 'react-native';
 import { CardField, useStripe } from '@stripe/stripe-react-native';
+import { useThemeColors } from '../constants/theme';
 
 export default function PaymentScreen({ route, navigation }) {
   const { bookingData } = route.params;
   const [loading, setLoading] = useState(false);
   const [cardComplete, setCardComplete] = useState(false);
   const { confirmPayment } = useStripe();
+  const { colors, isDark } = useThemeColors();
 
   const handlePayment = async () => {
     if (!cardComplete) {
@@ -119,43 +121,47 @@ export default function PaymentScreen({ route, navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Payment</Text>
-        <Text style={styles.subtitle}>Choose your payment method</Text>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Payment</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Choose your payment method</Text>
       </View>
 
       {/* Order Summary */}
-      <View style={styles.summaryCard}>
-        <Text style={styles.sectionTitle}>Order Summary</Text>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Weight:</Text>
-          <Text style={styles.summaryValue}>{bookingData.weight_kg} kg</Text>
+      <View style={[styles.summaryCard, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Order Summary</Text>
+        <View style={[styles.summaryRow, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Weight:</Text>
+          <Text style={[styles.summaryValue, { color: colors.text }]}>{bookingData.weight_kg} kg</Text>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>From:</Text>
-          <Text style={styles.summaryValue}>{bookingData.pickup_city}, UK</Text>
+        <View style={[styles.summaryRow, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>From:</Text>
+          <Text style={[styles.summaryValue, { color: colors.text }]}>{bookingData.pickup_city}, UK</Text>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>To:</Text>
-          <Text style={styles.summaryValue}>{bookingData.delivery_city}, Ghana</Text>
+        <View style={[styles.summaryRow, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>To:</Text>
+          <Text style={[styles.summaryValue, { color: colors.text }]}>{bookingData.delivery_city}, Ghana</Text>
         </View>
-        <View style={[styles.summaryRow, styles.totalRow]}>
-          <Text style={styles.totalLabel}>Total:</Text>
-          <Text style={styles.totalValue}>£{parseFloat(bookingData.total_cost).toFixed(2)}</Text>
+        <View style={[styles.summaryRow, styles.totalRow, { borderTopColor: colors.text }]}>
+          <Text style={[styles.totalLabel, { color: colors.text }]}>Total:</Text>
+          <Text style={[styles.totalValue, { color: colors.text }]}>£{parseFloat(bookingData.total_cost).toFixed(2)}</Text>
         </View>
       </View>
 
       {/* Card Payment Section */}
-      <View style={styles.paymentSection}>
-        <Text style={styles.sectionTitle}>💳 Pay with Card</Text>
+      <View style={[styles.paymentSection, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>💳 Pay with Card</Text>
         <View style={styles.cardContainer}>
           <CardField
             postalCodeEnabled={false}
             placeholders={{
               number: '4242 4242 4242 4242',
             }}
-            cardStyle={styles.card}
+            cardStyle={{
+              backgroundColor: isDark ? colors.background : '#f8f8f8',
+              textColor: colors.text,
+            }}
             style={styles.cardField}
             onCardChange={(cardDetails) => {
               setCardComplete(cardDetails.complete);
@@ -163,41 +169,41 @@ export default function PaymentScreen({ route, navigation }) {
           />
         </View>
         <TouchableOpacity
-          style={[styles.button, styles.cardButton, (!cardComplete || loading) && styles.buttonDisabled]}
+          style={[styles.button, styles.cardButton, { backgroundColor: colors.primary }, (!cardComplete || loading) && styles.buttonDisabled]}
           onPress={handlePayment}
           disabled={!cardComplete || loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.accent} />
           ) : (
-            <Text style={styles.buttonText}>Pay £{parseFloat(bookingData.total_cost).toFixed(2)}</Text>
+            <Text style={[styles.buttonText, { color: colors.accent }]}>Pay £{parseFloat(bookingData.total_cost).toFixed(2)}</Text>
           )}
         </TouchableOpacity>
-        <Text style={styles.testCardInfo}>Test card: 4242 4242 4242 4242</Text>
+        <Text style={[styles.testCardInfo, { color: colors.textSecondary }]}>Test card: 4242 4242 4242 4242</Text>
       </View>
 
       {/* Divider */}
       <View style={styles.divider}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>OR</Text>
-        <View style={styles.dividerLine} />
+        <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+        <Text style={[styles.dividerText, { color: colors.textSecondary }]}>OR</Text>
+        <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
       </View>
 
       {/* Cash Payment Section */}
-      <View style={styles.paymentSection}>
-        <Text style={styles.sectionTitle}>💵 Pay with Cash</Text>
-        <Text style={styles.cashInfo}>
+      <View style={[styles.paymentSection, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>💵 Pay with Cash</Text>
+        <Text style={[styles.cashInfo, { color: colors.textSecondary }]}>
           Pay cash when your parcel is picked up from your location
         </Text>
         <TouchableOpacity
-          style={[styles.button, styles.cashButton, loading && styles.buttonDisabled]}
+          style={[styles.button, styles.cashButton, { backgroundColor: colors.surface, borderColor: colors.primary }, loading && styles.buttonDisabled]}
           onPress={handlePayCash}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#000" />
+            <ActivityIndicator color={colors.primary} />
           ) : (
-            <Text style={[styles.buttonText, styles.cashButtonText]}>Book & Pay Cash</Text>
+            <Text style={[styles.buttonText, styles.cashButtonText, { color: colors.primary }]}>Book & Pay Cash</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -208,27 +214,21 @@ export default function PaymentScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
-    backgroundColor: '#fff',
     padding: 20,
     paddingTop: 60,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#000',
     marginBottom: 5,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
   },
   summaryCard: {
-    backgroundColor: '#fff',
     margin: 20,
     padding: 20,
     borderRadius: 12,
@@ -241,7 +241,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000',
     marginBottom: 15,
   },
   summaryRow: {
@@ -249,15 +248,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   summaryLabel: {
     fontSize: 15,
-    color: '#666',
   },
   summaryValue: {
     fontSize: 15,
-    color: '#000',
     fontWeight: '500',
   },
   totalRow: {
@@ -265,20 +261,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 15,
     borderTopWidth: 2,
-    borderTopColor: '#000',
   },
   totalLabel: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#000',
   },
   totalValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#000',
   },
   paymentSection: {
-    backgroundColor: '#fff',
     marginHorizontal: 20,
     marginBottom: 20,
     padding: 20,
@@ -296,10 +288,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 50,
   },
-  card: {
-    backgroundColor: '#f8f8f8',
-    textColor: '#000',
-  },
   button: {
     padding: 16,
     borderRadius: 8,
@@ -307,33 +295,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardButton: {
-    backgroundColor: '#000',
   },
   cashButton: {
-    backgroundColor: '#fff',
     borderWidth: 2,
-    borderColor: '#000',
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
   cashButtonText: {
-    color: '#000',
   },
   testCardInfo: {
     marginTop: 10,
     fontSize: 12,
-    color: '#999',
     textAlign: 'center',
   },
   cashInfo: {
     fontSize: 14,
-    color: '#666',
     marginBottom: 15,
     lineHeight: 20,
   },
@@ -346,11 +327,9 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e0e0e0',
   },
   dividerText: {
     marginHorizontal: 15,
-    color: '#999',
     fontSize: 14,
     fontWeight: '500',
   },

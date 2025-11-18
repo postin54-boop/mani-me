@@ -5,9 +5,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as Notifications from 'expo-notifications';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useColorScheme } from 'react-native';
 import { UserProvider, useUser } from './context/UserContext';
 import { registerForPushNotificationsAsync, updatePushToken } from './utils/notifications';
-import { COLORS } from './constants/theme';
+import { getColors } from './constants/theme';
 
 import LoginScreen from './screens/loginscreen';
 import RegisterScreen from './screens/RegisterScreen';
@@ -26,6 +27,9 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function TabNavigator() {
+  const colorScheme = useColorScheme();
+  const colors = getColors(colorScheme === 'dark');
+  
   return (
     <Tab.Navigator 
       screenOptions={({ route }) => ({
@@ -43,15 +47,15 @@ function TabNavigator() {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textSecondary,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
           paddingBottom: 8,
           paddingTop: 8,
           height: 60,
           borderTopWidth: 1,
-          borderTopColor: COLORS.border,
-          backgroundColor: COLORS.surface,
+          borderTopColor: colors.border,
+          backgroundColor: colors.surface,
         },
         tabBarLabelStyle: {
           fontSize: 12,

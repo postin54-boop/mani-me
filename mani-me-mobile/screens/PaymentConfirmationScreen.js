@@ -1,11 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar } from 'react-native';
+import { useThemeColors } from '../constants/theme';
 
 export default function PaymentConfirmationScreen({ route, navigation }) {
   const { trackingNumber, amount, paymentIntent, paymentMethod = 'card' } = route.params;
+  const { colors, isDark } = useThemeColors();
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <View style={styles.content}>
         {/* Success Icon */}
         <View style={styles.iconContainer}>
@@ -13,45 +16,45 @@ export default function PaymentConfirmationScreen({ route, navigation }) {
         </View>
 
         {/* Success Message */}
-        <Text style={styles.title}>
+        <Text style={[styles.title, { color: colors.text }]}>
           {paymentMethod === 'card' ? 'Payment Successful!' : 'Booking Confirmed!'}
         </Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           {paymentMethod === 'card' 
             ? 'Your payment has been processed successfully' 
             : 'Your parcel booking is confirmed'}
         </Text>
 
         {/* Booking Details */}
-        <View style={styles.detailsCard}>
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Tracking Number:</Text>
-            <Text style={styles.value}>{trackingNumber}</Text>
+        <View style={[styles.detailsCard, { backgroundColor: colors.surface }]}>
+          <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Tracking Number:</Text>
+            <Text style={[styles.value, { color: colors.text }]}>{trackingNumber}</Text>
           </View>
 
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Amount:</Text>
-            <Text style={styles.value}>£{parseFloat(amount).toFixed(2)}</Text>
+          <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Amount:</Text>
+            <Text style={[styles.value, { color: colors.text }]}>£{parseFloat(amount).toFixed(2)}</Text>
           </View>
 
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Payment Method:</Text>
-            <Text style={styles.value}>
+          <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Payment Method:</Text>
+            <Text style={[styles.value, { color: colors.text }]}>
               {paymentMethod === 'card' ? '💳 Card' : '💵 Cash on Pickup'}
             </Text>
           </View>
 
           {paymentIntent && (
-            <View style={styles.detailRow}>
-              <Text style={styles.label}>Payment ID:</Text>
-              <Text style={[styles.value, styles.paymentId]}>{paymentIntent}</Text>
+            <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Payment ID:</Text>
+              <Text style={[styles.value, styles.paymentId, { color: colors.text }]}>{paymentIntent}</Text>
             </View>
           )}
 
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Status:</Text>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>
+          <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Status:</Text>
+            <View style={[styles.statusBadge, { backgroundColor: paymentMethod === 'card' ? '#4CAF50' : '#FF9800' }]}>
+              <Text style={[styles.statusText, { color: colors.accent }]}>
                 {paymentMethod === 'card' ? 'Paid' : 'Pending Payment'}
               </Text>
             </View>
@@ -59,15 +62,15 @@ export default function PaymentConfirmationScreen({ route, navigation }) {
         </View>
 
         {/* Next Steps */}
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>📦 What's Next?</Text>
-          <Text style={styles.infoText}>
+        <View style={[styles.infoCard, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.infoTitle, { color: colors.text }]}>📦 What's Next?</Text>
+          <Text style={[styles.infoText, { color: colors.textSecondary }]}>
             • You'll receive a notification when your parcel is picked up
           </Text>
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoText, { color: colors.textSecondary }]}>
             • Track your parcel in real-time from the Orders tab
           </Text>
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoText, { color: colors.textSecondary }]}>
             • You'll be notified at each stage of delivery
           </Text>
           {paymentMethod === 'cash' && (
@@ -79,19 +82,19 @@ export default function PaymentConfirmationScreen({ route, navigation }) {
 
         {/* Action Buttons */}
         <TouchableOpacity
-          style={styles.primaryButton}
+          style={[styles.primaryButton, { backgroundColor: colors.primary }]}
           onPress={() => navigation.navigate('Tracking', {
             parcel: { tracking_number: trackingNumber }
           })}
         >
-          <Text style={styles.primaryButtonText}>Track Parcel</Text>
+          <Text style={[styles.primaryButtonText, { color: colors.accent }]}>Track Parcel</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.secondaryButton}
+          style={[styles.secondaryButton, { backgroundColor: colors.surface, borderColor: colors.primary }]}
           onPress={() => navigation.navigate('Home')}
         >
-          <Text style={styles.secondaryButtonText}>Back to Home</Text>
+          <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>Back to Home</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -101,7 +104,6 @@ export default function PaymentConfirmationScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   content: {
     padding: 20,
@@ -117,20 +119,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#000',
     marginBottom: 10,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
     marginBottom: 30,
     textAlign: 'center',
     paddingHorizontal: 20,
   },
   detailsCard: {
     width: '100%',
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
@@ -146,16 +145,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   label: {
     fontSize: 15,
-    color: '#666',
     fontWeight: '500',
   },
   value: {
     fontSize: 15,
-    color: '#000',
     fontWeight: '600',
     flex: 1,
     textAlign: 'right',
@@ -165,19 +161,16 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
   statusBadge: {
-    backgroundColor: '#4CAF50',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
   },
   statusText: {
-    color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
   },
   infoCard: {
     width: '100%',
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
     marginBottom: 30,
@@ -190,12 +183,10 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#000',
     marginBottom: 15,
   },
   infoText: {
     fontSize: 14,
-    color: '#666',
     marginBottom: 10,
     lineHeight: 20,
   },
@@ -206,28 +197,23 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     width: '100%',
-    backgroundColor: '#000',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 15,
   },
   primaryButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
   secondaryButton: {
     width: '100%',
-    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#000',
   },
   secondaryButtonText: {
-    color: '#000',
     fontSize: 16,
     fontWeight: 'bold',
   },

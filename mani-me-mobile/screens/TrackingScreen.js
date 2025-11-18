@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, StatusBar } from 'react-native';
+import { useThemeColors } from '../constants/theme';
 
 export default function TrackingScreen({ route, navigation }) {
   const { parcel } = route.params;
   const [shipmentData, setShipmentData] = useState(parcel);
   const [refreshing, setRefreshing] = useState(false);
+  const { colors, isDark } = useThemeColors();
 
   const fetchLatestData = async () => {
     try {
@@ -68,33 +70,34 @@ export default function TrackingScreen({ route, navigation }) {
 
   return (
     <ScrollView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       {/* Header */}
       <View style={[styles.header, { backgroundColor: getStatusColor(shipmentData.status) }]}>
-        <Text style={styles.headerTitle}>Tracking Details</Text>
-        <Text style={styles.trackingNumber}>{shipmentData.tracking_number}</Text>
+        <Text style={[styles.headerTitle, { color: colors.accent }]}>Tracking Details</Text>
+        <Text style={[styles.trackingNumber, { color: colors.accent }]}>{shipmentData.tracking_number}</Text>
       </View>
 
       {/* Current Status */}
-      <View style={styles.currentStatusCard}>
-        <Text style={styles.currentStatusLabel}>Current Status</Text>
+      <View style={[styles.currentStatusCard, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.currentStatusLabel, { color: colors.textSecondary }]}>Current Status</Text>
         <Text style={[styles.currentStatus, { color: getStatusColor(shipmentData.status) }]}>
           {trackingSteps.find(s => s.key === shipmentData.status)?.label || shipmentData.status}
         </Text>
         {shipmentData.status === 'delivered' && shipmentData.delivered_at && (
-          <Text style={styles.deliveredDate}>
+          <Text style={[styles.deliveredDate, { color: colors.textSecondary }]}>
             Delivered on {new Date(shipmentData.delivered_at).toLocaleDateString()}
           </Text>
         )}
       </View>
 
       {/* Timeline */}
-      <View style={styles.timelineContainer}>
-        <Text style={styles.sectionTitle}>Tracking Timeline</Text>
+      <View style={[styles.timelineContainer, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Tracking Timeline</Text>
         {trackingSteps.map((step, index) => {
           const isCompleted = isStepCompleted(index);
           const isCurrent = isStepCurrent(index);
@@ -120,13 +123,13 @@ export default function TrackingScreen({ route, navigation }) {
               <View style={styles.timelineRight}>
                 <Text style={[
                   styles.stepLabel,
-                  isCompleted && styles.stepLabelCompleted,
-                  isCurrent && styles.stepLabelCurrent,
+                  { color: isCompleted ? colors.text : colors.textSecondary },
+                  isCurrent && { color: colors.secondary, fontWeight: 'bold' },
                 ]}>
                   {step.label}
                 </Text>
                 {timestamp && (
-                  <Text style={styles.stepTimestamp}>
+                  <Text style={[styles.stepTimestamp, { color: colors.textSecondary }]}>
                     {new Date(timestamp).toLocaleString()}
                   </Text>
                 )}
@@ -137,72 +140,72 @@ export default function TrackingScreen({ route, navigation }) {
       </View>
 
       {/* Parcel Details */}
-      <View style={styles.detailsCard}>
-        <Text style={styles.sectionTitle}>Parcel Information</Text>
+      <View style={[styles.detailsCard, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Parcel Information</Text>
         
         <View style={styles.detailSection}>
-          <Text style={styles.detailSectionTitle}>📤 Sender (UK)</Text>
+          <Text style={[styles.detailSectionTitle, { color: colors.text }]}>📤 Sender (UK)</Text>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Name:</Text>
-            <Text style={styles.detailValue}>{shipmentData.sender_name}</Text>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Name:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>{shipmentData.sender_name}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Phone:</Text>
-            <Text style={styles.detailValue}>{shipmentData.sender_phone}</Text>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Phone:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>{shipmentData.sender_phone}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Pickup:</Text>
-            <Text style={styles.detailValue}>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Pickup:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>
               {shipmentData.pickup_city}, {shipmentData.pickup_postcode}
             </Text>
           </View>
         </View>
 
         <View style={styles.detailSection}>
-          <Text style={styles.detailSectionTitle}>📥 Receiver (Ghana)</Text>
+          <Text style={[styles.detailSectionTitle, { color: colors.text }]}>📥 Receiver (Ghana)</Text>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Name:</Text>
-            <Text style={styles.detailValue}>{shipmentData.receiver_name}</Text>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Name:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>{shipmentData.receiver_name}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Phone:</Text>
-            <Text style={styles.detailValue}>{shipmentData.receiver_phone}</Text>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Phone:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>{shipmentData.receiver_phone}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Delivery:</Text>
-            <Text style={styles.detailValue}>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Delivery:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>
               {shipmentData.delivery_city}, {shipmentData.delivery_region}
             </Text>
           </View>
         </View>
 
         <View style={styles.detailSection}>
-          <Text style={styles.detailSectionTitle}>📦 Parcel Details</Text>
+          <Text style={[styles.detailSectionTitle, { color: colors.text }]}>📦 Parcel Details</Text>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Weight:</Text>
-            <Text style={styles.detailValue}>{shipmentData.weight_kg} kg</Text>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Weight:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>{shipmentData.weight_kg} kg</Text>
           </View>
           {shipmentData.dimensions && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Dimensions:</Text>
-              <Text style={styles.detailValue}>{shipmentData.dimensions}</Text>
+              <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Dimensions:</Text>
+              <Text style={[styles.detailValue, { color: colors.text }]}>{shipmentData.dimensions}</Text>
             </View>
           )}
           {shipmentData.parcel_description && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Description:</Text>
-              <Text style={styles.detailValue}>{shipmentData.parcel_description}</Text>
+              <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Description:</Text>
+              <Text style={[styles.detailValue, { color: colors.text }]}>{shipmentData.parcel_description}</Text>
             </View>
           )}
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Payment:</Text>
-            <Text style={styles.detailValue}>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Payment:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>
               {shipmentData.payment_method === 'card' ? '💳 Card' : '💵 Cash'}
             </Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Total Cost:</Text>
-            <Text style={[styles.detailValue, styles.costValue]}>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Total Cost:</Text>
+            <Text style={[styles.detailValue, { color: colors.secondary }]}>
               £{parseFloat(shipmentData.total_cost).toFixed(2)}
             </Text>
           </View>
@@ -214,7 +217,7 @@ export default function TrackingScreen({ route, navigation }) {
         style={styles.backButton}
         onPress={() => navigation.goBack()}
       >
-        <Text style={styles.backButtonText}>← Back to Parcels</Text>
+        <Text style={[styles.backButtonText, { color: colors.secondary }]}>← Back to Parcels</Text>
       </TouchableOpacity>
 
       <View style={{ height: 30 }} />
@@ -225,7 +228,6 @@ export default function TrackingScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     padding: 25,
@@ -234,16 +236,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    color: '#fff',
     marginBottom: 8,
   },
   trackingNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
   },
   currentStatusCard: {
-    backgroundColor: '#fff',
     margin: 15,
     padding: 20,
     borderRadius: 12,
@@ -256,7 +255,6 @@ const styles = StyleSheet.create({
   },
   currentStatusLabel: {
     fontSize: 14,
-    color: '#666',
     marginBottom: 5,
   },
   currentStatus: {
@@ -265,11 +263,9 @@ const styles = StyleSheet.create({
   },
   deliveredDate: {
     fontSize: 14,
-    color: '#666',
     marginTop: 8,
   },
   timelineContainer: {
-    backgroundColor: '#fff',
     margin: 15,
     marginTop: 0,
     padding: 20,
@@ -284,7 +280,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 15,
-    color: '#333',
   },
   timelineItem: {
     flexDirection: 'row',
@@ -309,7 +304,7 @@ const styles = StyleSheet.create({
     borderColor: '#4CAF50',
   },
   timelineDotCurrent: {
-    borderColor: '#007AFF',
+    borderColor: '#83C5FA',
     borderWidth: 3,
   },
   timelineDotText: {
@@ -331,23 +326,12 @@ const styles = StyleSheet.create({
   },
   stepLabel: {
     fontSize: 16,
-    color: '#999',
     marginBottom: 3,
-  },
-  stepLabelCompleted: {
-    color: '#333',
-    fontWeight: '500',
-  },
-  stepLabelCurrent: {
-    color: '#007AFF',
-    fontWeight: 'bold',
   },
   stepTimestamp: {
     fontSize: 12,
-    color: '#666',
   },
   detailsCard: {
-    backgroundColor: '#fff',
     margin: 15,
     marginTop: 0,
     padding: 20,
@@ -365,7 +349,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 10,
-    color: '#444',
   },
   detailRow: {
     flexDirection: 'row',
@@ -374,19 +357,12 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
-    color: '#666',
   },
   detailValue: {
     fontSize: 14,
-    color: '#333',
     fontWeight: '500',
     flex: 1,
     textAlign: 'right',
-  },
-  costValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#007AFF',
   },
   backButton: {
     margin: 15,
@@ -395,7 +371,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backButtonText: {
-    color: '#007AFF',
     fontSize: 16,
     fontWeight: '600',
   },

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '../context/UserContext';
-import { COLORS, SIZES, SHADOWS, FONTS } from '../constants/theme';
+import { useThemeColors, SIZES, SHADOWS, FONTS } from '../constants/theme';
 
 export default function OrdersScreen({ navigation }) {
+  const { colors, isDark } = useThemeColors();
   const [parcels, setParcels] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ total_parcels: 0, delivered: 0, in_transit: 0 });
@@ -93,87 +94,84 @@ export default function OrdersScreen({ navigation }) {
 
   return (
     <ScrollView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       refreshControl={
         <RefreshControl 
           refreshing={refreshing} 
           onRefresh={onRefresh}
-          tintColor={COLORS.primary}
-          colors={[COLORS.primary]}
+          tintColor={colors.primary}
+          colors={[colors.primary]}
         />
       }
       showsVerticalScrollIndicator={false}
     >
+      <StatusBar 
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.primary}
+      />
       {/* Header with Gradient */}
       <LinearGradient
-        colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+        colors={[colors.primary, colors.primaryLight]}
         style={styles.header}
       >
-        <Text style={styles.title}>My Parcels</Text>
-        <Text style={styles.headerSubtitle}>Track all your deliveries</Text>
+        <Text style={[styles.title, { color: colors.accent }]}>My Parcels</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.accent + 'CC' }]}>Track all your deliveries</Text>
       </LinearGradient>
 
       {/* Stats Cards */}
       <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <View style={[styles.statIconContainer, { backgroundColor: COLORS.primary + '15' }]}>
-            <Ionicons name="cube" size={24} color={COLORS.primary} />
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <View style={[styles.statIconContainer, { backgroundColor: colors.primary + '15' }]}>
+            <Ionicons name="cube" size={24} color={colors.primary} />
           </View>
-          <Text style={styles.statNumber}>{stats.total_parcels}</Text>
-          <Text style={styles.statLabel}>Total</Text>
+          <Text style={[styles.statNumber, { color: colors.text }]}>{stats.total_parcels}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Total</Text>
         </View>
-        <View style={styles.statCard}>
-          <View style={[styles.statIconContainer, { backgroundColor: COLORS.info + '15' }]}>
-            <Ionicons name="airplane" size={24} color={COLORS.info} />
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <View style={[styles.statIconContainer, { backgroundColor: colors.secondary + '15' }]}>
+            <Ionicons name="airplane" size={24} color={colors.secondary} />
           </View>
-          <Text style={[styles.statNumber, { color: COLORS.info }]}>{stats.in_transit}</Text>
-          <Text style={styles.statLabel}>In Transit</Text>
+          <Text style={[styles.statNumber, { color: colors.secondary }]}>{stats.in_transit}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>In Transit</Text>
         </View>
-        <View style={styles.statCard}>
-          <View style={[styles.statIconContainer, { backgroundColor: COLORS.success + '15' }]}>
-            <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <View style={[styles.statIconContainer, { backgroundColor: '#10B98115' }]}>
+            <Ionicons name="checkmark-circle" size={24} color="#10B981" />
           </View>
-          <Text style={[styles.statNumber, { color: COLORS.success }]}>{stats.delivered}</Text>
-          <Text style={styles.statLabel}>Delivered</Text>
+          <Text style={[styles.statNumber, { color: '#10B981' }]}>{stats.delivered}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Delivered</Text>
         </View>
       </View>
 
       {/* Parcels List */}
       <View style={styles.listContainer}>
         {parcels.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconContainer}>
-              <Ionicons name="cube-outline" size={60} color={COLORS.textLight} />
+          <View style={[styles.emptyContainer, { backgroundColor: colors.surface }]}>
+            <View style={[styles.emptyIconContainer, { backgroundColor: colors.border }]}>
+              <Ionicons name="cube-outline" size={60} color={colors.textSecondary} />
             </View>
-            <Text style={styles.emptyText}>No parcels yet</Text>
-            <Text style={styles.emptySubtext}>
+            <Text style={[styles.emptyText, { color: colors.text }]}>No parcels yet</Text>
+            <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
               Book your first parcel to start tracking deliveries
             </Text>
             <TouchableOpacity 
-              style={styles.bookButton}
+              style={[styles.bookButton, { backgroundColor: colors.primary }]}
               onPress={() => navigation.navigate('HomeTab')}
               activeOpacity={0.8}
             >
-              <LinearGradient
-                colors={[COLORS.success, COLORS.secondaryLight]}
-                style={styles.bookButtonGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <Ionicons name="add-circle-outline" size={20} color={COLORS.surface} />
-                <Text style={styles.bookButtonText}>Book a Parcel</Text>
-              </LinearGradient>
+              <Ionicons name="add-circle-outline" size={20} color={colors.accent} />
+              <Text style={[styles.bookButtonText, { color: colors.accent }]}>Book a Parcel</Text>
             </TouchableOpacity>
           </View>
         ) : (
           parcels.map((parcel) => (
             <TouchableOpacity
               key={parcel.id}
-              style={styles.parcelCard}
+              style={[styles.parcelCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
               onPress={() => handleTrackParcel(parcel)}
             >
               <View style={styles.parcelHeader}>
-                <Text style={styles.trackingNumber}>
+                <Text style={[styles.trackingNumber, { color: colors.text }]}>
                   {parcel.tracking_number}
                 </Text>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(parcel.status) }]}>
@@ -183,34 +181,34 @@ export default function OrdersScreen({ navigation }) {
 
               <View style={styles.parcelDetails}>
                 <View style={styles.detailRow}>
-                  <Ionicons name="person-outline" size={16} color={COLORS.textSecondary} style={styles.detailIcon} />
-                  <Text style={styles.detailLabel}>To:</Text>
-                  <Text style={styles.detailValue}>{parcel.receiver_name}</Text>
+                  <Ionicons name="person-outline" size={16} color={colors.secondary} style={styles.detailIcon} />
+                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>To:</Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]}>{parcel.receiver_name}</Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Ionicons name="location-outline" size={16} color={COLORS.textSecondary} style={styles.detailIcon} />
-                  <Text style={styles.detailLabel}>Destination:</Text>
-                  <Text style={styles.detailValue}>
+                  <Ionicons name="location-outline" size={16} color={colors.secondary} style={styles.detailIcon} />
+                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Destination:</Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]}>
                     {parcel.delivery_city}, {parcel.delivery_region}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Ionicons name="scale-outline" size={16} color={COLORS.textSecondary} style={styles.detailIcon} />
-                  <Text style={styles.detailLabel}>Weight:</Text>
-                  <Text style={styles.detailValue}>{parcel.weight_kg} kg</Text>
+                  <Ionicons name="scale-outline" size={16} color={colors.secondary} style={styles.detailIcon} />
+                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Weight:</Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]}>{parcel.weight_kg} kg</Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Ionicons name="calendar-outline" size={16} color={COLORS.textSecondary} style={styles.detailIcon} />
-                  <Text style={styles.detailLabel}>Booked:</Text>
-                  <Text style={styles.detailValue}>
+                  <Ionicons name="calendar-outline" size={16} color={colors.secondary} style={styles.detailIcon} />
+                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Booked:</Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]}>
                     {new Date(parcel.booked_at || parcel.created_at).toLocaleDateString()}
                   </Text>
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.trackButton}>
-                <Text style={styles.trackButtonText}>View Tracking</Text>
-                <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
+              <TouchableOpacity style={[styles.trackButton, { backgroundColor: colors.secondary + '15' }]}>
+                <Text style={[styles.trackButtonText, { color: colors.secondary }]}>View Tracking</Text>
+                <Ionicons name="arrow-forward" size={16} color={colors.secondary} />
               </TouchableOpacity>
             </TouchableOpacity>
           ))
@@ -223,24 +221,10 @@ export default function OrdersScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
   header: {
     paddingTop: 50,
     paddingBottom: 25,
     paddingHorizontal: SIZES.lg,
-  },
-  title: {
-    fontSize: SIZES.h2,
-    ...FONTS.bold,
-    color: COLORS.surface,
-    marginBottom: SIZES.xs,
-  },
-  headerSubtitle: {
-    fontSize: SIZES.body,
-    color: 'rgba(255, 255, 255, 0.9)',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -250,7 +234,6 @@ const styles = StyleSheet.create({
     marginTop: -10,
   },
   statCard: {
-    backgroundColor: COLORS.surface,
     borderRadius: SIZES.radiusMd,
     padding: SIZES.md,
     alignItems: 'center',
@@ -269,12 +252,10 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: SIZES.h3,
     ...FONTS.bold,
-    color: COLORS.text,
     marginBottom: SIZES.xs,
   },
   statLabel: {
     fontSize: SIZES.caption,
-    color: COLORS.textSecondary,
     ...FONTS.medium,
   },
   listContainer: {
@@ -284,7 +265,6 @@ const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: SIZES.xxl,
-    backgroundColor: COLORS.surface,
     borderRadius: SIZES.radiusMd,
     marginTop: SIZES.lg,
     ...SHADOWS.small,
@@ -293,7 +273,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SIZES.lg,
@@ -301,39 +280,33 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: SIZES.h4,
     ...FONTS.semiBold,
-    color: COLORS.text,
     marginBottom: SIZES.sm,
   },
   emptySubtext: {
     fontSize: SIZES.body,
-    color: COLORS.textSecondary,
     textAlign: 'center',
     marginBottom: SIZES.xl,
     paddingHorizontal: SIZES.xl,
     lineHeight: 22,
   },
   bookButton: {
-    borderRadius: SIZES.radiusMd,
-    overflow: 'hidden',
-    ...SHADOWS.medium,
-  },
-  bookButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SIZES.lg,
     paddingVertical: SIZES.md,
+    borderRadius: SIZES.radiusMd,
+    ...SHADOWS.medium,
   },
   bookButtonText: {
-    color: COLORS.surface,
     fontSize: SIZES.h6,
     ...FONTS.semiBold,
     marginLeft: SIZES.sm,
   },
   parcelCard: {
-    backgroundColor: COLORS.surface,
     borderRadius: SIZES.radiusMd,
     padding: SIZES.md,
     marginBottom: SIZES.md,
+    borderWidth: 1,
     ...SHADOWS.medium,
   },
   parcelHeader: {
@@ -343,12 +316,10 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.md,
     paddingBottom: SIZES.md,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
   trackingNumber: {
     fontSize: SIZES.h6,
     ...FONTS.bold,
-    color: COLORS.text,
   },
   statusBadge: {
     paddingHorizontal: SIZES.md,
@@ -356,7 +327,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radiusFull,
   },
   statusText: {
-    color: COLORS.surface,
+    color: '#FFFFFF',
     fontSize: SIZES.caption,
     ...FONTS.semiBold,
   },
@@ -373,7 +344,6 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: SIZES.bodySmall,
-    color: COLORS.textSecondary,
     ...FONTS.medium,
     marginRight: SIZES.xs,
     minWidth: 80,
@@ -381,19 +351,17 @@ const styles = StyleSheet.create({
   detailValue: {
     flex: 1,
     fontSize: SIZES.bodySmall,
-    color: COLORS.text,
     ...FONTS.regular,
   },
   trackButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: SIZES.sm,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    paddingVertical: SIZES.sm,
+    paddingHorizontal: SIZES.md,
+    borderRadius: SIZES.radiusSm,
   },
   trackButtonText: {
-    color: COLORS.primary,
     fontSize: SIZES.body,
     ...FONTS.semiBold,
     marginRight: SIZES.xs,
