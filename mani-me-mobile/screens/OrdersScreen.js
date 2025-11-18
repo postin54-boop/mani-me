@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '../context/UserContext';
+import { COLORS, SIZES, SHADOWS, FONTS } from '../constants/theme';
 
 export default function OrdersScreen({ navigation }) {
   const [parcels, setParcels] = useState([]);
@@ -92,25 +95,45 @@ export default function OrdersScreen({ navigation }) {
     <ScrollView 
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl 
+          refreshing={refreshing} 
+          onRefresh={onRefresh}
+          tintColor={COLORS.primary}
+          colors={[COLORS.primary]}
+        />
       }
+      showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
+      {/* Header with Gradient */}
+      <LinearGradient
+        colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+        style={styles.header}
+      >
         <Text style={styles.title}>My Parcels</Text>
-      </View>
+        <Text style={styles.headerSubtitle}>Track all your deliveries</Text>
+      </LinearGradient>
 
       {/* Stats Cards */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
+          <View style={[styles.statIconContainer, { backgroundColor: COLORS.primary + '15' }]}>
+            <Ionicons name="cube" size={24} color={COLORS.primary} />
+          </View>
           <Text style={styles.statNumber}>{stats.total_parcels}</Text>
           <Text style={styles.statLabel}>Total</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={[styles.statNumber, { color: '#2196F3' }]}>{stats.in_transit}</Text>
+          <View style={[styles.statIconContainer, { backgroundColor: COLORS.info + '15' }]}>
+            <Ionicons name="airplane" size={24} color={COLORS.info} />
+          </View>
+          <Text style={[styles.statNumber, { color: COLORS.info }]}>{stats.in_transit}</Text>
           <Text style={styles.statLabel}>In Transit</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={[styles.statNumber, { color: '#4CAF50' }]}>{stats.delivered}</Text>
+          <View style={[styles.statIconContainer, { backgroundColor: COLORS.success + '15' }]}>
+            <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
+          </View>
+          <Text style={[styles.statNumber, { color: COLORS.success }]}>{stats.delivered}</Text>
           <Text style={styles.statLabel}>Delivered</Text>
         </View>
       </View>
@@ -119,7 +142,9 @@ export default function OrdersScreen({ navigation }) {
       <View style={styles.listContainer}>
         {parcels.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📭</Text>
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="cube-outline" size={60} color={COLORS.textLight} />
+            </View>
             <Text style={styles.emptyText}>No parcels yet</Text>
             <Text style={styles.emptySubtext}>
               Book your first parcel to start tracking deliveries
@@ -127,8 +152,17 @@ export default function OrdersScreen({ navigation }) {
             <TouchableOpacity 
               style={styles.bookButton}
               onPress={() => navigation.navigate('HomeTab')}
+              activeOpacity={0.8}
             >
-              <Text style={styles.bookButtonText}>Book a Parcel</Text>
+              <LinearGradient
+                colors={[COLORS.success, COLORS.secondaryLight]}
+                style={styles.bookButtonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Ionicons name="add-circle-outline" size={20} color={COLORS.surface} />
+                <Text style={styles.bookButtonText}>Book a Parcel</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         ) : (
@@ -149,20 +183,24 @@ export default function OrdersScreen({ navigation }) {
 
               <View style={styles.parcelDetails}>
                 <View style={styles.detailRow}>
+                  <Ionicons name="person-outline" size={16} color={COLORS.textSecondary} style={styles.detailIcon} />
                   <Text style={styles.detailLabel}>To:</Text>
                   <Text style={styles.detailValue}>{parcel.receiver_name}</Text>
                 </View>
                 <View style={styles.detailRow}>
+                  <Ionicons name="location-outline" size={16} color={COLORS.textSecondary} style={styles.detailIcon} />
                   <Text style={styles.detailLabel}>Destination:</Text>
                   <Text style={styles.detailValue}>
                     {parcel.delivery_city}, {parcel.delivery_region}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
+                  <Ionicons name="scale-outline" size={16} color={COLORS.textSecondary} style={styles.detailIcon} />
                   <Text style={styles.detailLabel}>Weight:</Text>
                   <Text style={styles.detailValue}>{parcel.weight_kg} kg</Text>
                 </View>
                 <View style={styles.detailRow}>
+                  <Ionicons name="calendar-outline" size={16} color={COLORS.textSecondary} style={styles.detailIcon} />
                   <Text style={styles.detailLabel}>Booked:</Text>
                   <Text style={styles.detailValue}>
                     {new Date(parcel.booked_at || parcel.created_at).toLocaleDateString()}
@@ -170,9 +208,10 @@ export default function OrdersScreen({ navigation }) {
                 </View>
               </View>
 
-              <View style={styles.trackButton}>
-                <Text style={styles.trackButtonText}>View Tracking →</Text>
-              </View>
+              <TouchableOpacity style={styles.trackButton}>
+                <Text style={styles.trackButtonText}>View Tracking</Text>
+                <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
+              </TouchableOpacity>
             </TouchableOpacity>
           ))
         )}
@@ -186,146 +225,177 @@ export default function OrdersScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.background,
   },
   header: {
-    backgroundColor: '#007AFF',
-    padding: 20,
-    paddingTop: 40,
+    paddingTop: 50,
+    paddingBottom: 25,
+    paddingHorizontal: SIZES.lg,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: SIZES.h2,
+    ...FONTS.bold,
+    color: COLORS.surface,
+    marginBottom: SIZES.xs,
+  },
+  headerSubtitle: {
+    fontSize: SIZES.body,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    padding: 20,
-    paddingBottom: 10,
+    paddingHorizontal: SIZES.md,
+    paddingVertical: SIZES.lg,
+    marginTop: -10,
   },
   statCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
+    backgroundColor: COLORS.surface,
+    borderRadius: SIZES.radiusMd,
+    padding: SIZES.md,
     alignItems: 'center',
     flex: 1,
-    marginHorizontal: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    marginHorizontal: SIZES.xs,
+    ...SHADOWS.medium,
+  },
+  statIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: SIZES.radiusMd,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SIZES.sm,
   },
   statNumber: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: SIZES.h3,
+    ...FONTS.bold,
+    color: COLORS.text,
+    marginBottom: SIZES.xs,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 5,
+    fontSize: SIZES.caption,
+    color: COLORS.textSecondary,
+    ...FONTS.medium,
   },
   listContainer: {
-    padding: 15,
-    paddingTop: 5,
+    paddingHorizontal: SIZES.md,
+    paddingBottom: SIZES.md,
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 60,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginTop: 20,
+    paddingVertical: SIZES.xxl,
+    backgroundColor: COLORS.surface,
+    borderRadius: SIZES.radiusMd,
+    marginTop: SIZES.lg,
+    ...SHADOWS.small,
   },
-  emptyIcon: {
-    fontSize: 60,
-    marginBottom: 15,
+  emptyIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SIZES.lg,
   },
   emptyText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+    fontSize: SIZES.h4,
+    ...FONTS.semiBold,
+    color: COLORS.text,
+    marginBottom: SIZES.sm,
   },
   emptySubtext: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: SIZES.body,
+    color: COLORS.textSecondary,
     textAlign: 'center',
-    marginBottom: 25,
-    paddingHorizontal: 40,
+    marginBottom: SIZES.xl,
+    paddingHorizontal: SIZES.xl,
+    lineHeight: 22,
   },
   bookButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 25,
-    paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: SIZES.radiusMd,
+    overflow: 'hidden',
+    ...SHADOWS.medium,
+  },
+  bookButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SIZES.lg,
+    paddingVertical: SIZES.md,
   },
   bookButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: COLORS.surface,
+    fontSize: SIZES.h6,
+    ...FONTS.semiBold,
+    marginLeft: SIZES.sm,
   },
   parcelCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: COLORS.surface,
+    borderRadius: SIZES.radiusMd,
+    padding: SIZES.md,
+    marginBottom: SIZES.md,
+    ...SHADOWS.medium,
   },
   parcelHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingBottom: 12,
+    marginBottom: SIZES.md,
+    paddingBottom: SIZES.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: COLORS.border,
   },
   trackingNumber: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: SIZES.h6,
+    ...FONTS.bold,
+    color: COLORS.text,
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: SIZES.md,
+    paddingVertical: SIZES.xs,
+    borderRadius: SIZES.radiusFull,
   },
   statusText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
+    color: COLORS.surface,
+    fontSize: SIZES.caption,
+    ...FONTS.semiBold,
   },
   parcelDetails: {
-    marginBottom: 10,
+    marginBottom: SIZES.sm,
   },
   detailRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
+    alignItems: 'center',
+    marginBottom: SIZES.sm,
+  },
+  detailIcon: {
+    marginRight: SIZES.xs,
   },
   detailLabel: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
+    fontSize: SIZES.bodySmall,
+    color: COLORS.textSecondary,
+    ...FONTS.medium,
+    marginRight: SIZES.xs,
+    minWidth: 80,
   },
   detailValue: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '400',
+    flex: 1,
+    fontSize: SIZES.bodySmall,
+    color: COLORS.text,
+    ...FONTS.regular,
   },
   trackButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 8,
+    justifyContent: 'center',
+    paddingTop: SIZES.sm,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
   trackButtonText: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '600',
+    color: COLORS.primary,
+    fontSize: SIZES.body,
+    ...FONTS.semiBold,
+    marginRight: SIZES.xs,
   },
 });

@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, SIZES, SHADOWS, FONTS } from '../constants/theme';
 
 export default function BookingScreen({ navigation }) {
   // Sender Details
@@ -50,152 +53,299 @@ export default function BookingScreen({ navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Book Parcel Pickup</Text>
-      <Text style={styles.subtitle}>Send parcels from UK to Ghana</Text>
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Header with Gradient */}
+        <LinearGradient
+          colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+          style={styles.header}
+        >
+          <View style={styles.headerIconContainer}>
+            <Ionicons name="cube" size={32} color={COLORS.surface} />
+          </View>
+          <Text style={styles.title}>Book Parcel Pickup</Text>
+          <Text style={styles.subtitle}>Send parcels from UK to Ghana</Text>
+        </LinearGradient>
 
-      {/* Sender Information */}
-      <Text style={styles.sectionTitle}>Sender Information</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Full Name *"
-        value={senderName}
-        onChangeText={setSenderName}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Phone Number *"
-        value={senderPhone}
-        onChangeText={setSenderPhone}
-        keyboardType="phone-pad"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Email Address *"
-        value={senderEmail}
-        onChangeText={setSenderEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
+        <View style={styles.formContainer}>
+          {/* Sender Information */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="person" size={20} color={COLORS.primary} />
+              <Text style={styles.sectionTitle}>Sender Information</Text>
+            </View>
+            
+            <View style={styles.inputWrapper}>
+              <Ionicons name="person-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Full Name *"
+                placeholderTextColor={COLORS.textLight}
+                value={senderName}
+                onChangeText={setSenderName}
+              />
+            </View>
+            
+            <View style={styles.inputWrapper}>
+              <Ionicons name="call-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Phone Number *"
+                placeholderTextColor={COLORS.textLight}
+                value={senderPhone}
+                onChangeText={setSenderPhone}
+                keyboardType="phone-pad"
+              />
+            </View>
+            
+            <View style={styles.inputWrapper}>
+              <Ionicons name="mail-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Email Address *"
+                placeholderTextColor={COLORS.textLight}
+                value={senderEmail}
+                onChangeText={setSenderEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+          </View>
 
-      {/* Pickup Address */}
-      <Text style={styles.sectionTitle}>Pickup Address (UK)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Street Address *"
-        value={pickupAddress}
-        onChangeText={setPickupAddress}
-        multiline
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="City *"
-        value={pickupCity}
-        onChangeText={setPickupCity}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Postcode *"
-        value={pickupPostcode}
-        onChangeText={setPickupPostcode}
-        autoCapitalize="characters"
-      />
-      
-      {/* Pickup Date & Time */}
-      <View style={styles.row}>
-        <TextInput
-          style={[styles.input, styles.halfInput]}
-          placeholder="Pickup Date (DD/MM/YYYY)"
-          value={pickupDate}
-          onChangeText={setPickupDate}
-        />
-        <TextInput
-          style={[styles.input, styles.halfInput]}
-          placeholder="Preferred Time"
-          value={pickupTime}
-          onChangeText={setPickupTime}
-        />
-      </View>
+          {/* Pickup Address */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="location" size={20} color={COLORS.primary} />
+              <Text style={styles.sectionTitle}>Pickup Address (UK)</Text>
+            </View>
+            
+            <View style={styles.inputWrapper}>
+              <Ionicons name="home-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Street Address *"
+                placeholderTextColor={COLORS.textLight}
+                value={pickupAddress}
+                onChangeText={setPickupAddress}
+                multiline
+                numberOfLines={2}
+              />
+            </View>
+            
+            <View style={styles.inputWrapper}>
+              <Ionicons name="business-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="City *"
+                placeholderTextColor={COLORS.textLight}
+                value={pickupCity}
+                onChangeText={setPickupCity}
+              />
+            </View>
+            
+            <View style={styles.inputWrapper}>
+              <Ionicons name="mail-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Postcode *"
+                placeholderTextColor={COLORS.textLight}
+                value={pickupPostcode}
+                onChangeText={setPickupPostcode}
+                autoCapitalize="characters"
+              />
+            </View>
+            
+            {/* Pickup Date & Time */}
+            <View style={styles.row}>
+              <View style={[styles.inputWrapper, styles.halfInput]}>
+                <Ionicons name="calendar-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Date (DD/MM/YYYY)"
+                  placeholderTextColor={COLORS.textLight}
+                  value={pickupDate}
+                  onChangeText={setPickupDate}
+                />
+              </View>
+              <View style={[styles.inputWrapper, styles.halfInput]}>
+                <Ionicons name="time-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Time"
+                  placeholderTextColor={COLORS.textLight}
+                  value={pickupTime}
+                  onChangeText={setPickupTime}
+                />
+              </View>
+            </View>
+          </View>
 
-      {/* Parcel Details */}
-      <Text style={styles.sectionTitle}>Parcel Details</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Weight (kg) *"
-        value={weight}
-        onChangeText={setWeight}
-        keyboardType="decimal-pad"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Dimensions (LxWxH in cm)"
-        value={dimensions}
-        onChangeText={setDimensions}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Parcel Description"
-        value={description}
-        onChangeText={setDescription}
-        multiline
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Declared Value (£)"
-        value={value}
-        onChangeText={setValue}
-        keyboardType="decimal-pad"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Special Instructions"
-        value={specialInstructions}
-        onChangeText={setSpecialInstructions}
-        multiline
-      />
+          {/* Parcel Details */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="cube" size={20} color={COLORS.primary} />
+              <Text style={styles.sectionTitle}>Parcel Details</Text>
+            </View>
+            
+            <View style={styles.inputWrapper}>
+              <Ionicons name="scale-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Weight (kg) *"
+                placeholderTextColor={COLORS.textLight}
+                value={weight}
+                onChangeText={setWeight}
+                keyboardType="decimal-pad"
+              />
+            </View>
+            
+            <View style={styles.inputWrapper}>
+              <Ionicons name="resize-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Dimensions (LxWxH in cm)"
+                placeholderTextColor={COLORS.textLight}
+                value={dimensions}
+                onChangeText={setDimensions}
+              />
+            </View>
+            
+            <View style={styles.inputWrapper}>
+              <Ionicons name="document-text-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Parcel Description"
+                placeholderTextColor={COLORS.textLight}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+            
+            <View style={styles.inputWrapper}>
+              <Ionicons name="cash-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Declared Value (£)"
+                placeholderTextColor={COLORS.textLight}
+                value={value}
+                onChangeText={setValue}
+                keyboardType="decimal-pad"
+              />
+            </View>
+            
+            <View style={styles.inputWrapper}>
+              <Ionicons name="information-circle-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Special Instructions"
+                placeholderTextColor={COLORS.textLight}
+                value={specialInstructions}
+                onChangeText={setSpecialInstructions}
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+          </View>
 
-      {/* Continue Button */}
-      <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-        <Text style={styles.continueButtonText}>Continue to Receiver Details</Text>
-      </TouchableOpacity>
+          {/* Continue Button */}
+          <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8}>
+            <LinearGradient
+              colors={[COLORS.primary, COLORS.primaryLight]}
+              style={styles.continueButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Text style={styles.continueButtonText}>Continue to Receiver Details</Text>
+              <Ionicons name="arrow-forward" size={20} color={COLORS.surface} />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
 
-      <View style={{ height: 30 }} />
-    </ScrollView>
+        <View style={{ height: 30 }} />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    padding: 20,
+    backgroundColor: COLORS.background,
+  },
+  header: {
+    paddingTop: 50,
+    paddingBottom: 30,
+    paddingHorizontal: SIZES.lg,
+    alignItems: 'center',
+  },
+  headerIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SIZES.md,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: '#333',
+    fontSize: SIZES.h3,
+    ...FONTS.bold,
+    color: COLORS.surface,
+    marginBottom: SIZES.xs,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 25,
+    fontSize: SIZES.body,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  formContainer: {
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: SIZES.radiusXl,
+    borderTopRightRadius: SIZES.radiusXl,
+    paddingHorizontal: SIZES.md,
+    paddingTop: SIZES.lg,
+    marginTop: -20,
+  },
+  section: {
+    marginBottom: SIZES.lg,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SIZES.md,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 15,
-    marginBottom: 10,
-    color: '#444',
+    fontSize: SIZES.h5,
+    ...FONTS.semiBold,
+    color: COLORS.text,
+    marginLeft: SIZES.sm,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    borderRadius: SIZES.radiusMd,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: SIZES.md,
+    marginBottom: SIZES.md,
+  },
+  inputIcon: {
+    marginRight: SIZES.sm,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    fontSize: 16,
-    backgroundColor: '#f9f9f9',
+    flex: 1,
+    paddingVertical: SIZES.md,
+    fontSize: SIZES.body,
+    color: COLORS.text,
+  },
+  textArea: {
+    paddingTop: SIZES.md,
+    minHeight: 60,
   },
   row: {
     flexDirection: 'row',
@@ -205,15 +355,23 @@ const styles = StyleSheet.create({
     width: '48%',
   },
   continueButton: {
-    backgroundColor: '#007AFF',
-    padding: 16,
-    borderRadius: 8,
+    borderRadius: SIZES.radiusMd,
+    overflow: 'hidden',
+    marginTop: SIZES.md,
+    marginBottom: SIZES.lg,
+    ...SHADOWS.medium,
+  },
+  continueButtonGradient: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
+    justifyContent: 'center',
+    paddingVertical: SIZES.md,
+    paddingHorizontal: SIZES.lg,
   },
   continueButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
+    color: COLORS.surface,
+    fontSize: SIZES.h6,
+    ...FONTS.semiBold,
+    marginRight: SIZES.sm,
   },
 });

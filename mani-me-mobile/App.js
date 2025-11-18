@@ -4,8 +4,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as Notifications from 'expo-notifications';
 import { StripeProvider } from '@stripe/stripe-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { UserProvider, useUser } from './context/UserContext';
 import { registerForPushNotificationsAsync, updatePushToken } from './utils/notifications';
+import { COLORS } from './constants/theme';
 
 import LoginScreen from './screens/loginscreen';
 import RegisterScreen from './screens/RegisterScreen';
@@ -25,10 +27,53 @@ const Tab = createBottomTabNavigator();
 
 function TabNavigator() {
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
-      <Tab.Screen name="HomeTab" component={HomeScreen} />
-      <Tab.Screen name="Orders" component={OrdersScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+    <Tab.Navigator 
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+
+          if (route.name === 'HomeTab') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Orders') {
+            iconName = focused ? 'cube' : 'cube-outline';
+          } else if (route.name === 'Profile') {
+            iconName = focused ? 'person' : 'person-outline';
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: COLORS.textSecondary,
+        tabBarStyle: {
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 60,
+          borderTopWidth: 1,
+          borderTopColor: COLORS.border,
+          backgroundColor: COLORS.surface,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
+      })}
+    >
+      <Tab.Screen 
+        name="HomeTab" 
+        component={HomeScreen}
+        options={{ tabBarLabel: 'Home' }}
+      />
+      <Tab.Screen 
+        name="Orders" 
+        component={OrdersScreen}
+        options={{ tabBarLabel: 'My Parcels' }}
+      />
+      <Tab.Screen 
+        name="Profile" 
+        component={ProfileScreen}
+        options={{ tabBarLabel: 'Profile' }}
+      />
     </Tab.Navigator>
   );
 }
