@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Image, Animated, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, Animated, StyleSheet, Dimensions } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -53,11 +53,7 @@ export default function AnimatedSplash({ onFinish }) {
           },
         ]}
       >
-        <Image
-          source={require('../assets/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <Text style={styles.logoText}>Mani Me</Text>
       </Animated.View>
     </View>
   );
@@ -73,12 +69,11 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: width * 0.35, // Perfect circle
-    overflow: 'hidden',
   },
-  logo: {
-    width: width * 0.35, // 35% of screen width for perfect proportion
-    height: width * 0.35,
-    borderRadius: width * 0.35, // Perfectly curved edges matching original logo
+  logoText: {
+    fontSize: 48,
+    fontWeight: '700',
+    color: '#83C5FA', // Sky blue
+    letterSpacing: -1,
   },
 });
