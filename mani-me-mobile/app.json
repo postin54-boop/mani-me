@@ -4,14 +4,15 @@
     "slug": "mani-me",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/logo.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#0B1A33"
     },
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourcompany.manime"
@@ -19,7 +20,7 @@
     "android": {
       "package": "com.yourcompany.manime",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.png",
+        "foregroundImage": "./assets/app-icon.png",
         "backgroundColor": "#0B1A33"
       },
       "edgeToEdgeEnabled": true

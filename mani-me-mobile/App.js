@@ -3,12 +3,16 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as Notifications from 'expo-notifications';
+import * as SplashScreen from 'expo-splash-screen';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'react-native';
 import { UserProvider, useUser } from './context/UserContext';
 import { registerForPushNotificationsAsync, updatePushToken } from './utils/notifications';
 import { getColors } from './constants/theme';
+
+// Keep splash screen visible while we load
+SplashScreen.preventAutoHideAsync();
 
 import LandingScreen from './screens/LandingScreen';
 import LoginScreen from './screens/loginscreen';
