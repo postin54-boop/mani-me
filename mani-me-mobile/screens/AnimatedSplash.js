@@ -73,9 +73,12 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: width * 0.35, // Perfect circle
+    overflow: 'hidden',
   },
   logo: {
     width: width * 0.35, // 35% of screen width for perfect proportion
     height: width * 0.35,
+    borderRadius: width * 0.35, // Perfectly curved edges matching original logo
   },
 });
