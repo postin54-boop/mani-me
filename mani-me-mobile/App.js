@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -14,6 +14,7 @@ import { getColors } from './constants/theme';
 // Keep splash screen visible while we load
 SplashScreen.preventAutoHideAsync();
 
+import AnimatedSplash from './screens/AnimatedSplash';
 import LandingScreen from './screens/LandingScreen';
 import LoginScreen from './screens/loginscreen';
 import RegisterScreen from './screens/RegisterScreen';
@@ -137,6 +138,17 @@ function AppNavigator() {
 }
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    // Hide the native splash screen
+    SplashScreen.hideAsync();
+  }, []);
+
+  if (showSplash) {
+    return <AnimatedSplash onFinish={() => setShowSplash(false)} />;
+  }
+
   return (
     <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
       <UserProvider>
