@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Mani Me",
-    "slug": "mani-me-mobile",
+    "slug": "mani-me",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
@@ -13,9 +13,11 @@
       "backgroundColor": "#0B1A33"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourcompany.manime"
     },
     "android": {
+      "package": "com.yourcompany.manime",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#0B1A33"

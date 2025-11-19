@@ -10,6 +10,7 @@ import { UserProvider, useUser } from './context/UserContext';
 import { registerForPushNotificationsAsync, updatePushToken } from './utils/notifications';
 import { getColors } from './constants/theme';
 
+import LandingScreen from './screens/LandingScreen';
 import LoginScreen from './screens/loginscreen';
 import RegisterScreen from './screens/RegisterScreen';
 import HomeScreen from './screens/HomeScreen';
@@ -116,7 +117,8 @@ function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+      <Stack.Navigator initialRouteName="Landing" screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Landing" component={LandingScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Home" component={TabNavigator} />
