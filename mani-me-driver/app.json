@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Mani Me Driver",
+    "slug": "mani-me-driver",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/app-icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#071D33"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourcompany.manimedriver"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#071D33"
+      },
+      "package": "com.yourcompany.manimedriver"
+    },
+    "web": {
+      "favicon": "./assets/app-icon.png"
+    }
+  }
+}
