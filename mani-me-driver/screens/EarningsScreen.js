@@ -27,54 +27,43 @@ export default function EarningsScreen({ navigation }) {
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}> 
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      <View style={[styles.header, { backgroundColor: colors.surface }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Earnings</Text>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}> 
+        <Text style={{ color: colors.text, fontSize: 32, fontWeight: '800', letterSpacing: -1 }}>Earnings</Text>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}> 
         {/* Summary Cards */}
-        <View style={styles.summaryContainer}>
-          <View style={[styles.summaryCard, { backgroundColor: colors.secondary }]}>
-            <Text style={[styles.summaryLabel, { color: colors.primary }]}>
-              Today
-            </Text>
-            <Text style={[styles.summaryAmount, { color: colors.primary }]}>
-              {summary.today}
-            </Text>
+        <View style={styles.summaryContainer}> 
+          <View style={[styles.summaryCard, { backgroundColor: colors.secondary, borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 5 }]}> 
+            <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '700', marginBottom: 10 }}>Today</Text>
+            <Text style={{ color: colors.primary, fontSize: 36, fontWeight: '800' }}>{summary.today}</Text>
           </View>
 
-          <View style={[styles.summaryCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
-              This Week
-            </Text>
-            <Text style={[styles.summaryAmount, { color: colors.text }]}>
-              {summary.week}
-            </Text>
+          <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 3 }]}> 
+            <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: '700', marginBottom: 10 }}>This Week</Text>
+            <Text style={{ color: colors.text, fontSize: 32, fontWeight: '800' }}>{summary.week}</Text>
           </View>
 
-          <View style={[styles.summaryCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
-              This Month
-            </Text>
-            <Text style={[styles.summaryAmount, { color: colors.text }]}>
-              {summary.month}
-            </Text>
+          <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 3 }]}> 
+            <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: '700', marginBottom: 10 }}>This Month</Text>
+            <Text style={{ color: colors.text, fontSize: 32, fontWeight: '800' }}>{summary.month}</Text>
           </View>
         </View>
 
         {/* Transactions */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Recent Transactions
-          </Text>
+        <View style={styles.section}> 
+          <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', marginBottom: 20, letterSpacing: -0.5 }}>Recent Transactions</Text>
 
           {transactions.map((transaction) => (
             <View
               key={transaction.id}
-              style={[styles.transactionCard, { backgroundColor: colors.surface }]}
+              style={[
+                styles.transactionCard,
+                { backgroundColor: colors.surface, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 3 },
+              ]}
             >
               <View
                 style={[
@@ -84,41 +73,34 @@ export default function EarningsScreen({ navigation }) {
                       transaction.type === 'bonus'
                         ? colors.warning + '20'
                         : colors.secondary + '20',
+                    borderRadius: 12,
                   },
                 ]}
               >
                 <Ionicons
                   name={transaction.type === 'bonus' ? 'gift' : 'cube'}
-                  size={20}
+                  size={28}
                   color={transaction.type === 'bonus' ? colors.warning : colors.secondary}
                 />
               </View>
 
-              <View style={styles.transactionDetails}>
-                <Text style={[styles.transactionId, { color: colors.text }]}>
-                  {transaction.id}
-                </Text>
-                <Text style={[styles.transactionDate, { color: colors.textSecondary }]}>
-                  {transaction.date}
-                </Text>
+              <View style={styles.transactionDetails}> 
+                <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 2 }}>{transaction.id}</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '500' }}>{transaction.date}</Text>
               </View>
 
-              <Text style={[styles.transactionAmount, { color: colors.success }]}>
-                +{transaction.amount}
-              </Text>
+              <Text style={{ color: colors.success, fontSize: 20, fontWeight: '800' }}>+{transaction.amount}</Text>
             </View>
           ))}
         </View>
 
         {/* Withdraw Button */}
-        <View style={styles.section}>
+        <View style={styles.section}> 
           <TouchableOpacity
-            style={[styles.withdrawButton, { backgroundColor: colors.primary }]}
+            style={[styles.withdrawButton, { backgroundColor: colors.primary, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 }]}
           >
-            <Ionicons name="wallet-outline" size={20} color={colors.accent} />
-            <Text style={[styles.withdrawButtonText, { color: colors.accent }]}>
-              Withdraw Earnings
-            </Text>
+            <Ionicons name="wallet-outline" size={24} color={colors.accent} style={{ marginRight: 10 }} />
+            <Text style={{ color: colors.accent, fontSize: 18, fontWeight: '700' }}>Withdraw Earnings</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Animated, StyleSheet } from 'react-native';
+import { View, Image, Animated, StyleSheet, Text } from 'react-native';
 
 export default function AnimatedSplash({ onFinish }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -49,14 +49,32 @@ export default function AnimatedSplash({ onFinish }) {
           },
         ]}
       >
-        <Text style={styles.logoText}>Mani Me</Text>
-        <Text style={styles.driverText}>Driver</Text>
+        <LogoWithFallback />
       </Animated.View>
     </View>
   );
+// Logo with text always rendered; if image fails, text remains visible
+function LogoWithFallback() {
+  return (
+    <>
+      <Image
+        source={require('../assets/logo.png')}
+        style={styles.logoImage}
+        resizeMode="contain"
+      />
+      <Text style={styles.logoText}>Mani Me</Text>
+      <Text style={styles.driverText}>Driver</Text>
+    </>
+  );
+}
 }
 
 const styles = StyleSheet.create({
+  logoImage: {
+    width: 160,
+    height: 160,
+    marginBottom: 12,
+  },
   container: {
     flex: 1,
     backgroundColor: '#071D33',

@@ -1,0 +1,7 @@
+{
+  "plugins": [
+    "expo-web-browser",
+    "expo-barcode-scanner",
+    "@stripe/stripe-react-native"
+  ]
+}

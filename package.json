@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "@react-native-picker/picker": "2.11.1",
+    "@stripe/stripe-react-native": "0.50.3",
+    "axios": "^1.13.2",
+    "dotenv": "^17.2.3",
+    "expo": "~54.0.30",
+    "expo-barcode-scanner": "^13.0.1",
+    "expo-camera": "~17.0.10",
+    "expo-file-system": "~19.0.21",
+    "expo-image-picker": "~17.0.10",
+    "expo-notifications": "~0.32.15",
+    "expo-splash-screen": "~31.0.13",
+    "expo-web-browser": "~15.0.10",
+    "firebase": "^12.6.0",
+    "mongoose": "^9.0.1"
+  }
+}

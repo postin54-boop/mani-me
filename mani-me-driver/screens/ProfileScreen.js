@@ -11,25 +11,75 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeColors } from '../constants/theme';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProfileScreen({ navigation }) {
   const { colors, isDark } = useThemeColors();
+  const { user, logout, driverType, role } = useAuth();
   const [isOnline, setIsOnline] = React.useState(true);
 
+  // Get initials from user name
+  const getInitials = (name) => {
+    if (!name) return '??';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  // Get driver type display
+  const getDriverTypeDisplay = () => {
+    if (role === 'UK_DRIVER' || driverType === 'pickup') return 'UK Pickup Driver';
+    if (role === 'GH_DRIVER' || driverType === 'delivery') return 'Ghana Delivery Driver';
+    return 'Driver';
+  };
+
+  const profile = {
+    name: user?.fullName || user?.name || 'Driver',
+    phone: user?.phone || 'Not provided',
+    email: user?.email || 'Not provided',
+    vehicle: user?.vehicle_number || 'Not assigned',
+    driverId: user?.id || user?._id || 'N/A',
+    driverType: getDriverTypeDisplay(),
+    isVerified: user?.is_verified || false,
+  };
+
   const menuItems = [
-    { icon: 'person-outline', label: 'Personal Info', value: 'John Doe' },
-    { icon: 'call-outline', label: 'Phone', value: '+234 801 234 5678' },
-    { icon: 'mail-outline', label: 'Email', value: 'driver@manime.com' },
-    { icon: 'car-outline', label: 'Vehicle', value: 'Honda Civic - ABC 123 XY' },
+    { icon: 'person-outline', label: 'Personal Info', value: profile.name, editable: true },
+    { icon: 'call-outline', label: 'Phone', value: profile.phone },
+    { icon: 'mail-outline', label: 'Email', value: profile.email },
+    { icon: 'car-outline', label: 'Vehicle', value: profile.vehicle },
+    { icon: 'briefcase-outline', label: 'Driver Type', value: profile.driverType },
   ];
 
   const settingsItems = [
-    { icon: 'notifications-outline', label: 'Notifications', hasToggle: true },
-    { icon: 'location-outline', label: 'Location Services', hasToggle: true },
-    { icon: 'document-text-outline', label: 'Documents' },
-    { icon: 'help-circle-outline', label: 'Help & Support' },
-    { icon: 'shield-checkmark-outline', label: 'Privacy Policy' },
+    { icon: 'notifications-outline', label: 'Notifications', hasToggle: true, key: 'notifications' },
+    { icon: 'location-outline', label: 'Location Services', hasToggle: true, key: 'location' },
+    { icon: 'document-text-outline', label: 'Documents', screen: 'Documents' },
+    { icon: 'help-circle-outline', label: 'Help & Support', screen: 'HelpSupport' },
+    { icon: 'shield-checkmark-outline', label: 'Privacy Policy', screen: 'PrivacyPolicy' },
   ];
+
+  // Settings state
+  const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
+  const [locationEnabled, setLocationEnabled] = React.useState(true);
+
+  const handleSettingPress = (item) => {
+    if (item.screen) {
+      navigation.navigate(item.screen);
+    }
+  };
+
+  const handleToggle = (key, value) => {
+    if (key === 'notifications') {
+      setNotificationsEnabled(value);
+    } else if (key === 'location') {
+      setLocationEnabled(value);
+    }
+  };
+
+  const getToggleValue = (key) => {
+    if (key === 'notifications') return notificationsEnabled;
+    if (key === 'location') return locationEnabled;
+    return true;
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -39,33 +89,39 @@ export default function ProfileScreen({ navigation }) {
         colors={isDark ? ['#1F2937', '#111827'] : [colors.primary, '#0d2440']}
         style={styles.header}
       >
-        <View style={styles.profileCard}>
-          <View style={[styles.avatar, { backgroundColor: colors.secondary }]}>
-            <Text style={[styles.avatarText, { color: colors.primary }]}>JD</Text>
+        <View style={[styles.profileCard, { borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.04)', padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 5 }]}> 
+          <View style={[styles.avatar, { backgroundColor: colors.secondary, borderRadius: 24, width: 88, height: 88 }]}> 
+            <Text style={[styles.avatarText, { color: colors.primary, fontSize: 36, fontWeight: '800' }]}>
+              {getInitials(profile.name)}
+            </Text>
           </View>
           <View style={styles.profileInfo}>
-            <Text style={[styles.name, { color: colors.accent }]}>John Doe</Text>
-            <Text style={[styles.role, { color: colors.accent, opacity: 0.8 }]}>
-              Driver ID: DRV001
+            <Text style={{ color: colors.accent, fontSize: 28, fontWeight: '800', letterSpacing: -1 }}>
+              {profile.name}
             </Text>
-            <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={16} color="#FCD34D" />
-              <Text style={[styles.rating, { color: colors.accent }]}>4.8</Text>
-              <Text style={[styles.trips, { color: colors.accent, opacity: 0.8 }]}>
-                (234 trips)
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <Text style={{ color: colors.accent, opacity: 0.8, fontSize: 16, fontWeight: '600' }}>
+                ID: {profile.driverId.toString().slice(-6)}
               </Text>
+              {profile.isVerified && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 12 }}>
+                  <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                  <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '600', marginLeft: 4 }}>
+                    Verified
+                  </Text>
+                </View>
+              )}
             </View>
+            <Text style={{ color: colors.accent, opacity: 0.7, fontSize: 14, fontWeight: '600' }}>
+              {profile.driverType}
+            </Text>
           </View>
         </View>
 
-        <View style={[styles.statusCard, { backgroundColor: 'rgba(255, 255, 255, 0.1)' }]}>
-          <Text style={[styles.statusLabel, { color: colors.accent }]}>
-            Status
-          </Text>
-          <View style={styles.statusToggle}>
-            <Text style={[styles.statusText, { color: colors.accent }]}>
-              {isOnline ? 'Online' : 'Offline'}
-            </Text>
+        <View style={[styles.statusCard, { backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 18, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 3 }]}> 
+          <Text style={{ color: colors.accent, fontSize: 16, fontWeight: '700' }}>Status</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+            <Text style={{ color: colors.accent, fontSize: 16, fontWeight: '700', marginRight: 8 }}>{isOnline ? 'Online' : 'Offline'}</Text>
             <Switch
               value={isOnline}
               onValueChange={setIsOnline}
@@ -78,70 +134,66 @@ export default function ProfileScreen({ navigation }) {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Profile Details */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Profile Details
-          </Text>
+        <View style={styles.section}> 
+          <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', marginBottom: 20, letterSpacing: -0.5 }}>Profile Details</Text>
           {menuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
-              style={[styles.menuItem, { backgroundColor: colors.surface }]}
+              style={[styles.menuItem, { backgroundColor: colors.surface, borderRadius: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 3 }]}
+              onPress={item.editable ? () => navigation.navigate('EditProfile', { profile }) : undefined}
+              activeOpacity={item.editable ? 0.8 : 1}
             >
-              <View style={[styles.menuIcon, { backgroundColor: colors.secondary + '20' }]}>
-                <Ionicons name={item.icon} size={20} color={colors.secondary} />
+              <View style={[styles.menuIcon, { backgroundColor: colors.secondary + '20', borderRadius: 12, width: 48, height: 48 }]}> 
+                <Ionicons name={item.icon} size={28} color={colors.secondary} />
               </View>
               <View style={styles.menuContent}>
-                <Text style={[styles.menuLabel, { color: colors.textSecondary }]}>
-                  {item.label}
-                </Text>
-                <Text style={[styles.menuValue, { color: colors.text }]}>
-                  {item.value}
-                </Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '500', marginBottom: 2 }}>{item.label}</Text>
+                <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>{item.value}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+              <Ionicons name="chevron-forward" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Settings */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Settings
-          </Text>
+        <View style={styles.section}> 
+          <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', marginBottom: 20, letterSpacing: -0.5 }}>Settings</Text>
           {settingsItems.map((item, index) => (
             <TouchableOpacity
               key={index}
-              style={[styles.menuItem, { backgroundColor: colors.surface }]}
+              style={[styles.menuItem, { backgroundColor: colors.surface, borderRadius: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 3 }]}
+              onPress={() => handleSettingPress(item)}
+              activeOpacity={item.hasToggle ? 1 : 0.8}
             >
-              <View style={[styles.menuIcon, { backgroundColor: colors.secondary + '20' }]}>
-                <Ionicons name={item.icon} size={20} color={colors.secondary} />
+              <View style={[styles.menuIcon, { backgroundColor: colors.secondary + '20', borderRadius: 12, width: 48, height: 48 }]}> 
+                <Ionicons name={item.icon} size={28} color={colors.secondary} />
               </View>
-              <Text style={[styles.settingLabel, { color: colors.text }]}>
-                {item.label}
-              </Text>
+              <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700', flex: 1, marginLeft: 16 }}>{item.label}</Text>
               {item.hasToggle ? (
                 <Switch
-                  value={true}
+                  value={getToggleValue(item.key)}
+                  onValueChange={(value) => handleToggle(item.key, value)}
                   trackColor={{ false: '#767577', true: colors.secondary }}
                   thumbColor={colors.accent}
                 />
               ) : (
-                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                <Ionicons name="chevron-forward" size={24} color={colors.textSecondary} />
               )}
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Logout */}
-        <View style={styles.section}>
+        <View style={styles.section}> 
           <TouchableOpacity
-            style={[styles.logoutButton, { backgroundColor: colors.error }]}
-            onPress={() => navigation.replace('Login')}
+            style={[styles.logoutButton, { backgroundColor: colors.error, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 }]}
+            onPress={async () => {
+              await logout();
+              navigation.replace('Login');
+            }}
           >
-            <Ionicons name="log-out-outline" size={20} color={colors.accent} />
-            <Text style={[styles.logoutText, { color: colors.accent }]}>
-              Logout
-            </Text>
+            <Ionicons name="log-out-outline" size={24} color={colors.accent} style={{ marginRight: 10 }} />
+            <Text style={{ color: colors.accent, fontSize: 18, fontWeight: '700' }}>Logout</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -4,13 +4,18 @@
     "slug": "mani-me",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/app-icon.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "extra": {
+      "eas": {
+        "projectId": "mani-me-app"
+      }
+    },
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#071D33"
+      "backgroundColor": "#0B1A33"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
@@ -20,13 +25,13 @@
     "android": {
       "package": "com.yourcompany.manime",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/app-icon.png",
+        "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#0B1A33"
       },
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/logo.png"
     }
   }
 }

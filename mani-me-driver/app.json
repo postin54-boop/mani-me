@@ -4,8 +4,13 @@
     "slug": "mani-me-driver",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/app-icon.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "automatic",
+    "extra": {
+      "eas": {
+        "projectId": "mani-me-app"
+      }
+    },
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -27,6 +32,9 @@
     },
     "web": {
       "favicon": "./assets/app-icon.png"
-    }
+    },
+    "plugins": [
+      "expo-barcode-scanner"
+    ]
   }
 }

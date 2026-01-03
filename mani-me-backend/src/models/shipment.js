@@ -1,169 +1,148 @@
-const { DataTypes } = require('sequelize');
+const mongoose = require("mongoose");
 
-module.exports = (sequelize) => {
-  return sequelize.define('Shipment', {
-    id: {
-      type: DataTypes.UUID,
-      primaryKey: true,
-      defaultValue: DataTypes.UUIDV4
-    },
-    // Sender Details (UK-based)
-    sender_name: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    sender_phone: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    sender_email: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    // Pickup Address (UK)
-    pickup_address: {
-      type: DataTypes.TEXT,
-      allowNull: false
-    },
-    pickup_city: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    pickup_postcode: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    pickup_date: {
-      type: DataTypes.DATEONLY,
-      allowNull: true
-    },
-    pickup_time: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-    // Receiver Details (Ghana-based)
-    receiver_name: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    receiver_phone: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    receiver_alternate_phone: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-    // Delivery Address (Ghana)
-    delivery_address: {
-      type: DataTypes.TEXT,
-      allowNull: false
-    },
-    delivery_city: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    delivery_region: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    // Parcel Details
-    weight_kg: {
-      type: DataTypes.FLOAT,
-      allowNull: false,
-      defaultValue: 1
-    },
-    dimensions: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      comment: 'Format: LxWxH in cm'
-    },
-    parcel_description: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    parcel_value: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: true,
-      comment: 'Declared value in GBP'
-    },
-    // Payment & Pricing
-    payment_method: {
-      type: DataTypes.ENUM('card', 'cash'),
-      defaultValue: 'card'
-    },
-    payment_status: {
-      type: DataTypes.ENUM('pending', 'paid', 'refunded'),
-      defaultValue: 'pending'
-    },
-    payment_intent_id: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      comment: 'Stripe payment intent ID'
-    },
-    total_cost: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
-      defaultValue: 0.00
-    },
-    // Tracking & Status
-    tracking_number: {
-      type: DataTypes.STRING,
-      unique: true,
-      allowNull: false
-    },
-    status: {
-      type: DataTypes.ENUM('booked', 'picked_up', 'in_transit', 'customs', 'out_for_delivery', 'delivered', 'cancelled'),
-      defaultValue: 'booked'
-    },
-    // Timestamps for each status
-    booked_at: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    picked_up_at: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    in_transit_at: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    customs_at: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    out_for_delivery_at: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    delivered_at: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    // Additional Info
-    special_instructions: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    admin_notes: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    }
-  }, {
-    tableName: 'shipments',
-    underscored: true,
-    hooks: {
-      beforeCreate: async (shipment) => {
-        // Generate tracking number if not provided
-        if (!shipment.tracking_number) {
-          shipment.tracking_number = 'MM' + Date.now() + Math.floor(Math.random() * 1000);
-        }
-        // Set booked timestamp
-        if (shipment.status === 'booked' && !shipment.booked_at) {
-          shipment.booked_at = new Date();
-        }
-      }
-    }
-  });
-};
+const shipmentSchema = new mongoose.Schema({
+  userId: { type: String, required: false, default: 'guest' }, // Optional for guest bookings
+  
+  // Parcel ID fields
+  parcel_id: { type: String }, // Full parcel ID (e.g., MM-2026-001234-ABC)
+  parcel_id_short: { type: String }, // Short parcel ID (e.g., MM001234)
+  parcel_size: { type: String }, // small, medium, large, extra_large
+  
+  // Self drop-off option
+  is_self_dropoff: { type: Boolean, default: false }, // Customer brings parcel to warehouse
+  
+  pickupAddress: { type: String },
+  destination: { type: String },
+  itemCount: { type: Number },
+  cost: { type: Number },
+  status: { type: String, default: "pending" },
+
+  // Warehouse status
+  warehouse_status: {
+    type: String,
+    enum: ['not_arrived', 'received', 'sorted', 'packed', 'shipped'],
+    default: 'not_arrived'
+  },
+
+  // Sender Details (UK-based)
+  sender_name: { type: String },
+  sender_phone: { type: String },
+  sender_email: { type: String },
+
+  // Pickup Address (UK)
+  pickup_address: { type: String },
+  pickup_city: { type: String },
+  pickup_postcode: { type: String },
+  pickup_date: { type: Date },
+  pickup_time: { type: String },
+
+  // Receiver Details (Ghana-based)
+  receiver_name: { type: String },
+  receiver_phone: { type: String },
+  receiver_alternate_phone: { type: String },
+
+  // Delivery Address (Ghana)
+  delivery_address: { type: String },
+  delivery_city: { type: String },
+  delivery_region: { type: String },
+
+  // Parcel Details
+  weight_kg: { type: Number, default: 1 },
+  dimensions: { type: String }, // Format: LxWxH in cm
+  parcel_description: { type: String },
+  parcel_value: { type: Number }, // Declared value in GBP
+
+  // Payment & Pricing
+  payment_method: {
+    type: String,
+    enum: ['card', 'cash'],
+    default: 'card'
+  },
+  payment_status: {
+    type: String,
+    enum: ['pending', 'paid', 'refunded'],
+    default: 'pending'
+  },
+  payment_intent_id: { type: String }, // Stripe payment intent ID
+  total_cost: { type: Number, default: 0.00 },
+
+  // Tracking & Status
+  tracking_number: { type: String },
+  shipment_status: {
+    type: String,
+    enum: ['booked', 'picked_up', 'in_transit', 'customs', 'out_for_delivery', 'delivered', 'cancelled'],
+    default: 'booked'
+  },
+
+  // Driver Assignments
+  pickup_driver_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  delivery_driver_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
+  // Delivery Proof
+  proof_of_delivery: { type: String }, // Image URL
+  recipient_signature_name: { type: String },
+  delivery_notes: { type: String },
+
+  // Timestamps for each status
+  booked_at: { type: Date },
+  picked_up_at: { type: Date },
+  in_transit_at: { type: Date },
+  customs_at: { type: Date },
+  out_for_delivery_at: { type: Date },
+  delivered_at: { type: Date },
+  cancelled_at: { type: Date },
+
+  // QR Code & Images
+  qr_code_url: { type: String },
+  qr_code_data: { type: String }, // JSON string of QR code data
+  parcel_image_url: { type: String },
+  customer_photo_url: { type: String },
+  
+  // Ghana destination
+  ghana_destination: { type: String }, // Combined city/region for Ghana delivery
+  
+  // Special Instructions
+  special_instructions: { type: String },
+
+  // Additional fields as needed
+}, { timestamps: true });
+
+// ========================================
+// AUTO-GENERATE TRACKING NUMBER
+// ========================================
+shipmentSchema.pre('save', async function() {
+  if (!this.tracking_number) {
+    // Generate tracking number: MM + timestamp + random 4 digits
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.floor(1000 + Math.random() * 9000);
+    this.tracking_number = `MM${timestamp}${random}`;
+  }
+});
+
+// ========================================
+// INDEXES FOR SCALABILITY (50k+ users)
+// ========================================
+
+// Primary lookup indexes
+shipmentSchema.index({ userId: 1, createdAt: -1 }); // User's shipments (most common query)
+shipmentSchema.index({ tracking_number: 1 }, { unique: true, sparse: true }); // Tracking lookups
+shipmentSchema.index({ parcel_id: 1 }, { sparse: true }); // Parcel ID lookups
+shipmentSchema.index({ parcel_id_short: 1 }, { sparse: true }); // Short parcel ID lookups
+
+// Status-based queries
+shipmentSchema.index({ shipment_status: 1, createdAt: -1 }); // Filter by status
+shipmentSchema.index({ warehouse_status: 1 }); // Warehouse filtering
+shipmentSchema.index({ payment_status: 1 }); // Payment filtering
+
+// Driver assignment queries
+shipmentSchema.index({ pickup_driver_id: 1, shipment_status: 1 }); // UK driver pickups
+shipmentSchema.index({ delivery_driver_id: 1, shipment_status: 1 }); // Ghana driver deliveries
+
+// Date-based queries for reporting
+shipmentSchema.index({ pickup_date: 1 }); // Scheduled pickups
+shipmentSchema.index({ delivered_at: 1 }); // Delivery reports
+
+// Compound index for admin dashboard
+shipmentSchema.index({ shipment_status: 1, pickup_city: 1, createdAt: -1 });
+
+module.exports = mongoose.model("Shipment", shipmentSchema);

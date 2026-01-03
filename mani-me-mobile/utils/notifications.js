@@ -1,6 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import { API_BASE_URL } from './config';
+import logger from './logger';
 
 // Configure how notifications should be displayed when app is in foreground
 Notifications.setNotificationHandler({
@@ -32,8 +34,15 @@ export async function registerForPushNotificationsAsync() {
       return null;
     }
     
-    token = (await Notifications.getExpoPushTokenAsync()).data;
-    console.log('Push token:', token);
+    // Try to get push token - may fail in development without EAS project
+    try {
+      token = (await Notifications.getExpoPushTokenAsync()).data;
+      logger.log('Push token:', token);
+    } catch (error) {
+      logger.warn('Could not get push token (EAS project may not be configured):', error.message);
+      // Continue without push notifications in development
+      return null;
+    }
   } else {
     alert('Must use physical device for Push Notifications');
   }
@@ -57,7 +66,7 @@ export async function registerForPushNotificationsAsync() {
  */
 export async function updatePushToken(userId, pushToken) {
   try {
-    const response = await fetch('http://192.168.0.138:4000/api/auth/update-push-token', {
+    const response = await fetch(`${API_BASE_URL}/api/auth/update-push-token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -66,11 +75,11 @@ export async function updatePushToken(userId, pushToken) {
     });
 
     if (response.ok) {
-      console.log('Push token updated on backend');
+      logger.log('Push token updated on backend');
     } else {
-      console.error('Failed to update push token');
+      logger.error('Failed to update push token');
     }
   } catch (error) {
-    console.error('Error updating push token:', error);
+    logger.error('Error updating push token:', error);
   }
 }

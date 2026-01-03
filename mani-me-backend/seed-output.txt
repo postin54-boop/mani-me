@@ -1,0 +1,12 @@
+Connecting to MongoDB...
+Connected to MongoDB
+Clearing existing parcel prices...
+Seeding parcel prices...
+✓ Small Box: £15
+✓ Medium Box: £25
+✓ Large Box: £35
+✓ TV: £50
+✓ Drum: £45
+
+✅ Parcel prices seeded successfully!
+Total: 5 price tiers

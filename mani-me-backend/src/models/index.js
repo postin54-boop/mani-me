@@ -1,18 +1,66 @@
-const { Sequelize } = require('sequelize');
-const UserModel = require('./user');
-const ShipmentModel = require('./shipment');
+// ======================
+// Central Model Exports
+// ======================
+// All models in one place for easy importing
 
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
-  dialect: 'postgres',
-  logging: false
-});
+// Core Models
+const User = require('./user');
+const Shipment = require('./shipment');
+const Item = require('./item');
+const Address = require('./address');
 
-// Create model objects
-const User = UserModel(sequelize);
-const Shipment = ShipmentModel(sequelize);
+// Booking & Tracking
+const Booking = require('./booking');
+const TrackingEvent = require('./trackingEvent');
+const ParcelItem = require('./parcelItem');
+const ParcelPrice = require('./parcelPrice');
 
-// Relationships
-User.hasMany(Shipment, { foreignKey: 'user_id' });
-Shipment.belongsTo(User, { foreignKey: 'user_id' });
+// Payments & Orders
+const Payment = require('./payment');
+const GroceryItem = require('./groceryItem');
+const GroceryOrder = require('./groceryOrder');
+const PackagingItem = require('./packagingItem');
+const PackagingOrder = require('./packagingOrder');
 
-module.exports = { sequelize, User, Shipment };
+// System & Settings
+const Settings = require('./settings');
+const Notification = require('./notification');
+const Message = require('./message');
+const Category = require('./category');
+const Product = require('./product');
+const CashReconciliation = require('./cashReconciliation');
+
+module.exports = {
+  // Core
+  User,
+  Shipment,
+  Item,
+  Address,
+  
+  // Booking & Tracking
+  Booking,
+  TrackingEvent,
+  ParcelItem,
+  ParcelPrice,
+  
+  // Payments & Orders
+  Payment,
+  GroceryItem,
+  GroceryOrder,
+  PackagingItem,
+  PackagingOrder,
+  
+  // System & Settings
+  Settings,
+  Notification,
+  Message,
+  Category,
+  Product,
+  CashReconciliation,
+  
+  // Lowercase aliases for backward compatibility
+  user: User,
+  shipment: Shipment,
+  item: Item,
+  address: Address,
+};

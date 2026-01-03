@@ -1,142 +1,337 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, StatusBar } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { fetchRecentParcels } from '../utils/recentParcels';
+import api from "../src/api";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Animated,
+  Dimensions,
+  RefreshControl,
+} from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '../context/UserContext';
-import { useThemeColors, SIZES, SHADOWS, FONTS } from '../constants/theme';
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import OfflineNotice from '../components/OfflineNotice';
+import { ParcelCardSkeleton } from '../components/Skeleton';
+import { InlineError } from '../components/ErrorRetry';
+import logger from '../utils/logger';
+
+const { width } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }) {
-  const { colors, isDark } = useThemeColors();
+  const insets = useSafeAreaInsets();
   const { user } = useUser();
-  
+  const [recentParcels, setRecentParcels] = useState([]);
+  const [loadingRecent, setLoadingRecent] = useState(true);
+  const [recentError, setRecentError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const loadRecentParcels = useCallback(async () => {
+    try {
+      setLoadingRecent(true);
+      setRecentError(null);
+      const data = await fetchRecentParcels();
+      setRecentParcels(data);
+    } catch (error) {
+      setRecentError('Failed to load recent parcels');
+      logger.error('Error loading recent parcels:', error);
+    } finally {
+      setLoadingRecent(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRecentParcels();
+  }, [loadRecentParcels]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadRecentParcels();
+    setRefreshing(false);
+  }, [loadRecentParcels]);
+
+  const handleContinue = async () => {
+    try {
+      const lastBookingStep = await AsyncStorage.getItem('lastBookingStep');
+      const lastBookingData = await AsyncStorage.getItem('lastBookingData');
+      if (lastBookingStep) {
+        navigation.navigate('Booking', {
+          step: lastBookingStep,
+          savedData: lastBookingData ? JSON.parse(lastBookingData) : undefined,
+        });
+      } else {
+        navigation.navigate('Booking');
+      }
+    } catch (e) {
+      navigation.navigate('Booking');
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'delivered': return '#10B981';
+      case 'in_transit': return '#F59E0B';
+      case 'pending': return '#6B7A90';
+      default: return '#83C5FA';
+    }
+  };
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
-      <StatusBar 
-        barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={colors.primary}
-      />
-      {/* Header with Gradient */}
-      <LinearGradient
-        colors={[colors.primary, colors.primaryLight]}
-        style={styles.header}
+    <LinearGradient
+      colors={['#0F2744', '#0B1E38', '#071A2C']}
+      style={styles.container}
+    >
+      <OfflineNotice />
+      
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={[
+          styles.scrollContent, 
+          { paddingTop: insets.top + 16, paddingBottom: 100 + insets.bottom }
+        ]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#83C5FA"
+            colors={['#83C5FA']}
+          />
+        }
       >
-        <View style={styles.headerTop}>
-          <View style={styles.logoContainer}>
-            <Image 
-              source={require('../assets/logo.png')} 
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
-          </View>
-        </View>
-        <Text style={[styles.greeting, { color: colors.accent }]}>Hello{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!</Text>
-        <Text style={[styles.title, { color: colors.accent }]}>UK to Ghana Deliveries</Text>
-        <Text style={[styles.subtitle, { color: colors.accent + 'CC' }]}>Fast, Secure, and Reliable</Text>
-      </LinearGradient>
-
-      <View style={styles.content}>
-        {/* Book Pickup Card - Primary Action */}
-        <TouchableOpacity 
-          style={[styles.primaryCard, { backgroundColor: colors.primary }, SHADOWS.large]}
-          onPress={() => navigation.navigate('Booking')}
-          activeOpacity={0.9}
-        >
-          <View style={styles.primaryCardContent}>
-            <View style={[styles.primaryCardIcon, { backgroundColor: colors.secondary + '20' }]}>
-              <Ionicons name="cube" size={40} color={colors.secondary} />
-            </View>
-            <View style={styles.primaryCardText}>
-              <Text style={[styles.primaryCardTitle, { color: colors.accent }]}>Book a Pickup</Text>
-              <Text style={[styles.primaryCardDescription, { color: colors.accent + 'CC' }]}>
-                Send parcels to Ghana from anywhere in the UK
-              </Text>
-            </View>
-            <View style={[styles.primaryCardArrow, { backgroundColor: colors.secondary }]}>
-              <Ionicons name="arrow-forward" size={24} color={colors.accent} />
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        {/* Quick Actions Grid */}
-        <View style={styles.actionsGrid}>
-          {/* Track Parcel Card */}
+        {/* TOP BAR */}
+        <Animated.View style={[
+          styles.topRow,
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+        ]}>
           <TouchableOpacity 
-            style={[styles.actionCard, { backgroundColor: colors.surface }]}
-            onPress={() => navigation.navigate('Orders')}
-            activeOpacity={0.8}
+            style={styles.profileButton}
+            onPress={() => navigation.navigate('Profile')}
           >
-            <View style={[styles.actionIconContainer, { backgroundColor: colors.secondary + '20' }]}>
-              <Ionicons name="location" size={28} color={colors.secondary} />
-            </View>
-            <Text style={[styles.actionTitle, { color: colors.text }]}>Track Parcels</Text>
-            <Text style={[styles.actionDescription, { color: colors.textSecondary }]}>View & track deliveries</Text>
+            {user?.profileImage ? (
+              <Image source={{ uri: user.profileImage }} style={styles.profileImage} />
+            ) : (
+              <Image source={require("../assets/user.jpg")} style={styles.profileImage} />
+            )}
           </TouchableOpacity>
-
-          {/* Shop Card (Coming Soon) */}
-          <TouchableOpacity 
-            style={[styles.actionCard, { backgroundColor: colors.surface, opacity: 0.7 }]}
-            onPress={() => alert("Shop feature coming soon!\n\nGhanians in Ghana will be able to order UK groceries and products.")}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.actionIconContainer, { backgroundColor: colors.textLight + '20' }]}>
-              <Ionicons name="cart" size={28} color={colors.textLight} />
-            </View>
-            <Text style={[styles.actionTitle, { color: colors.text }]}>Shop</Text>
-            <Text style={[styles.actionDescription, { color: colors.textSecondary }]}>Order UK products</Text>
-            <View style={[styles.comingSoonBadge, { backgroundColor: colors.secondary }]}>
-              <Text style={[styles.comingSoonText, { color: colors.accent }]}>SOON</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Features Section */}
-        <View style={styles.featuresSection}>
-          <Text style={styles.featuresTitle}>Why Choose Mani Me?</Text>
           
-          <View style={styles.featureItem}>
-            <View style={[styles.featureIcon, { backgroundColor: COLORS.success + '15' }]}>
-              <Ionicons name="rocket" size={24} color={COLORS.success} />
+          <View style={styles.brandBlock}>
+            <Text style={styles.brandName}>Mani <Text style={styles.brandAccent}>Me</Text></Text>
+            <Text style={styles.brandSub}>Your Parcel, Our Priority</Text>
+          </View>
+          
+          <View style={styles.headerActions}>
+            <TouchableOpacity 
+              style={styles.iconButton} 
+              onPress={() => navigation.navigate('Notifications')}
+            >
+              <Ionicons name="notifications-outline" size={22} color="#83C5FA" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.iconButton} 
+              onPress={() => navigation.navigate('Chat', { shipment_id: null, driver_name: 'Support', tracking_number: null })}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={22} color="#83C5FA" />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+
+        {/* GREETING */}
+        <Animated.View style={[
+          styles.greetingRow,
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+        ]}>
+          <Text style={styles.greetingText}>Hello 👋</Text>
+          <Text style={styles.greetingSub}>What would you like to do today?</Text>
+        </Animated.View>
+
+        {/* MAIN CTA - BOOK PARCEL */}
+        <Animated.View style={[
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+        ]}>
+          <TouchableOpacity 
+            style={styles.heroCard}
+            onPress={() => navigation.navigate('Booking')}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={['#83C5FA', '#5A8DFF']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroGradient}
+            >
+              <View style={styles.heroIconCircle}>
+                <MaterialCommunityIcons name="cube-send" size={32} color="#0B1A33" />
+              </View>
+              <View style={styles.heroTextBlock}>
+                <Text style={styles.heroTitle}>Book a Parcel</Text>
+                <Text style={styles.heroSubtitle}>Send your package to Ghana</Text>
+              </View>
+              <View style={styles.heroArrow}>
+                <Ionicons name="arrow-forward" size={24} color="#0B1A33" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* RECENT PARCELS */}
+        <Animated.View style={[
+          styles.sectionCard,
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+        ]}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Parcels</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('RecentParcelScreen')}>
+              <Text style={styles.sectionLink}>View all</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {loadingRecent ? (
+            <View>
+              <ParcelCardSkeleton />
+              <ParcelCardSkeleton />
+            </View>
+          ) : recentError ? (
+            <InlineError message={recentError} onRetry={loadRecentParcels} />
+          ) : recentParcels && recentParcels.length > 0 ? (
+            recentParcels.slice(0, 2).map((parcel, idx) => (
+              <TouchableOpacity
+                key={parcel._id || idx}
+                style={[
+                  styles.parcelRow, 
+                  idx === recentParcels.slice(0, 2).length - 1 && styles.parcelRowLast
+                ]}
+                onPress={() => navigation.navigate('Tracking', { tracking_number: parcel.tracking_number })}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.parcelIcon, { backgroundColor: getStatusColor(parcel.status) + '20' }]}>
+                  <Ionicons name="cube" size={20} color={getStatusColor(parcel.status)} />
+                </View>
+                <View style={styles.parcelInfo}>
+                  <Text style={styles.parcelName} numberOfLines={1}>{parcel.recipientName || 'Parcel'}</Text>
+                  <Text style={styles.parcelTracking} numberOfLines={1}>{parcel.tracking_number || 'No tracking'}</Text>
+                </View>
+                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(parcel.status) + '20' }]}>
+                  <Text style={[styles.statusText, { color: getStatusColor(parcel.status) }]}>
+                    {parcel.status?.replace(/_/g, ' ') || 'Pending'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="cube-outline" size={40} color="#6B7A90" />
+              <Text style={styles.emptyText}>No recent parcels</Text>
+              <Text style={styles.emptySubtext}>Book your first parcel to get started</Text>
+            </View>
+          )}
+        </Animated.View>
+
+        {/* SHOPS SECTION */}
+        <Animated.View style={[
+          styles.shopsSection,
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+        ]}>
+          <Text style={styles.shopsSectionTitle}>Shop & Ship</Text>
+          
+          {/* Grocery Shop */}
+          <TouchableOpacity
+            style={styles.shopCard}
+            onPress={() => navigation.navigate('GroceryShop')}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={['rgba(16, 185, 129, 0.12)', 'rgba(16, 185, 129, 0.04)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.shopCardGradient}
+            >
+              <View style={[styles.shopIcon, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
+                <MaterialCommunityIcons name="storefront" size={28} color="#10B981" />
+              </View>
+              <View style={styles.shopContent}>
+                <Text style={styles.shopTitle}>Grocery Shop</Text>
+                <Text style={styles.shopSub}>Shop UK essentials for Ghana delivery</Text>
+              </View>
+              <View style={[styles.shopArrow, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                <Ionicons name="chevron-forward" size={20} color="#10B981" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          {/* Packaging Shop */}
+          <TouchableOpacity
+            style={styles.shopCard}
+            onPress={() => navigation.navigate('PackagingShopScreen')}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={['rgba(245, 158, 11, 0.12)', 'rgba(245, 158, 11, 0.04)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.shopCardGradient}
+            >
+              <View style={[styles.shopIcon, { backgroundColor: 'rgba(245, 158, 11, 0.2)' }]}>
+                <MaterialCommunityIcons name="package-variant-closed" size={28} color="#F59E0B" />
+              </View>
+              <View style={styles.shopContent}>
+                <Text style={styles.shopTitle}>Packaging Shop</Text>
+                <Text style={styles.shopSub}>Buy boxes, tape & shipping supplies</Text>
+              </View>
+              <View style={[styles.shopArrow, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                <Ionicons name="chevron-forward" size={20} color="#F59E0B" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* CONTINUE BOOKING */}
+        <Animated.View style={[
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+        ]}>
+          <TouchableOpacity
+            style={styles.continueCard}
+            onPress={handleContinue}
+            activeOpacity={0.85}
+          >
+            <View style={[styles.featureIcon, { backgroundColor: 'rgba(131, 197, 250, 0.15)' }]}>
+              <Ionicons name="arrow-undo" size={26} color="#83C5FA" />
             </View>
             <View style={styles.featureContent}>
-              <Text style={[styles.featureText, { color: colors.text }]}>Fast & Reliable</Text>
-              <Text style={[styles.featureSubtext, { color: colors.textSecondary }]}>Express UK-Ghana shipping</Text>
+              <Text style={styles.featureTitle}>Continue Booking</Text>
+              <Text style={styles.featureSub}>Pick up where you left off</Text>
             </View>
-          </View>
-
-          <View style={styles.featureItem}>
-            <View style={[styles.featureIcon, { backgroundColor: colors.secondary + '20' }]}>
-              <Ionicons name="location" size={24} color={colors.secondary} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={[styles.featureText, { color: colors.text }]}>Real-time Tracking</Text>
-              <Text style={[styles.featureSubtext, { color: colors.textSecondary }]}>Track every step</Text>
-            </View>
-          </View>
-
-          <View style={styles.featureItem}>
-            <View style={[styles.featureIcon, { backgroundColor: colors.secondary + '20' }]}>
-              <Ionicons name="card" size={24} color={colors.secondary} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={[styles.featureText, { color: colors.text }]}>Flexible Payment</Text>
-              <Text style={[styles.featureSubtext, { color: colors.textSecondary }]}>Card or cash on pickup</Text>
-            </View>
-          </View>
-
-          <View style={styles.featureItem}>
-            <View style={[styles.featureIcon, { backgroundColor: colors.secondary + '20' }]}>
-              <Ionicons name="home" size={24} color={colors.secondary} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={[styles.featureText, { color: colors.text }]}>Door-to-Door</Text>
-              <Text style={[styles.featureSubtext, { color: colors.textSecondary }]}>We pickup & deliver</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      <View style={{ height: 30 }} />
-    </ScrollView>
+            <Ionicons name="chevron-forward" size={22} color="#6B7A90" />
+          </TouchableOpacity>
+        </Animated.View>
+      </ScrollView>
+    </LinearGradient>
   );
 }
 
@@ -144,157 +339,304 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingTop: SIZES.xxl + SIZES.lg,
-    paddingBottom: SIZES.xl,
-    paddingHorizontal: SIZES.lg,
-  },
-  headerTop: {
-    alignItems: 'center',
-    marginBottom: SIZES.md,
-  },
-  logoContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: SIZES.sm,
-  },
-  logoImage: {
-    width: 48,
-    height: 48,
-  },
-  greeting: {
-    fontSize: SIZES.body,
-    ...FONTS.medium,
-    marginBottom: SIZES.xs,
-  },
-  title: {
-    fontSize: SIZES.h2,
-    ...FONTS.bold,
-    marginBottom: SIZES.xs,
-  },
-  subtitle: {
-    fontSize: SIZES.bodySmall,
-    ...FONTS.regular,
-  },
-  content: {
-    padding: SIZES.md,
-  },
-  primaryCard: {
-    borderRadius: SIZES.radiusLg,
-    marginBottom: SIZES.lg,
-    overflow: 'hidden',
-  },
-  primaryCardContent: {
-    padding: SIZES.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  primaryCardIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: SIZES.radiusMd,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: SIZES.md,
-  },
-  primaryCardText: {
+  scrollView: {
     flex: 1,
   },
-  primaryCardTitle: {
-    fontSize: SIZES.h4,
-    ...FONTS.bold,
-    marginBottom: SIZES.xs,
+  scrollContent: {
+    paddingHorizontal: 20,
+    flexGrow: 1,
   },
-  primaryCardDescription: {
-    fontSize: SIZES.bodySmall,
-    ...FONTS.regular,
-  },
-  primaryCardArrow: {
-    width: 40,
-    height: 40,
-    borderRadius: SIZES.radiusMd,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionsGrid: {
+  
+  // Top Bar
+  topRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: SIZES.lg,
+    marginBottom: 24,
   },
-  actionCard: {
-    flex: 1,
-    borderRadius: SIZES.radiusMd,
-    padding: SIZES.md,
-    marginHorizontal: SIZES.xs,
-    ...SHADOWS.medium,
+  profileButton: {
+    padding: 2,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: '#83C5FA',
   },
-  actionIconContainer: {
+  profileImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  brandBlock: {
+    alignItems: 'center',
+  },
+  brandName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
+  brandAccent: {
+    color: '#83C5FA',
+  },
+  brandSub: {
+    color: '#6B7A90',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  
+  // Greeting
+  greetingRow: {
+    marginBottom: 24,
+  },
+  greetingText: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  greetingSub: {
+    fontSize: 15,
+    color: '#9EB3D6',
+  },
+  
+  // Hero Card
+  heroCard: {
+    marginBottom: 24,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#83C5FA',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  heroGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
+  heroIconCircle: {
     width: 56,
     height: 56,
-    borderRadius: SIZES.radiusMd,
-    alignItems: 'center',
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.25)',
     justifyContent: 'center',
-    marginBottom: SIZES.sm,
+    alignItems: 'center',
   },
-  actionTitle: {
-    fontSize: SIZES.h6,
-    ...FONTS.semiBold,
-    marginBottom: SIZES.xs,
+  heroTextBlock: {
+    flex: 1,
+    marginLeft: 16,
   },
-  actionDescription: {
-    fontSize: SIZES.caption,
-    lineHeight: 16,
-    ...FONTS.regular,
+  heroTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0B1A33',
+    marginBottom: 4,
   },
-  comingSoonBadge: {
-    position: 'absolute',
-    top: SIZES.sm,
-    right: SIZES.sm,
-    paddingHorizontal: SIZES.sm,
-    paddingVertical: SIZES.xs,
-    borderRadius: SIZES.radiusSm,
+  heroSubtitle: {
+    fontSize: 14,
+    color: '#0B1A33',
+    opacity: 0.7,
   },
-  comingSoonText: {
-    fontSize: 10,
-    ...FONTS.bold,
+  heroArrow: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  featuresSection: {
-    borderRadius: SIZES.radiusMd,
-    padding: SIZES.lg,
-    ...SHADOWS.small,
+  
+  // Section Card
+  sectionCard: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
-  featuresTitle: {
-    fontSize: SIZES.h5,
-    ...FONTS.bold,
-    marginBottom: SIZES.lg,
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  featureItem: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  sectionLink: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#83C5FA',
+  },
+  
+  // Parcel Row
+  parcelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SIZES.md,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  parcelRowLast: {
+    borderBottomWidth: 0,
+  },
+  parcelIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  parcelInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  parcelName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  parcelTracking: {
+    fontSize: 12,
+    color: '#6B7A90',
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  
+  // Empty State
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#9EB3D6',
+    marginTop: 12,
+  },
+  emptySubtext: {
+    fontSize: 13,
+    color: '#6B7A90',
+    marginTop: 4,
+  },
+  
+  // Shops Section
+  shopsSection: {
+    marginBottom: 16,
+  },
+  shopsSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 14,
+  },
+  shopCard: {
+    borderRadius: 18,
+    marginBottom: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  shopCardGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 18,
+  },
+  shopIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shopContent: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  shopTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 3,
+  },
+  shopSub: {
+    fontSize: 13,
+    color: '#9EB3D6',
+  },
+  shopArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  // Feature Cards
+  featureCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  continueCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(131, 197, 250, 0.3)',
   },
   featureIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: SIZES.radiusMd,
-    alignItems: 'center',
+    width: 50,
+    height: 50,
+    borderRadius: 14,
     justifyContent: 'center',
-    marginRight: SIZES.md,
+    alignItems: 'center',
   },
   featureContent: {
     flex: 1,
+    marginLeft: 14,
   },
-  featureText: {
-    fontSize: SIZES.body,
-    ...FONTS.semiBold,
-    marginBottom: SIZES.xs,
+  featureTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 2,
   },
-  featureSubtext: {
-    fontSize: SIZES.bodySmall,
-    ...FONTS.regular,
+  featureSub: {
+    fontSize: 13,
+    color: '#9EB3D6',
   },
 });

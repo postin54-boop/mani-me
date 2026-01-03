@@ -21,6 +21,8 @@ import {
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import api from '../api';
+import logger from '../utils/logger';
+import { getErrorMessage } from '../utils/errorHandler';
 
 function Users() {
   const [users, setUsers] = useState([]);
@@ -35,10 +37,10 @@ function Users() {
 
   const fetchUsers = async () => {
     try {
-      const response = await api.get('/admin/users');
+      const response = await api.get('/api/admin/users');
       setUsers(response.data);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      logger.error('Error fetching users:', error);
     } finally {
       setLoading(false);
     }
@@ -61,7 +63,7 @@ function Users() {
       });
       fetchUsers();
     } catch (error) {
-      console.error('Error updating user status:', error);
+      logger.error('Error updating user status:', error);
     }
   };
 
