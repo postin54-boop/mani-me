@@ -1,10 +1,12 @@
-import React, { useContext, useState, useEffect, useRef } from "react";
+import React, { useContext, useState, useEffect, useRef, useCallback } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, StatusBar, Animated, Dimensions, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { AuthContext } from "../context/AuthContext";
 import { useCashTracking } from "../context/CashTrackingContext";
+import { API_BASE_URL, ENDPOINTS } from "../utils/config";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width } = Dimensions.get('window');
 
@@ -40,6 +42,7 @@ export default function HomeScreen({ navigation }) {
 	
 	const [driverStatus, setDriverStatus] = useState("AVAILABLE");
 	const [activeJob, setActiveJob] = useState(null);
+	const [assignedJobsCount, setAssignedJobsCount] = useState(0);
 	const [latestUpdates, setLatestUpdates] = useState([]);
 	const [refreshing, setRefreshing] = useState(false);
 
@@ -71,13 +74,78 @@ export default function HomeScreen({ navigation }) {
 		if (user) fetchDriverData();
 	}, [user]);
 
-	const fetchDriverData = async () => {
-		console.log("Fetching driver data for:", user?.fullName);
-		setLatestUpdates([
-			isUK ? "🚗 New pickup assigned: MM-839201" : "📦 Delivery scheduled: GH-839201",
-			"💬 Message from Admin: Check schedule",
-		]);
-	};
+	const fetchDriverData = useCallback(async () => {
+		try {
+			const token = await AsyncStorage.getItem('token');
+			const driverId = user?._id || user?.id;
+			
+			if (!driverId) {
+				console.log("No driver ID found");
+				return;
+			}
+
+			// Determine driver type for API call
+			const type = isUK ? 'pickup' : 'delivery';
+			const url = `${API_BASE_URL}${ENDPOINTS.DRIVER_ASSIGNMENTS(driverId)}?type=${type}&limit=10`;
+			
+			console.log('Fetching driver jobs from:', url);
+			
+			const response = await fetch(url, {
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json',
+				},
+			});
+
+			const data = await response.json();
+			console.log('Driver jobs response:', data);
+
+			if (data.success && data.data?.shipments) {
+				const shipments = data.data.shipments;
+				setAssignedJobsCount(shipments.length);
+				
+				// Find active job (first non-delivered shipment)
+				const pendingJob = shipments.find(s => 
+					!['delivered', 'cancelled'].includes(s.status?.toLowerCase())
+				);
+				
+				if (pendingJob) {
+					setActiveJob({
+						id: pendingJob._id || pendingJob.id,
+						parcelId: pendingJob.tracking_number || pendingJob.parcel_id_short || 'N/A',
+						address: isUK 
+							? `${pendingJob.pickup_address || ''}, ${pendingJob.pickup_city || ''}`.trim()
+							: `${pendingJob.delivery_address || ''}, ${pendingJob.delivery_city || ''}`.trim(),
+						status: pendingJob.status,
+						customerName: isUK ? pendingJob.sender_name : pendingJob.receiver_name,
+						...pendingJob,
+					});
+					setDriverStatus("ON_JOB");
+				} else {
+					setActiveJob(null);
+					setDriverStatus("AVAILABLE");
+				}
+
+				// Generate updates based on real data
+				const updates = [];
+				if (shipments.length > 0) {
+					updates.push(isUK 
+						? `🚗 ${shipments.length} pickup${shipments.length > 1 ? 's' : ''} assigned`
+						: `📦 ${shipments.length} deliver${shipments.length > 1 ? 'ies' : 'y'} scheduled`
+					);
+				}
+				setLatestUpdates(updates.length > 0 ? updates : ["No new updates"]);
+			} else {
+				setActiveJob(null);
+				setAssignedJobsCount(0);
+				setDriverStatus("AVAILABLE");
+				setLatestUpdates(["No assignments yet"]);
+			}
+		} catch (error) {
+			console.error('Error fetching driver data:', error);
+			setLatestUpdates(["Failed to load updates"]);
+		}
+	}, [user, isUK]);
 
 	const onRefresh = async () => {
 		setRefreshing(true);
@@ -158,10 +226,24 @@ export default function HomeScreen({ navigation }) {
 									<Ionicons name="flash" size={16} color="#fff" />
 									<Text style={styles.activeJobBadgeText}>ACTIVE</Text>
 								</View>
+								{assignedJobsCount > 1 && (
+									<TouchableOpacity 
+										style={styles.viewAllBtn}
+										onPress={() => navigation.navigate('AssignedJobs')}
+									>
+										<Text style={styles.viewAllText}>+{assignedJobsCount - 1} more</Text>
+									</TouchableOpacity>
+								)}
 							</View>
 							<Text style={styles.parcelId}>Parcel: {activeJob.parcelId}</Text>
 							<Text style={styles.address}>{activeJob.address}</Text>
-							<TouchableOpacity style={styles.openJobBtn}>
+							{activeJob.customerName && (
+								<Text style={styles.customerName}>Customer: {activeJob.customerName}</Text>
+							)}
+							<TouchableOpacity 
+								style={styles.openJobBtn}
+								onPress={() => navigation.navigate('JobDetails', { job: activeJob })}
+							>
 								<Text style={styles.openJobText}>Open Job</Text>
 								<Ionicons name="arrow-forward" size={18} color="#0B1A33" />
 							</TouchableOpacity>
@@ -169,10 +251,17 @@ export default function HomeScreen({ navigation }) {
 					) : (
 						<View style={styles.noJobContainer}>
 							<View style={styles.noJobIcon}>
-								<Ionicons name="checkmark-circle" size={40} color="#10B981" />
+								<Ionicons name="clipboard-outline" size={40} color="#9CA3AF" />
 							</View>
 							<Text style={styles.noJobTitle}>No Active Jobs</Text>
-							<Text style={styles.noJobSubtitle}>You're all caught up! Check back for new assignments.</Text>
+							<Text style={styles.noJobSubtitle}>You don't have any assigned jobs yet. Pull down to refresh.</Text>
+							<TouchableOpacity 
+								style={styles.refreshBtn}
+								onPress={onRefresh}
+							>
+								<Ionicons name="refresh" size={16} color="#0B1A33" />
+								<Text style={styles.refreshBtnText}>Refresh</Text>
+							</TouchableOpacity>
 						</View>
 					)}
 				</Animated.View>
@@ -454,6 +543,37 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		color: '#9CA3AF',
 		textAlign: 'center',
+	},
+	refreshBtn: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		backgroundColor: '#F3F4F6',
+		paddingHorizontal: 16,
+		paddingVertical: 10,
+		borderRadius: 20,
+		marginTop: 16,
+		gap: 6,
+	},
+	refreshBtnText: {
+		fontSize: 14,
+		fontWeight: '600',
+		color: '#0B1A33',
+	},
+	viewAllBtn: {
+		backgroundColor: 'rgba(255,255,255,0.2)',
+		paddingHorizontal: 10,
+		paddingVertical: 4,
+		borderRadius: 12,
+	},
+	viewAllText: {
+		fontSize: 12,
+		fontWeight: '600',
+		color: '#fff',
+	},
+	customerName: {
+		fontSize: 14,
+		color: '#6B7280',
+		marginTop: 4,
 	},
 	cashCard: {
 		backgroundColor: '#FFFFFF',
