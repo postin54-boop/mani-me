@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Login from './pages/Login';
+import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
 import Users from './pages/Users';
@@ -21,15 +22,30 @@ import theme from './theme';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
+    const hasSeenOnboarding = localStorage.getItem('adminHasSeenOnboarding');
     setIsAuthenticated(!!token);
+    // Show onboarding if logged in but hasn't seen it
+    if (token && !hasSeenOnboarding) {
+      setShowOnboarding(true);
+    }
   }, []);
 
   const handleLogin = (token) => {
     localStorage.setItem('adminToken', token);
     setIsAuthenticated(true);
+    // Check if should show onboarding
+    const hasSeenOnboarding = localStorage.getItem('adminHasSeenOnboarding');
+    if (!hasSeenOnboarding) {
+      setShowOnboarding(true);
+    }
+  };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
   };
 
   const handleLogout = () => {
@@ -38,6 +54,16 @@ function App() {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
   };
+
+  // Show onboarding if authenticated but hasn't seen it
+  if (isAuthenticated && showOnboarding) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Onboarding onComplete={handleOnboardingComplete} />
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider theme={theme}>

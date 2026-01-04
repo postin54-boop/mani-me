@@ -67,3 +67,20 @@ exports.verifyAdmin = async (req, res, next) => {
     return res.status(500).json({ message: 'Authorization error', error: error.message });
   }
 };
+
+// Optional auth - continues even if no token, but sets req.user if valid token exists
+exports.optionalAuth = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    // No token - continue without user
+    return next();
+  }
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.userId = decoded.user_id || decoded.id;
+    req.user = decoded;
+  } catch (error) {
+    // Invalid token - continue without user
+  }
+  next();
+};

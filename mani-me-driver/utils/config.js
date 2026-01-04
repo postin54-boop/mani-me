@@ -6,13 +6,11 @@
 // Environment detection
 const isDev = __DEV__;
 
-// API Configuration
-// In production, this should come from environment variables or app config
-const DEV_API_URL = 'http://192.168.0.138:4000';
-const PROD_API_URL = 'https://api.manime.com'; // Update with your production URL
+// API Configuration - Render production URL
+const PROD_API_URL = 'https://mani-me-backend.onrender.com';
 
-// Export the appropriate URL based on environment
-export const API_BASE_URL = isDev ? DEV_API_URL : PROD_API_URL;
+// Always use production URL
+export const API_BASE_URL = PROD_API_URL;
 
 // API endpoints (for consistency)
 export const ENDPOINTS = {

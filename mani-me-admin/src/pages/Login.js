@@ -52,26 +52,28 @@ function Login({ onLogin }) {
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
-        background: gradients.primary,
+        background: 'linear-gradient(135deg, #0B1A33 0%, #071A2C 100%)',
         position: 'relative',
         overflow: 'hidden',
         '&::before': {
           content: '""',
           position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'radial-gradient(circle at 20% 50%, rgba(131, 197, 250, 0.3) 0%, transparent 50%)',
+          top: -100,
+          right: -100,
+          width: 400,
+          height: 400,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(131, 197, 250, 0.15) 0%, transparent 70%)',
         },
         '&::after': {
           content: '""',
           position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.3) 0%, transparent 50%)',
+          bottom: -150,
+          left: -150,
+          width: 500,
+          height: 500,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(131, 197, 250, 0.1) 0%, transparent 70%)',
         },
       }}
     >
@@ -95,15 +97,15 @@ function Login({ onLogin }) {
                 width: 80,
                 height: 80,
                 borderRadius: 3,
-                background: gradients.primary,
+                background: 'linear-gradient(135deg, #0B1A33 0%, #1a2d4a 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 mb: 3,
-                boxShadow: '0 8px 24px rgba(102, 126, 234, 0.4)',
+                boxShadow: '0 8px 24px rgba(11, 26, 51, 0.4)',
               }}
             >
-              <LockOutlinedIcon sx={{ fontSize: 40, color: 'white' }} />
+              <LockOutlinedIcon sx={{ fontSize: 40, color: '#83C5FA' }} />
             </Box>
 
             {/* Title */}
@@ -113,7 +115,7 @@ function Login({ onLogin }) {
               sx={{
                 fontWeight: 700,
                 mb: 1,
-                background: gradients.primary,
+                background: 'linear-gradient(135deg, #0B1A33 0%, #1a2d4a 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -196,10 +198,12 @@ function Login({ onLogin }) {
                   py: 1.5,
                   fontSize: '1rem',
                   fontWeight: 600,
-                  background: gradients.primary,
+                  background: 'linear-gradient(135deg, #0B1A33 0%, #1a2d4a 100%)',
+                  borderRadius: 2,
+                  boxShadow: '0 4px 12px rgba(11, 26, 51, 0.3)',
                   '&:hover': {
-                    background: gradients.primary,
-                    opacity: 0.9,
+                    background: 'linear-gradient(135deg, #1a2d4a 0%, #0B1A33 100%)',
+                    boxShadow: '0 6px 16px rgba(11, 26, 51, 0.4)',
                   },
                 }}
               >

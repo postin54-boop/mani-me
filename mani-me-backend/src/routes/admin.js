@@ -190,8 +190,11 @@ router.put('/users/:id/status', verifyAdmin, async (req, res) => {
 router.get('/drivers/uk', verifyAdmin, async (req, res) => {
   try {
     const drivers = await User.find({ 
-      role: 'DRIVER',
-      driver_type: 'UK'
+      $or: [
+        { role: 'DRIVER', driver_type: 'UK' },
+        { role: 'UK_DRIVER' },
+        { role: 'DRIVER', driver_type: 'pickup' }
+      ]
     }).select('-password').sort({ createdAt: -1 });
     res.json(drivers);
   } catch (error) {
@@ -203,8 +206,11 @@ router.get('/drivers/uk', verifyAdmin, async (req, res) => {
 router.get('/drivers/ghana', verifyAdmin, async (req, res) => {
   try {
     const drivers = await User.find({ 
-      role: 'DRIVER',
-      driver_type: 'Ghana'
+      $or: [
+        { role: 'DRIVER', driver_type: 'Ghana' },
+        { role: 'GH_DRIVER' },
+        { role: 'DRIVER', driver_type: 'delivery' }
+      ]
     }).select('-password').sort({ createdAt: -1 });
     res.json(drivers);
   } catch (error) {
@@ -259,19 +265,25 @@ router.put('/shipments/:id/assign-pickup-driver', verifyAdmin, async (req, res) 
   try {
     const { driver_id } = req.body;
     
-    if (!driver_id) {
-      return res.status(400).json({ message: 'driver_id is required' });
-    }
-
     const shipment = await Shipment.findById(req.params.id);
     if (!shipment) {
       return res.status(404).json({ message: 'Shipment not found' });
     }
 
+    // Allow unassignment by setting driver_id to null
+    if (!driver_id) {
+      shipment.pickup_driver_id = null;
+      await shipment.save();
+      return res.json({ message: 'Pickup driver unassigned successfully', shipment });
+    }
+
     const driver = await User.findOne({ 
       _id: driver_id,
-      role: 'DRIVER',
-      driver_type: 'UK'
+      $or: [
+        { role: 'DRIVER', driver_type: 'UK' },
+        { role: 'UK_DRIVER' },
+        { role: 'DRIVER', driver_type: 'pickup' }
+      ]
     });
 
     if (!driver) {
@@ -305,19 +317,25 @@ router.put('/shipments/:id/assign-delivery-driver', verifyAdmin, async (req, res
   try {
     const { driver_id } = req.body;
     
-    if (!driver_id) {
-      return res.status(400).json({ message: 'driver_id is required' });
-    }
-
     const shipment = await Shipment.findById(req.params.id);
     if (!shipment) {
       return res.status(404).json({ message: 'Shipment not found' });
     }
 
+    // Allow unassignment by setting driver_id to null
+    if (!driver_id) {
+      shipment.delivery_driver_id = null;
+      await shipment.save();
+      return res.json({ message: 'Delivery driver unassigned successfully', shipment });
+    }
+
     const driver = await User.findOne({ 
       _id: driver_id,
-      role: 'DRIVER',
-      driver_type: 'Ghana'
+      $or: [
+        { role: 'DRIVER', driver_type: 'Ghana' },
+        { role: 'GH_DRIVER' },
+        { role: 'DRIVER', driver_type: 'delivery' }
+      ]
     });
 
     if (!driver) {

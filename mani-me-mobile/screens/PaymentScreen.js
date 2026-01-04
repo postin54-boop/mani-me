@@ -129,6 +129,8 @@ export default function PaymentScreen({ route, navigation }) {
         // Generate receipt data
         const receiptData = {
           trackingNumber: data.tracking_number,
+          parcelId: data.parcel_id,
+          parcelIdShort: data.parcel_id_short,
           bookingMode: bookingData?.booking_mode,
           boxes: bookingData?.boxes || [],
           items: bookingData?.items || [],

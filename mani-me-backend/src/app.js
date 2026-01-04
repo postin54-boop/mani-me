@@ -1,7 +1,7 @@
 // Central app entry point
 const express = require('express');
 const app = express();
-const errorHandler = require('./middleware/errorHandler');
+const { errorHandler } = require('./middleware/errorHandler');
 
 // ======================
 // Security & Performance Middleware
@@ -60,6 +60,24 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Also support /api/health for consistency
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    name: 'Mani-Me Backend API',
+    version: '1.0.0',
+    status: 'running',
+  });
+});
+
 // Halt processing if request has timed out
 app.use((req, res, next) => {
   if (!req.timedout) next();
@@ -81,7 +99,7 @@ app.use('/api/drivers', require('./routes/driver'));
 app.use('/api/products', require('./routes/product'));
 app.use('/api/categories', require('./routes/category'));
 app.use('/api/chat', require('./routes/chat'));
-app.use('/api/cash-reconciliation', require('./routes/cashReconciliation.routes'));
+app.use('/api/cash-reconciliation', require('./routes/cashReconciliation'));
 app.use('/api/shop', require('./routes/shop'));
 app.use('/api/grocery', require('./routes/grocery'));
 app.use('/api/settings', require('./routes/settings'));

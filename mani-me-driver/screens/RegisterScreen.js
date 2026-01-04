@@ -1,9 +1,25 @@
-
-import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, StatusBar, KeyboardAvoidingView, Platform, Alert, ScrollView } from 'react-native';
+import React, { useState, useContext, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  ScrollView,
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useThemeColors } from '../constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
+
+const { width } = Dimensions.get('window');
 
 // Validation helpers
 const isValidEmail = (email) => {
@@ -12,47 +28,64 @@ const isValidEmail = (email) => {
 };
 
 const isValidPhone = (phone) => {
-  // Accept various phone formats with at least 10 digits
   const digitsOnly = phone.replace(/\D/g, '');
   return digitsOnly.length >= 10 && digitsOnly.length <= 15;
 };
 
 export default function RegisterScreen({ navigation }) {
-  const { colors, isDark } = useThemeColors();
+  const insets = useSafeAreaInsets();
   const { register } = useContext(AuthContext);
+  
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [driverType, setDriverType] = useState('UK'); // 'UK' or 'Ghana'
+  const [driverType, setDriverType] = useState('UK');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [focusedField, setFocusedField] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
     
-    // Full name validation
     if (!fullName.trim()) {
       newErrors.fullName = "Full name is required";
     } else if (fullName.trim().length < 2) {
       newErrors.fullName = "Name must be at least 2 characters";
     }
     
-    // Email validation
     if (!email.trim()) {
       newErrors.email = "Email is required";
     } else if (!isValidEmail(email)) {
       newErrors.email = "Please enter a valid email address";
     }
     
-    // Phone validation
     if (!phone.trim()) {
       newErrors.phone = "Phone number is required";
     } else if (!isValidPhone(phone)) {
-      newErrors.phone = "Please enter a valid phone number (10-15 digits)";
+      newErrors.phone = "Please enter a valid phone number";
     }
     
-    // Password validation
     if (!password) {
       newErrors.password = "Password is required";
     } else if (password.length < 6) {
@@ -95,137 +128,321 @@ export default function RegisterScreen({ navigation }) {
     }
   };
 
-  const renderError = (field) => {
-    if (!errors[field]) return null;
-    return <Text style={[styles.errorText, { color: '#FF6B6B' }]}>{errors[field]}</Text>;
-  };
+  const renderInput = (label, value, setValue, placeholder, icon, field, options = {}) => (
+    <View style={styles.inputWrapper}>
+      <Text style={styles.inputLabel}>{label}</Text>
+      <View style={[
+        styles.inputContainer,
+        focusedField === field && styles.inputFocused,
+        errors[field] && styles.inputError
+      ]}>
+        <Ionicons 
+          name={icon} 
+          size={20} 
+          color={errors[field] ? "#EF4444" : focusedField === field ? "#83C5FA" : "#6B7A90"} 
+        />
+        <TextInput
+          style={styles.input}
+          placeholder={placeholder}
+          placeholderTextColor="#6B7A90"
+          value={value}
+          onChangeText={(text) => { setValue(text); clearError(field); }}
+          onFocus={() => setFocusedField(field)}
+          onBlur={() => setFocusedField(null)}
+          editable={!loading}
+          {...options}
+        />
+        {field === 'password' && (
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+            <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#6B7A90" />
+          </TouchableOpacity>
+        )}
+      </View>
+      {errors[field] && <Text style={styles.errorText}>{errors[field]}</Text>}
+    </View>
+  );
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <LinearGradient
+      colors={['#0B1A33', '#071A2C']}
+      style={styles.container}
     >
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      {/* Back Button */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-        activeOpacity={0.7}
+      <StatusBar barStyle="light-content" backgroundColor="#0B1A33" />
+      
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.keyboardView}
       >
-        <Ionicons name="arrow-back" size={28} color={colors.secondary} />
-      </TouchableOpacity>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.primary }]}>Create Account</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Sign up to start driving</Text>
-      </View>
-      <View style={styles.form}>
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Driver Type</Text>
-        <View style={{ flexDirection: 'row', marginTop: 8, marginBottom: 8 }}>
-          <TouchableOpacity
-            style={{
-              flex: 1,
-              backgroundColor: driverType === 'UK' ? colors.secondary : colors.surface,
-              borderRadius: 10,
-              paddingVertical: 10,
-              marginRight: 8,
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: driverType === 'UK' ? colors.secondary : colors.border,
-            }}
-            onPress={() => setDriverType('UK')}
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 40 }
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Back Button */}
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
           >
-            <Text style={{ color: driverType === 'UK' ? colors.primary : colors.text }}>UK Driver</Text>
+            <Ionicons name="arrow-back" size={24} color="#83C5FA" />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={{
-              flex: 1,
-              backgroundColor: driverType === 'Ghana' ? colors.secondary : colors.surface,
-              borderRadius: 10,
-              paddingVertical: 10,
-              marginLeft: 8,
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: driverType === 'Ghana' ? colors.secondary : colors.border,
-            }}
-            onPress={() => setDriverType('Ghana')}
-          >
-            <Text style={{ color: driverType === 'Ghana' ? colors.primary : colors.text }}>Ghana Driver</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Full Name</Text>
-        <TextInput 
-          style={[styles.input, { color: colors.text, borderColor: errors.fullName ? '#FF6B6B' : colors.border }]} 
-          value={fullName} 
-          onChangeText={(text) => { setFullName(text); clearError('fullName'); }}
-          placeholder="John Doe" 
-          placeholderTextColor={colors.textSecondary} 
-        />
-        {renderError('fullName')}
-        
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
-        <TextInput 
-          style={[styles.input, { color: colors.text, borderColor: errors.email ? '#FF6B6B' : colors.border }]} 
-          value={email} 
-          onChangeText={(text) => { setEmail(text); clearError('email'); }}
-          placeholder="driver@manime.com" 
-          placeholderTextColor={colors.textSecondary} 
-          keyboardType="email-address" 
-          autoCapitalize="none" 
-          autoCorrect={false}
-        />
-        {renderError('email')}
-        
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Phone</Text>
-        <TextInput 
-          style={[styles.input, { color: colors.text, borderColor: errors.phone ? '#FF6B6B' : colors.border }]} 
-          value={phone} 
-          onChangeText={(text) => { setPhone(text); clearError('phone'); }}
-          placeholder="+234 801 234 5678" 
-          placeholderTextColor={colors.textSecondary} 
-          keyboardType="phone-pad" 
-        />
-        {renderError('phone')}
-        
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Password</Text>
-        <TextInput 
-          style={[styles.input, { color: colors.text, borderColor: errors.password ? '#FF6B6B' : colors.border }]} 
-          value={password} 
-          onChangeText={(text) => { setPassword(text); clearError('password'); }}
-          placeholder="Enter password (min 6 characters)" 
-          placeholderTextColor={colors.textSecondary} 
-          secureTextEntry 
-        />
-        {renderError('password')}
-        <TouchableOpacity style={[styles.registerButton, { backgroundColor: colors.primary }]} onPress={handleRegister} disabled={loading}>
-          <Text style={[styles.registerButtonText, { color: colors.accent }]}>{loading ? 'Registering...' : 'Sign Up'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={{ marginTop: 18 }} onPress={() => navigation.navigate('Login')}>
-          <Text style={{ color: colors.secondary, textAlign: 'center' }}>Already have an account? Sign In</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+
+          {/* Title */}
+          <Animated.View style={[
+            styles.headerContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }
+          ]}>
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Join our driver team today</Text>
+          </Animated.View>
+
+          {/* Form Card */}
+          <Animated.View style={[
+            styles.formCard,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }
+          ]}>
+            {/* Driver Type Selection */}
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>I want to be a</Text>
+              <View style={styles.driverTypeRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.driverTypeButton,
+                    driverType === 'UK' && styles.driverTypeActive
+                  ]}
+                  onPress={() => setDriverType('UK')}
+                >
+                  <Ionicons 
+                    name="car-sport" 
+                    size={20} 
+                    color={driverType === 'UK' ? '#0B1A33' : '#83C5FA'} 
+                  />
+                  <Text style={[
+                    styles.driverTypeText,
+                    driverType === 'UK' && styles.driverTypeTextActive
+                  ]}>🇬🇧 UK Driver</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.driverTypeButton,
+                    driverType === 'Ghana' && styles.driverTypeActive
+                  ]}
+                  onPress={() => setDriverType('Ghana')}
+                >
+                  <Ionicons 
+                    name="car-sport" 
+                    size={20} 
+                    color={driverType === 'Ghana' ? '#0B1A33' : '#83C5FA'} 
+                  />
+                  <Text style={[
+                    styles.driverTypeText,
+                    driverType === 'Ghana' && styles.driverTypeTextActive
+                  ]}>🇬🇭 Ghana Driver</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Form Inputs */}
+            {renderInput('Full Name', fullName, setFullName, 'John Doe', 'person-outline', 'fullName')}
+            {renderInput('Email Address', email, setEmail, 'driver@email.com', 'mail-outline', 'email', { 
+              keyboardType: 'email-address', 
+              autoCapitalize: 'none',
+              autoCorrect: false 
+            })}
+            {renderInput('Phone Number', phone, setPhone, '+44 7123 456789', 'call-outline', 'phone', { 
+              keyboardType: 'phone-pad' 
+            })}
+            {renderInput('Password', password, setPassword, 'Min 6 characters', 'lock-closed-outline', 'password', { 
+              secureTextEntry: !showPassword 
+            })}
+
+            {/* Register Button */}
+            <TouchableOpacity
+              style={[styles.registerButton, loading && styles.registerButtonDisabled]}
+              onPress={handleRegister}
+              activeOpacity={0.8}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#0B1A33" />
+              ) : (
+                <>
+                  <Text style={styles.registerButtonText}>Create Account</Text>
+                  <Ionicons name="checkmark-circle" size={20} color="#0B1A33" />
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* Login Link */}
+            <View style={styles.loginRow}>
+              <Text style={styles.loginText}>Already have an account?</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.loginLink}> Sign In</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  backButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 54 : 28,
-    left: 18,
-    zIndex: 10,
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    borderRadius: 24,
-    padding: 6,
+  container: {
+    flex: 1,
   },
-  header: { alignItems: 'center', paddingTop: 60, paddingBottom: 30 },
-  title: { fontSize: 28, fontWeight: '800', letterSpacing: -1 },
-  subtitle: { fontSize: 16, marginTop: 6, fontWeight: '500' },
-  form: { padding: 24 },
-  label: { fontSize: 14, fontWeight: '600', marginTop: 18 },
-  input: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 6, fontSize: 16 },
-  registerButton: { marginTop: 32, borderRadius: 18, paddingVertical: 14, alignItems: 'center' },
-  registerButtonText: { fontSize: 16, fontWeight: '700' },
-  errorText: { fontSize: 12, marginTop: 2, marginBottom: 4, marginLeft: 4 },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  headerContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#9EB3D6',
+    textAlign: 'center',
+  },
+  formCard: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  inputWrapper: {
+    marginBottom: 18,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9EB3D6',
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  inputFocused: {
+    borderColor: '#83C5FA',
+    backgroundColor: 'rgba(131, 197, 250, 0.1)',
+  },
+  inputError: {
+    borderColor: '#EF4444',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  },
+  input: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#fff',
+  },
+  eyeButton: {
+    padding: 4,
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 12,
+    marginTop: 6,
+    marginLeft: 4,
+  },
+  driverTypeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  driverTypeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(131, 197, 250, 0.1)',
+    paddingVertical: 14,
+    borderRadius: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(131, 197, 250, 0.3)',
+  },
+  driverTypeActive: {
+    backgroundColor: '#83C5FA',
+    borderColor: '#83C5FA',
+  },
+  driverTypeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#83C5FA',
+  },
+  driverTypeTextActive: {
+    color: '#0B1A33',
+  },
+  registerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#83C5FA',
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 8,
+    marginTop: 8,
+    shadowColor: '#83C5FA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  registerButtonDisabled: {
+    opacity: 0.7,
+  },
+  registerButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#0B1A33',
+  },
+  loginRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 24,
+  },
+  loginText: {
+    color: '#9EB3D6',
+    fontSize: 15,
+  },
+  loginLink: {
+    color: '#83C5FA',
+    fontSize: 15,
+    fontWeight: '700',
+  },
 });

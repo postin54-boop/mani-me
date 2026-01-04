@@ -99,12 +99,22 @@ function Layout({ children, onLogout }) {
       <Box 
         sx={{ 
           p: 3, 
-          bgcolor: 'white', 
-          borderBottom: '1px solid',
-          borderColor: 'divider',
+          background: 'linear-gradient(135deg, #0B1A33 0%, #071A2C 100%)',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            top: -50,
+            right: -50,
+            width: 100,
+            height: 100,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(131, 197, 250, 0.2) 0%, transparent 70%)',
+          },
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, position: 'relative', zIndex: 1 }}>
           <Box
             sx={{
               width: 48,
@@ -114,7 +124,7 @@ function Layout({ children, onLogout }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.15)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
               p: 0.5,
             }}
           >
@@ -125,10 +135,10 @@ function Layout({ children, onLogout }) {
             />
           </Box>
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 18, color: '#0B1A33', letterSpacing: '-0.5px' }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 18, color: '#FFFFFF', letterSpacing: '-0.5px' }}>
               Mani Me
             </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 11, fontWeight: 500 }}>
+            <Typography variant="caption" sx={{ color: '#83C5FA', fontSize: 11, fontWeight: 500 }}>
               Admin Dashboard
             </Typography>
           </Box>
@@ -239,7 +249,7 @@ function Layout({ children, onLogout }) {
             sx={{ 
               width: 36, 
               height: 36,
-              background: gradients.primary,
+              background: 'linear-gradient(135deg, #0B1A33 0%, #1a2d4a 100%)',
               fontWeight: 600,
             }}
           >
@@ -341,7 +351,7 @@ function Layout({ children, onLogout }) {
                   sx={{ 
                     width: 36, 
                     height: 36,
-                    background: gradients.primary,
+                    background: 'linear-gradient(135deg, #0B1A33 0%, #1a2d4a 100%)',
                     fontWeight: 600,
                   }}
                 >
@@ -409,7 +419,7 @@ function Layout({ children, onLogout }) {
           </Typography>
         </Box>
         <Box sx={{ maxHeight: 360, overflowY: 'auto' }}>
-          <MenuItem onClick={handleNotificationMenuClose} sx={{ py: 2, px: 2 }}>
+          <MenuItem onClick={() => { handleNotificationMenuClose(); navigate('/orders'); }} sx={{ py: 2, px: 2 }}>
             <Box>
               <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
                 New Order #12345
@@ -423,7 +433,7 @@ function Layout({ children, onLogout }) {
             </Box>
           </MenuItem>
           <Divider />
-          <MenuItem onClick={handleNotificationMenuClose} sx={{ py: 2, px: 2 }}>
+          <MenuItem onClick={() => { handleNotificationMenuClose(); navigate('/uk-drivers'); }} sx={{ py: 2, px: 2 }}>
             <Box>
               <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
                 Driver Assigned
@@ -437,7 +447,7 @@ function Layout({ children, onLogout }) {
             </Box>
           </MenuItem>
           <Divider />
-          <MenuItem onClick={handleNotificationMenuClose} sx={{ py: 2, px: 2 }}>
+          <MenuItem onClick={() => { handleNotificationMenuClose(); navigate('/orders'); }} sx={{ py: 2, px: 2 }}>
             <Box>
               <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
                 Delivery Completed
@@ -451,7 +461,7 @@ function Layout({ children, onLogout }) {
             </Box>
           </MenuItem>
           <Divider />
-          <MenuItem onClick={handleNotificationMenuClose} sx={{ py: 2, px: 2 }}>
+          <MenuItem onClick={() => { handleNotificationMenuClose(); navigate('/packaging-shop'); }} sx={{ py: 2, px: 2 }}>
             <Box>
               <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
                 Low Stock Alert

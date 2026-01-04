@@ -29,7 +29,7 @@ function Settings() {
 
   const fetchSettings = async () => {
     try {
-      const response = await api.get('/settings/warehouse_pickup_address');
+      const response = await api.get('/api/settings/warehouse_pickup_address');
       setWarehouseAddress(response.data.value);
     } catch (error) {
       logger.error('Error fetching settings:', error);
@@ -54,7 +54,7 @@ function Settings() {
     setMessage({ type: '', text: '' });
 
     try {
-      await api.put('/settings/warehouse_pickup_address', {
+      await api.put('/api/settings/warehouse_pickup_address', {
         value: warehouseAddress.trim(),
         description: 'Warehouse pickup address shown to customers'
       });

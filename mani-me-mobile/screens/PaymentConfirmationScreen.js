@@ -6,6 +6,8 @@ import { useThemeColors, SIZES, FONTS } from '../constants/theme';
 export default function PaymentConfirmationScreen({ route, navigation }) {
   const { 
     trackingNumber, 
+    parcelId,
+    parcelIdShort,
     amount, 
     bookingMode,
     boxes = [],
@@ -30,7 +32,8 @@ export default function PaymentConfirmationScreen({ route, navigation }) {
     const receiptText = `
 📦 Mani Me Receipt
 
-Tracking Number: ${trackingNumber}
+Parcel ID: ${parcelIdShort || parcelId || trackingNumber}
+${parcelId ? `Full ID: ${parcelId}` : ''}
 Date: ${new Date(bookingDate).toLocaleDateString()}
 
 ━━━━━━━━━━━━━━━━━━━━
@@ -70,7 +73,7 @@ Thank you for choosing Mani Me! 🚚
     try {
       await Share.share({
         message: receiptText,
-        title: `Receipt #${trackingNumber}`,
+        title: `Receipt #${parcelIdShort || trackingNumber}`,
       });
     } catch (error) {
       console.log('Error sharing receipt:', error);
@@ -116,8 +119,11 @@ Thank you for choosing Mani Me! 🚚
 
         {/* Tracking Number Card */}
         <View style={[styles.trackingCard, { backgroundColor: colors.primary }]}>
-          <Text style={[styles.trackingLabel, { color: colors.accent }]}>Tracking Number</Text>
-          <Text style={[styles.trackingNumber, { color: colors.accent }]}>{trackingNumber}</Text>
+          <Text style={[styles.trackingLabel, { color: colors.accent }]}>Parcel ID</Text>
+          <Text style={[styles.trackingNumber, { color: colors.accent }]}>{parcelIdShort || parcelId || trackingNumber}</Text>
+          {parcelId && parcelIdShort !== parcelId && (
+            <Text style={[styles.parcelIdFull, { color: colors.accent + 'CC' }]}>{parcelId}</Text>
+          )}
           <Text style={[styles.trackingDate, { color: colors.accent }]}>
             {new Date(bookingDate).toLocaleDateString('en-GB', { 
               day: 'numeric', 
@@ -411,7 +417,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     letterSpacing: 2,
     fontFamily: 'monospace',
+    marginBottom: SIZES.xs,
+  },
+  parcelIdFull: {
+    fontSize: 12,
+    fontFamily: 'monospace',
     marginBottom: SIZES.sm,
+    opacity: 0.8,
   },
   trackingDate: {
     fontSize: 13,

@@ -65,13 +65,14 @@ const colors = {
 
 // Modern gradient backgrounds
 const gradients = {
-  primary: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  secondary: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-  success: 'linear-gradient(135deg, #0ba360 0%, #3cba92 100%)',
-  info: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-  warning: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-  ocean: 'linear-gradient(135deg, #2E3192 0%, #1BFFFF 100%)',
-  sunset: 'linear-gradient(135deg, #FF6B6B 0%, #FFE66D 100%)',
+  primary: 'linear-gradient(135deg, #0B1A33 0%, #1a2d4a 100%)',
+  secondary: 'linear-gradient(135deg, #83C5FA 0%, #5fb0f7 100%)',
+  success: 'linear-gradient(135deg, #10B981 0%, #34D399 100%)',
+  info: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+  warning: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)',
+  error: 'linear-gradient(135deg, #EF4444 0%, #F87171 100%)',
+  ocean: 'linear-gradient(135deg, #0B1A33 0%, #83C5FA 100%)',
+  sunset: 'linear-gradient(135deg, #EC4899 0%, #F59E0B 100%)',
 };
 
 // Custom shadows

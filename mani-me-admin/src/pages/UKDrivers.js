@@ -109,10 +109,10 @@ const UKDrivers = () => {
   const handleAssignConfirm = async () => {
     if (selectedDriver && selectedPickup) {
       try {
+        const pickupId = selectedPickup._id || selectedPickup.id;
         await api.put(
-          `/admin/shipments/${selectedPickup.id}/assign-pickup-driver`,
-          { driver_id: selectedDriver },
-          { headers: { Authorization: `Bearer ${token}` } }
+          `/api/admin/shipments/${pickupId}/assign-pickup-driver`,
+          { driver_id: selectedDriver }
         );
 
         // Refresh data
@@ -129,11 +129,9 @@ const UKDrivers = () => {
 
   const handleUnassign = async (shipmentId) => {
     try {
-      const token = localStorage.getItem('adminToken');
       await api.put(
-        `/admin/shipments/${shipmentId}/assign-pickup-driver`,
-        { driver_id: null },
-        { headers: { Authorization: `Bearer ${token}` } }
+        `/api/admin/shipments/${shipmentId}/assign-pickup-driver`,
+        { driver_id: null }
       );
       await fetchData();
     } catch (error) {
@@ -144,11 +142,9 @@ const UKDrivers = () => {
 
   const handleMarkWarehouseArrival = async (shipmentId) => {
     try {
-      const token = localStorage.getItem('adminToken');
       await api.put(
-        `/admin/orders/${shipmentId}/status`,
-        { status: 'in_transit' },
-        { headers: { Authorization: `Bearer ${token}` } }
+        `/api/admin/orders/${shipmentId}/status`,
+        { status: 'in_transit' }
       );
       await fetchData();
     } catch (error) {
@@ -364,43 +360,39 @@ const UKDrivers = () => {
               ) : (
                 pendingPickups.map((pickup) => (
                   <React.Fragment key={pickup.id}>
-                    <ListItem sx={{ px: 0, alignItems: 'flex-start' }}>
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 600, mr: 1 }}>
+                    <ListItem sx={{ px: 0, alignItems: 'flex-start', flexDirection: 'column' }}>
+                      <Box sx={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Box sx={{ flex: 1, pr: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                               {pickup.user?.fullName || 'Customer'}
                             </Typography>
                             <Chip label={pickup.tracking_number || pickup.id} size="small" variant="outlined" />
                           </Box>
-                        }
-                        secondary={
-                          <Box>
-                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                              <Room sx={{ fontSize: 16, color: 'text.secondary' }} />
-                              <Typography variant="body2" color="text.secondary">
-                                {pickup.pickup_address || 'No address'}
-                              </Typography>
-                            </Stack>
-                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                              <Phone sx={{ fontSize: 16, color: 'text.secondary' }} />
-                              <Typography variant="body2" color="text.secondary">
-                                {pickup.user?.phone || 'No phone'}
-                              </Typography>
-                            </Stack>
-                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                              <AccessTime sx={{ fontSize: 16, color: 'text.secondary' }} />
-                              <Typography variant="body2" color="text.secondary">
-                                {pickup.pickup_date} {pickup.pickup_time}
-                              </Typography>
-                            </Stack>
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                              {pickup.special_instructions || 'No special instructions'}
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                            <Room sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              {pickup.pickup_address || 'No address'}
                             </Typography>
-                          </Box>
-                        }
-                      />
-                      <ListItemSecondaryAction>
+                          </Stack>
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                            <Phone sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              {pickup.user?.phone || pickup.sender_phone || 'No phone'}
+                            </Typography>
+                          </Stack>
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                            <AccessTime sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              {pickup.pickup_date} {pickup.pickup_time}
+                            </Typography>
+                          </Stack>
+                          {pickup.special_instructions && (
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic' }}>
+                              {pickup.special_instructions}
+                            </Typography>
+                          )}
+                        </Box>
                         <Button
                           variant="contained"
                           size="small"
@@ -409,12 +401,13 @@ const UKDrivers = () => {
                           sx={{
                             bgcolor: '#83C5FA',
                             color: '#071D33',
+                            whiteSpace: 'nowrap',
                             '&:hover': { bgcolor: '#6ab3e8' },
                           }}
                         >
-                          Assign
+                          Assign Driver
                         </Button>
-                      </ListItemSecondaryAction>
+                      </Box>
                     </ListItem>
                     <Divider />
                   </React.Fragment>
@@ -432,72 +425,83 @@ const UKDrivers = () => {
             </Typography>
             <List>
               {assignedPickups.map((pickup) => (
-                <React.Fragment key={pickup.id}>
-                  <ListItem sx={{ px: 0, alignItems: 'flex-start' }}>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 600, mr: 1 }}>
-                            {pickup.customer}
-                          </Typography>
-                          <Chip label={pickup.id} size="small" variant="outlined" sx={{ mr: 1 }} />
-                          <Chip
-                            label={pickup.status === 'in-progress' ? 'In Progress' : pickup.status}
-                            size="small"
-                            color={pickup.status === 'in-progress' ? 'primary' : 'success'}
-                          />
-                          <Chip
-                            label={`Driver: ${pickup.driverName}`}
-                            size="small"
-                            sx={{ ml: 1, bgcolor: '#f0f0f0' }}
-                          />
-                        </Box>
-                      }
-                      secondary={
-                        <Box>
-                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                            <Room sx={{ fontSize: 16, color: 'text.secondary' }} />
-                            <Typography variant="body2" color="text.secondary">
-                              {pickup.address}
-                            </Typography>
-                          </Stack>
-                          <Typography variant="body2" color="text.secondary">
-                            {pickup.timeSlot} • {pickup.parcelType}
-                          </Typography>
-                        </Box>
-                      }
-                    />
-                    <ListItemSecondaryAction>
-                      <Stack direction="row" spacing={1}>
-                        <Button
-                          variant="outlined"
+                <React.Fragment key={pickup._id || pickup.id}>
+                  <ListItem sx={{ px: 0, flexDirection: 'column', alignItems: 'stretch' }}>
+                    {/* Header Row */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                        {pickup.sender_name || pickup.customer || 'Customer'}
+                      </Typography>
+                      <Chip label={pickup.tracking_number || pickup.parcel_id_short || pickup._id} size="small" variant="outlined" />
+                      <Chip
+                        label={pickup.status === 'in-progress' ? 'In Progress' : pickup.status || 'booked'}
+                        size="small"
+                        color={pickup.status === 'picked_up' ? 'success' : 'primary'}
+                      />
+                      {pickup.pickup_driver_id && (
+                        <Chip
+                          label={`Driver: ${pickup.pickup_driver_id?.fullName || pickup.driverName || 'Assigned'}`}
                           size="small"
-                          startIcon={<Map />}
-                          onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup.pickup_address)}`, '_blank')}
-                        >
-                          View Route
-                        </Button>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          color="success"
-                          startIcon={<Warehouse />}
-                          onClick={() => handleMarkWarehouseArrival(pickup.id)}
-                          disabled={pickup.status === 'picked_up'}
-                        >
-                          At Warehouse
-                        </Button>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleUnassign(pickup.id)}
-                          disabled={pickup.status === 'picked_up'}
-                        >
-                          <Delete />
-                        </IconButton>
+                          sx={{ bgcolor: '#e3f2fd' }}
+                        />
+                      )}
+                    </Box>
+                    
+                    {/* Details Row */}
+                    <Box sx={{ mb: 2 }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                        <Room sx={{ fontSize: 16, color: 'text.secondary' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {pickup.pickup_address || pickup.address || 'No address'}
+                        </Typography>
                       </Stack>
-                    </ListItemSecondaryAction>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                        <Phone sx={{ fontSize: 16, color: 'text.secondary' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {pickup.sender_phone || 'No phone'}
+                        </Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <AccessTime sx={{ fontSize: 16, color: 'text.secondary' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {pickup.pickup_date} {pickup.pickup_time} {pickup.timeSlot && `• ${pickup.timeSlot}`}
+                        </Typography>
+                      </Stack>
+                    </Box>
+
+                    {/* Action Buttons Row */}
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<Map />}
+                        onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup.pickup_address || pickup.address || '')}`, '_blank')}
+                      >
+                        View Route
+                      </Button>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        color="success"
+                        startIcon={<Warehouse />}
+                        onClick={() => handleMarkWarehouseArrival(pickup._id || pickup.id)}
+                        disabled={pickup.status === 'picked_up'}
+                      >
+                        Mark at Warehouse
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        color="error"
+                        startIcon={<Delete />}
+                        onClick={() => handleUnassign(pickup._id || pickup.id)}
+                        disabled={pickup.status === 'picked_up'}
+                      >
+                        Unassign
+                      </Button>
+                    </Box>
                   </ListItem>
-                  <Divider />
+                  <Divider sx={{ my: 2 }} />
                 </React.Fragment>
               ))}
               {assignedPickups.length === 0 && (
@@ -605,10 +609,10 @@ const UKDrivers = () => {
               label="Select Driver"
             >
               {drivers
-                .filter((d) => d.is_active)
+                .filter((d) => d.is_active !== false)
                 .map((driver) => (
-                  <MenuItem key={driver.id} value={driver.id}>
-                    {driver.fullName || driver.email}
+                  <MenuItem key={driver._id || driver.id} value={driver._id || driver.id}>
+                    {driver.fullName || driver.name || driver.email}
                   </MenuItem>
                 ))}
             </Select>

@@ -1,212 +1,260 @@
-import React, { useContext, useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, StatusBar } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import React, { useContext, useState, useEffect, useRef } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, StatusBar, Animated, Dimensions, RefreshControl } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { AuthContext } from "../context/AuthContext";
 import { useCashTracking } from "../context/CashTrackingContext";
-import { useThemeColors } from "../constants/theme";
+
+const { width } = Dimensions.get('window');
 
 const BRAND = {
 	primary: "#0B1A33",
 	secondary: "#83C5FA",
-	background: "#F9FAFB",
+	background: "#F5F7FA",
 	card: "#FFFFFF",
 	text: "#0B1A33",
-	success: "#16A34A",
+	success: "#10B981",
 	warning: "#F59E0B",
 };
 
 // Quick actions by role
 const quickActionsUK = [
-	{ label: "View UK Pickups", icon: "list", screen: "UKPickups" },
-	{ label: "Record Cash Pickup", icon: "add-circle", screen: "RecordCashPickup" },
-	{ label: "Scan Parcel", icon: "qr-code", screen: "ScanParcelScreen" },
-	{ label: "Print Labels", icon: "print", screen: "PrintLabelsScreen" },
-	{ label: "Notifications", icon: "notifications", screen: "NotificationsScreen" },
+	{ label: "View Pickups", icon: "list", screen: "UKPickups", color: "#0B1A33" },
+	{ label: "Record Cash", icon: "cash-outline", screen: "RecordCashPickup", color: "#10B981" },
+	{ label: "Scan Parcel", icon: "qr-code", screen: "ScanParcelScreen", color: "#6366F1" },
+	{ label: "Print Labels", icon: "print-outline", screen: "PrintLabelsScreen", color: "#8B5CF6" },
 ];
 
 const quickActionsGH = [
-	{ label: "View Deliveries", icon: "list", screen: "GhanaDeliveries" },
-	{ label: "Scan Parcel", icon: "qr-code", screen: "ScanParcelScreen" },
-	{ label: "Proof of Delivery", icon: "camera", screen: "ScanParcelScreen" },
-	{ label: "Notifications", icon: "notifications", screen: "NotificationsScreen" },
+	{ label: "Deliveries", icon: "list", screen: "GhanaDeliveries", color: "#0B1A33" },
+	{ label: "Scan Parcel", icon: "qr-code", screen: "ScanParcelScreen", color: "#6366F1" },
+	{ label: "Proof", icon: "camera-outline", screen: "ScanParcelScreen", color: "#EC4899" },
+	{ label: "Alerts", icon: "notifications-outline", screen: "NotificationsScreen", color: "#F59E0B" },
 ];
 
 export default function HomeScreen({ navigation }) {
 	const insets = useSafeAreaInsets();
-	const { colors } = useThemeColors();
-	const { user, role, isUKDriver, isGhanaDriver } = useContext(AuthContext);
+	const { user, isUKDriver, isGhanaDriver } = useContext(AuthContext);
 	const { totalCash, cashCount } = useCashTracking();
 	
-	const [driverStatus, setDriverStatus] = useState("AVAILABLE"); // "AVAILABLE" | "ON_JOB"
+	const [driverStatus, setDriverStatus] = useState("AVAILABLE");
 	const [activeJob, setActiveJob] = useState(null);
 	const [latestUpdates, setLatestUpdates] = useState([]);
+	const [refreshing, setRefreshing] = useState(false);
+
+	// Animations
+	const fadeAnim = useRef(new Animated.Value(0)).current;
+	const slideAnim = useRef(new Animated.Value(30)).current;
 
 	// Determine driver type
 	const isUK = isUKDriver();
-	const isGhana = isGhanaDriver();
-
-	// Role-aware quick actions
 	const quickActions = isUK ? quickActionsUK : quickActionsGH;
-
-	// Status pill color
-	const statusColor = driverStatus === "AVAILABLE" ? "#16A34A" : "#F59E0B";
+	const statusColor = driverStatus === "AVAILABLE" ? "#10B981" : "#F59E0B";
 	const statusText = driverStatus === "AVAILABLE" ? "Available" : "On Job";
-
-	// Badge text
 	const badgeText = isUK ? "🇬🇧 UK DRIVER" : "🇬🇭 GH DRIVER";
-	const jobTypeText = isUK ? "Active Pickup" : "Active Delivery";
 
-	// Fetch driver assignments on mount
 	useEffect(() => {
-		if (user) {
-			fetchDriverData();
-		}
+		Animated.parallel([
+			Animated.timing(fadeAnim, {
+				toValue: 1,
+				duration: 600,
+				useNativeDriver: true,
+			}),
+			Animated.timing(slideAnim, {
+				toValue: 0,
+				duration: 500,
+				useNativeDriver: true,
+			}),
+		]).start();
+
+		if (user) fetchDriverData();
 	}, [user]);
 
 	const fetchDriverData = async () => {
-		// TODO: Implement API call to fetch:
-		// - Active jobs
-		// - Driver status
-		// - Latest updates/notifications
 		console.log("Fetching driver data for:", user?.fullName);
-		
-		// Mock data for now
 		setLatestUpdates([
-			isUK ? "Pickup assigned: MM-839201" : "Delivery scheduled: GH-839201",
-			"Message from Admin: Check your schedule",
+			isUK ? "🚗 New pickup assigned: MM-839201" : "📦 Delivery scheduled: GH-839201",
+			"💬 Message from Admin: Check schedule",
 		]);
 	};
 
-	const handleOpenJob = () => {
-		if (navigation && activeJob) {
-			navigation.navigate("JobDetails", { job: activeJob });
-		}
+	const onRefresh = async () => {
+		setRefreshing(true);
+		await fetchDriverData();
+		setRefreshing(false);
 	};
 
 	const handleActionPress = (action) => {
-		if (!navigation || !action.screen) return;
-		navigation.navigate(action.screen);
+		if (navigation && action.screen) {
+			navigation.navigate(action.screen);
+		}
 	};
 
 	return (
-		<View style={{ flex: 1, backgroundColor: BRAND.background }}>
+		<View style={[styles.container, { backgroundColor: BRAND.background }]}>
 			<StatusBar barStyle="light-content" backgroundColor={BRAND.primary} />
 			
-			{/* HEADER with Gradient */}
+			{/* Modern Header */}
 			<LinearGradient
-				colors={[BRAND.primary, '#1a3a5c']}
+				colors={[BRAND.primary, '#152847', '#1a3a5c']}
 				start={{ x: 0, y: 0 }}
 				end={{ x: 1, y: 1 }}
-				style={[styles.headerGradient, { paddingTop: insets.top + 12 }]}
+				style={[styles.header, { paddingTop: insets.top + 16 }]}
 			>
 				<View style={styles.headerContent}>
-					<Image 
-						source={{ uri: user?.avatar || `https://ui-avatars.com/api/?name=${user?.fullName || 'Driver'}` }} 
-						style={styles.avatar} 
-					/>
-					<View style={{ flex: 1, marginLeft: 12 }}>
+					<View style={styles.avatarContainer}>
+						<Image 
+							source={{ uri: user?.avatar || `https://ui-avatars.com/api/?name=${user?.fullName || 'Driver'}&background=83C5FA&color=0B1A33` }} 
+							style={styles.avatar} 
+						/>
+						<View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+					</View>
+					
+					<View style={styles.headerText}>
+						<Text style={styles.greeting}>Welcome back,</Text>
 						<Text style={styles.name}>{user?.fullName || 'Driver'}</Text>
 						<View style={styles.badgeRow}>
-							<View style={styles.badge}><Text style={styles.badgeText}>{badgeText}</Text></View>
+							<View style={styles.badge}>
+								<Text style={styles.badgeText}>{badgeText}</Text>
+							</View>
 							<View style={[styles.statusPill, { backgroundColor: statusColor }]}>
+								<View style={styles.statusDotSmall} />
 								<Text style={styles.statusText}>{statusText}</Text>
 							</View>
 						</View>
 					</View>
+					
+					<TouchableOpacity 
+						style={styles.notificationBtn}
+						onPress={() => navigation.navigate('NotificationsScreen')}
+					>
+						<Ionicons name="notifications-outline" size={24} color="#fff" />
+						<View style={styles.notificationBadge}>
+							<Text style={styles.notificationCount}>2</Text>
+						</View>
+					</TouchableOpacity>
 				</View>
 			</LinearGradient>
 			
-			{/* SCROLLABLE CONTENT */}
+			{/* Scrollable Content */}
 			<ScrollView 
-				style={{ flex: 1 }}
-				contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 80 }]} 
+				style={styles.scrollView}
+				contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
 				showsVerticalScrollIndicator={false}
+				refreshControl={
+					<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND.secondary} />
+				}
 			>
-				{/* ACTIVE JOB CARD */}
-				<View style={[styles.cardSticky, { borderRadius: 16, shadowColor: BRAND.primary, shadowOpacity: 0.10, shadowRadius: 8, elevation: 4 }]}> 
+				{/* Active Job Card */}
+				<Animated.View style={[
+					styles.activeJobCard,
+					{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+				]}>
 					{activeJob ? (
 						<>
-							<Text style={[styles.cardTitle, { fontSize: 18 }]}>{jobTypeText}</Text>
-							<Text style={{ fontWeight: '600', color: BRAND.text }}>Parcel ID: <Text style={{ color: BRAND.secondary }}>{activeJob.parcelId}</Text></Text>
-							<Text style={{ fontWeight: '600', color: BRAND.text }}>Address: <Text style={{ color: BRAND.secondary }}>{activeJob.address}</Text></Text>
-							<Text style={{ fontWeight: '600', color: BRAND.text }}>Status: <Text style={{ color: BRAND.secondary }}>{activeJob.status}</Text></Text>
-							<TouchableOpacity style={styles.primaryBtn} onPress={handleOpenJob}>
-								<Text style={styles.primaryText}>Open Job</Text>
+							<View style={styles.cardHeader}>
+								<View style={styles.activeJobBadge}>
+									<Ionicons name="flash" size={16} color="#fff" />
+									<Text style={styles.activeJobBadgeText}>ACTIVE</Text>
+								</View>
+							</View>
+							<Text style={styles.parcelId}>Parcel: {activeJob.parcelId}</Text>
+							<Text style={styles.address}>{activeJob.address}</Text>
+							<TouchableOpacity style={styles.openJobBtn}>
+								<Text style={styles.openJobText}>Open Job</Text>
+								<Ionicons name="arrow-forward" size={18} color="#0B1A33" />
 							</TouchableOpacity>
 						</>
 					) : (
-						<>
-							<Text style={[styles.cardTitle, { fontSize: 18 }]}>You have no active assignments</Text>
-							<Text style={{ color: BRAND.success, fontWeight: "700", marginTop: 8 }}>🟢 Available</Text>
-						</>
-					)}
-				</View>
-				
-				{/* CASH TRACKING (UK DRIVERS ONLY) */}
-				{isUKDriver() && (
-					<View style={[styles.cardSticky, { borderRadius: 16, backgroundColor: '#10B98110', borderWidth: 1, borderColor: '#10B98140', marginTop: 16 }]}>
-						<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-							<Ionicons name="cash-outline" size={24} color="#10B981" />
-							<Text style={[styles.cardTitle, { fontSize: 18, marginLeft: 8, marginBottom: 0, color: '#10B981' }]}>Cash Collected Today</Text>
-						</View>
-						<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-							<View>
-								<Text style={{ fontSize: 32, fontWeight: '700', color: '#10B981' }}>£{totalCash.toFixed(2)}</Text>
-								<Text style={{ fontSize: 14, color: '#666', marginTop: 4 }}>{cashCount} cash {cashCount === 1 ? 'pickup' : 'pickups'}</Text>
+						<View style={styles.noJobContainer}>
+							<View style={styles.noJobIcon}>
+								<Ionicons name="checkmark-circle" size={40} color="#10B981" />
 							</View>
+							<Text style={styles.noJobTitle}>No Active Jobs</Text>
+							<Text style={styles.noJobSubtitle}>You're all caught up! Check back for new assignments.</Text>
+						</View>
+					)}
+				</Animated.View>
+				
+				{/* Cash Tracking (UK Only) */}
+				{isUKDriver() && (
+					<Animated.View style={[
+						styles.cashCard,
+						{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+					]}>
+						<View style={styles.cashHeader}>
+							<View style={styles.cashIconContainer}>
+								<Ionicons name="wallet" size={24} color="#10B981" />
+							</View>
+							<View style={styles.cashInfo}>
+								<Text style={styles.cashLabel}>Cash Collected Today</Text>
+								<Text style={styles.cashAmount}>£{totalCash.toFixed(2)}</Text>
+							</View>
+						</View>
+						<View style={styles.cashFooter}>
+							<Text style={styles.cashCount}>{cashCount} {cashCount === 1 ? 'pickup' : 'pickups'}</Text>
 							<TouchableOpacity 
-								style={{ backgroundColor: '#10B981', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, opacity: cashCount === 0 ? 0.5 : 1 }}
+								style={[styles.submitBtn, cashCount === 0 && styles.submitBtnDisabled]}
 								onPress={() => navigation.navigate('CashReconciliation')}
 								disabled={cashCount === 0}
 							>
-								<Text style={{ color: '#fff', fontWeight: '700' }}>Submit</Text>
+								<Text style={styles.submitBtnText}>Submit</Text>
+								<Ionicons name="chevron-forward" size={16} color="#fff" />
 							</TouchableOpacity>
 						</View>
-					</View>
+					</Animated.View>
 				)}
 				
-				{/* END DAY - RETURN TO WAREHOUSE (UK DRIVERS ONLY) */}
+				{/* Warehouse Return (UK Only) */}
 				{isUKDriver() && (
 					<TouchableOpacity 
-						style={styles.warehouseButton}
+						style={styles.warehouseCard}
 						onPress={() => navigation.navigate('WarehouseReturn')}
 						activeOpacity={0.85}
 					>
-						<View style={{ flexDirection: 'row', alignItems: 'center' }}>
-							<Ionicons name="business" size={24} color="#F59E0B" />
-							<Text style={{ fontSize: 18, fontWeight: '700', color: '#F59E0B', marginLeft: 12 }}>Return to Warehouse</Text>
+						<View style={styles.warehouseLeft}>
+							<View style={styles.warehouseIcon}>
+								<Ionicons name="business" size={24} color="#F59E0B" />
+							</View>
+							<View>
+								<Text style={styles.warehouseTitle}>End of Day</Text>
+								<Text style={styles.warehouseSubtitle}>Return to Warehouse</Text>
+							</View>
 						</View>
 						<Ionicons name="chevron-forward" size={24} color="#F59E0B" />
 					</TouchableOpacity>
 				)}
 				
-				{/* QUICK ACTIONS */}
-				<Text style={[styles.sectionTitle, { fontSize: 17, marginTop: 8 }]}>Quick Actions</Text>
-				<View style={[styles.grid, { gap: 12 }]}> 
-					{quickActions.map((item) => (
+				{/* Quick Actions */}
+				<Text style={styles.sectionTitle}>Quick Actions</Text>
+				<View style={styles.quickActionsGrid}>
+					{quickActions.map((item, index) => (
 						<TouchableOpacity
 							key={item.label}
-							style={[styles.actionCard, { borderRadius: 14, backgroundColor: '#fff', shadowColor: BRAND.primary, shadowOpacity: 0.07, shadowRadius: 6, elevation: 2 }]}
+							style={styles.actionCard}
 							onPress={() => handleActionPress(item)}
 							activeOpacity={0.85}
 						>
-							<Ionicons name={item.icon} size={28} color={BRAND.primary} style={{ marginBottom: 6 }} />
-							<Text style={[styles.actionText, { fontSize: 15, fontWeight: '600', color: BRAND.text }]}>{item.label}</Text>
+							<View style={[styles.actionIcon, { backgroundColor: `${item.color}15` }]}>
+								<Ionicons name={item.icon} size={24} color={item.color} />
+							</View>
+							<Text style={styles.actionLabel}>{item.label}</Text>
 						</TouchableOpacity>
 					))}
 				</View>
 				
-				{/* LATEST UPDATES */}
-				<View style={[styles.updatesCard, { borderRadius: 14, backgroundColor: '#fff', shadowColor: BRAND.primary, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1 }]}> 
-					<Text style={[styles.updatesTitle, { fontSize: 16 }]}>Latest Updates</Text>
+				{/* Latest Updates */}
+				<Text style={styles.sectionTitle}>Latest Updates</Text>
+				<View style={styles.updatesCard}>
 					{latestUpdates.length > 0 ? (
 						latestUpdates.map((msg, idx) => (
-							<Text key={idx} style={[styles.updateMsg, { fontSize: 14 }]}>{msg}</Text>
+							<View key={idx} style={[styles.updateItem, idx < latestUpdates.length - 1 && styles.updateItemBorder]}>
+								<Text style={styles.updateText}>{msg}</Text>
+							</View>
 						))
 					) : (
-						<Text style={{ fontSize: 14, color: '#9CA3AF', fontStyle: 'italic' }}>No updates yet</Text>
+						<Text style={styles.noUpdates}>No updates yet</Text>
 					)}
 				</View>
 			</ScrollView>
@@ -215,143 +263,358 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-	headerGradient: {
-		paddingBottom: 20,
-		paddingHorizontal: 16,
-		borderBottomLeftRadius: 24,
-		borderBottomRightRadius: 24,
-		shadowColor: '#000',
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.15,
-		shadowRadius: 8,
-		elevation: 8,
+	container: {
+		flex: 1,
+	},
+	header: {
+		paddingBottom: 24,
+		paddingHorizontal: 20,
+		borderBottomLeftRadius: 28,
+		borderBottomRightRadius: 28,
 	},
 	headerContent: {
 		flexDirection: "row",
 		alignItems: "center",
 	},
+	avatarContainer: {
+		position: 'relative',
+	},
 	avatar: {
-		width: 44,
-		height: 44,
-		borderRadius: 22,
+		width: 56,
+		height: 56,
+		borderRadius: 28,
+		borderWidth: 3,
+		borderColor: "rgba(131, 197, 250, 0.5)",
+	},
+	statusDot: {
+		position: 'absolute',
+		bottom: 2,
+		right: 2,
+		width: 14,
+		height: 14,
+		borderRadius: 7,
 		borderWidth: 2,
-		borderColor: "#83C5FA",
+		borderColor: '#0B1A33',
+	},
+	headerText: {
+		flex: 1,
+		marginLeft: 16,
+	},
+	greeting: {
+		color: 'rgba(255,255,255,0.7)',
+		fontSize: 14,
+		fontWeight: '500',
 	},
 	name: {
 		color: '#FFFFFF',
-		fontSize: 20,
+		fontSize: 22,
 		fontWeight: "700",
+		marginTop: 2,
 	},
-	badgeRow: { flexDirection: "row", marginTop: 6 },
-	badge: {
-		backgroundColor: "#83C5FA",
-		borderRadius: 8,
-		paddingHorizontal: 10,
-		paddingVertical: 4,
-		marginRight: 6,
-	},
-	badgeText: { color: "#0B1A33", fontSize: 12, fontWeight: "700" },
-	statusPill: {
-		borderRadius: 8,
-		paddingHorizontal: 10,
-		paddingVertical: 4,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	statusText: { color: "#fff", fontSize: 12, fontWeight: "700" },
-	body: { 
-		padding: 16,
-		paddingTop: 16,
-	},
-	cardSticky: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 16,
-		padding: 18,
-		marginBottom: 20,
-		shadowColor: "#0B1A33",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.08,
-		shadowRadius: 6,
-		elevation: 3,
-	},
-	cardTitle: {
-		fontSize: 16,
-		fontWeight: "700",
-		marginBottom: 8,
-		color: "#0B1A33",
-	},
-	primaryBtn: {
-		backgroundColor: "#83C5FA",
-		padding: 14,
-		borderRadius: 10,
-		marginTop: 12,
-		alignItems: "center",
-	},
-	primaryText: {
-		color: "#0B1A33",
-		fontWeight: "700",
-	},
-	sectionTitle: {
-		fontSize: 16,
-		fontWeight: "700",
-		marginBottom: 10,
-		color: "#0B1A33",
-	},
-	grid: {
+	badgeRow: {
 		flexDirection: "row",
-		flexWrap: "wrap",
-		justifyContent: "space-between",
+		marginTop: 8,
+		gap: 8,
 	},
-	actionCard: {
-		width: "48%",
-		backgroundColor: "#FFFFFF",
-		padding: 18,
-		borderRadius: 14,
-		alignItems: "center",
-		marginBottom: 12,
-		shadowColor: "#0B1A33",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.06,
-		shadowRadius: 4,
-		elevation: 2,
+	badge: {
+		backgroundColor: "rgba(131, 197, 250, 0.2)",
+		borderRadius: 8,
+		paddingHorizontal: 10,
+		paddingVertical: 5,
 	},
-	actionText: { marginTop: 8, fontWeight: "600" },
-	updatesCard: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 12,
-		padding: 14,
-		marginTop: 16,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.04,
-		shadowRadius: 2,
-		elevation: 1,
-	},
-	updatesTitle: {
-		fontSize: 15,
+	badgeText: {
+		color: "#83C5FA",
+		fontSize: 11,
 		fontWeight: "700",
-		marginBottom: 6,
-		color: "#0B1A33",
 	},
-	updateMsg: {
-		fontSize: 13,
-		color: "#0B1A33",
-		marginBottom: 2,
+	statusPill: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		borderRadius: 8,
+		paddingHorizontal: 10,
+		paddingVertical: 5,
+		gap: 5,
 	},
-	warehouseButton: {
+	statusDotSmall: {
+		width: 6,
+		height: 6,
+		borderRadius: 3,
+		backgroundColor: '#fff',
+	},
+	statusText: {
+		color: "#fff",
+		fontSize: 11,
+		fontWeight: "700",
+	},
+	notificationBtn: {
+		width: 44,
+		height: 44,
+		borderRadius: 22,
+		backgroundColor: 'rgba(255,255,255,0.15)',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	notificationBadge: {
+		position: 'absolute',
+		top: 8,
+		right: 8,
+		backgroundColor: '#EF4444',
+		width: 16,
+		height: 16,
+		borderRadius: 8,
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	notificationCount: {
+		color: '#fff',
+		fontSize: 10,
+		fontWeight: '700',
+	},
+	scrollView: {
+		flex: 1,
+	},
+	scrollContent: {
+		padding: 20,
+	},
+	activeJobCard: {
+		backgroundColor: "#FFFFFF",
+		borderRadius: 20,
+		padding: 20,
+		marginBottom: 16,
+		shadowColor: "#0B1A33",
+		shadowOffset: { width: 0, height: 4 },
+		shadowOpacity: 0.08,
+		shadowRadius: 12,
+		elevation: 4,
+	},
+	cardHeader: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		marginBottom: 12,
+	},
+	activeJobBadge: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		backgroundColor: '#10B981',
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: 8,
+		gap: 6,
+	},
+	activeJobBadgeText: {
+		color: '#fff',
+		fontSize: 12,
+		fontWeight: '700',
+	},
+	parcelId: {
+		fontSize: 18,
+		fontWeight: '700',
+		color: '#0B1A33',
+		marginBottom: 4,
+	},
+	address: {
+		fontSize: 14,
+		color: '#6B7280',
+		marginBottom: 16,
+	},
+	openJobBtn: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		backgroundColor: '#83C5FA',
+		paddingVertical: 14,
+		borderRadius: 12,
+		gap: 8,
+	},
+	openJobText: {
+		fontSize: 16,
+		fontWeight: '700',
+		color: '#0B1A33',
+	},
+	noJobContainer: {
+		alignItems: 'center',
+		paddingVertical: 16,
+	},
+	noJobIcon: {
+		width: 64,
+		height: 64,
+		borderRadius: 32,
+		backgroundColor: 'rgba(16, 185, 129, 0.1)',
+		justifyContent: 'center',
+		alignItems: 'center',
+		marginBottom: 12,
+	},
+	noJobTitle: {
+		fontSize: 18,
+		fontWeight: '700',
+		color: '#0B1A33',
+		marginBottom: 4,
+	},
+	noJobSubtitle: {
+		fontSize: 14,
+		color: '#9CA3AF',
+		textAlign: 'center',
+	},
+	cashCard: {
+		backgroundColor: '#FFFFFF',
+		borderRadius: 20,
+		padding: 20,
+		marginBottom: 16,
+		borderWidth: 1,
+		borderColor: 'rgba(16, 185, 129, 0.2)',
+	},
+	cashHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
+	cashIconContainer: {
+		width: 48,
+		height: 48,
+		borderRadius: 24,
+		backgroundColor: 'rgba(16, 185, 129, 0.1)',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	cashInfo: {
+		marginLeft: 16,
+	},
+	cashLabel: {
+		fontSize: 14,
+		color: '#6B7280',
+		fontWeight: '500',
+	},
+	cashAmount: {
+		fontSize: 28,
+		fontWeight: '700',
+		color: '#10B981',
+	},
+	cashFooter: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		marginTop: 16,
+		paddingTop: 16,
+		borderTopWidth: 1,
+		borderTopColor: 'rgba(0,0,0,0.05)',
+	},
+	cashCount: {
+		fontSize: 14,
+		color: '#6B7280',
+	},
+	submitBtn: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		backgroundColor: '#10B981',
+		paddingVertical: 10,
+		paddingHorizontal: 16,
+		borderRadius: 10,
+		gap: 4,
+	},
+	submitBtnDisabled: {
+		opacity: 0.5,
+	},
+	submitBtnText: {
+		color: '#fff',
+		fontWeight: '700',
+		fontSize: 14,
+	},
+	warehouseCard: {
 		backgroundColor: '#FEF3C7',
 		borderRadius: 16,
 		padding: 18,
-		marginBottom: 20,
+		marginBottom: 24,
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
-		borderWidth: 2,
+		borderWidth: 1,
 		borderColor: '#F59E0B',
-		shadowColor: '#F59E0B',
+	},
+	warehouseLeft: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 12,
+	},
+	warehouseIcon: {
+		width: 44,
+		height: 44,
+		borderRadius: 22,
+		backgroundColor: 'rgba(245, 158, 11, 0.2)',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	warehouseTitle: {
+		fontSize: 16,
+		fontWeight: '700',
+		color: '#92400E',
+	},
+	warehouseSubtitle: {
+		fontSize: 13,
+		color: '#B45309',
+	},
+	sectionTitle: {
+		fontSize: 18,
+		fontWeight: '700',
+		color: '#0B1A33',
+		marginBottom: 16,
+	},
+	quickActionsGrid: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 12,
+		marginBottom: 24,
+	},
+	actionCard: {
+		width: (width - 52) / 2,
+		backgroundColor: '#FFFFFF',
+		padding: 18,
+		borderRadius: 16,
+		alignItems: 'center',
+		shadowColor: '#0B1A33',
 		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
+		shadowOpacity: 0.04,
+		shadowRadius: 8,
 		elevation: 2,
+	},
+	actionIcon: {
+		width: 52,
+		height: 52,
+		borderRadius: 16,
+		justifyContent: 'center',
+		alignItems: 'center',
+		marginBottom: 10,
+	},
+	actionLabel: {
+		fontSize: 14,
+		fontWeight: '600',
+		color: '#0B1A33',
+	},
+	updatesCard: {
+		backgroundColor: '#FFFFFF',
+		borderRadius: 16,
+		padding: 16,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.04,
+		shadowRadius: 4,
+		elevation: 1,
+	},
+	updateItem: {
+		paddingVertical: 12,
+	},
+	updateItemBorder: {
+		borderBottomWidth: 1,
+		borderBottomColor: 'rgba(0,0,0,0.05)',
+	},
+	updateText: {
+		fontSize: 14,
+		color: '#374151',
+		lineHeight: 20,
+	},
+	noUpdates: {
+		fontSize: 14,
+		color: '#9CA3AF',
+		fontStyle: 'italic',
+		textAlign: 'center',
+		paddingVertical: 16,
 	},
 });

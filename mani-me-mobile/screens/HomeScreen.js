@@ -32,10 +32,32 @@ export default function HomeScreen({ navigation }) {
   const [loadingRecent, setLoadingRecent] = useState(true);
   const [recentError, setRecentError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
+
+  // Fetch unread notification count
+  const fetchNotificationCount = useCallback(async () => {
+    try {
+      const response = await api.get('/api/notifications/user');
+      if (response.data && response.data.notifications) {
+        const unread = response.data.notifications.filter(n => !n.read).length;
+        setUnreadNotifications(unread);
+      } else if (Array.isArray(response.data)) {
+        const unread = response.data.filter(n => !n.read).length;
+        setUnreadNotifications(unread);
+      }
+    } catch (err) {
+      // Silently fail - notifications are not critical
+      setUnreadNotifications(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotificationCount();
+  }, [fetchNotificationCount]);
 
   useEffect(() => {
     Animated.parallel([
@@ -72,9 +94,12 @@ export default function HomeScreen({ navigation }) {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadRecentParcels();
+    await Promise.all([
+      loadRecentParcels(),
+      fetchNotificationCount(),
+    ]);
     setRefreshing(false);
-  }, [loadRecentParcels]);
+  }, [loadRecentParcels, fetchNotificationCount]);
 
   const handleContinue = async () => {
     try {
@@ -149,9 +174,20 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.headerActions}>
             <TouchableOpacity 
               style={styles.iconButton} 
-              onPress={() => navigation.navigate('Notifications')}
+              onPress={() => {
+                navigation.navigate('Notifications');
+                // Refresh count when coming back
+                setTimeout(fetchNotificationCount, 500);
+              }}
             >
               <Ionicons name="notifications-outline" size={22} color="#83C5FA" />
+              {unreadNotifications > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.iconButton} 
@@ -395,6 +431,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#0B1A33',
+  },
+  notificationBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
   
   // Greeting

@@ -58,7 +58,7 @@ function Users() {
 
   const handleToggleStatus = async (userId, currentStatus) => {
     try {
-      await api.put(`/admin/users/${userId}/status`, {
+      await api.put(`/api/admin/users/${userId}/status`, {
         is_active: !currentStatus,
       });
       fetchUsers();
@@ -69,6 +69,7 @@ function Users() {
 
   const filteredUsers = users.filter(
     (user) =>
+      user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.phone?.includes(searchTerm)
@@ -92,11 +93,10 @@ function Users() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>ID</TableCell>
               <TableCell>Name</TableCell>
               <TableCell>Email</TableCell>
               <TableCell>Phone</TableCell>
-              <TableCell>Region</TableCell>
+              <TableCell>Role</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Joined</TableCell>
               <TableCell>Actions</TableCell>
@@ -104,21 +104,27 @@ function Users() {
           </TableHead>
           <TableBody>
             {filteredUsers.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>{user.id}</TableCell>
-                <TableCell>{user.name}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>{user.phone}</TableCell>
-                <TableCell>{user.region || 'N/A'}</TableCell>
+              <TableRow key={user._id || user.id}>
+                <TableCell>{user.fullName || user.name || 'N/A'}</TableCell>
+                <TableCell>{user.email || 'N/A'}</TableCell>
+                <TableCell>{user.phone || 'N/A'}</TableCell>
                 <TableCell>
                   <Chip
-                    label={user.is_active ? 'Active' : 'Inactive'}
-                    color={user.is_active ? 'success' : 'default'}
+                    label={user.role || 'CUSTOMER'}
+                    color={user.role === 'ADMIN' ? 'error' : user.role?.includes('DRIVER') ? 'primary' : 'default'}
+                    size="small"
+                    variant="outlined"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={user.is_active !== false ? 'Active' : 'Inactive'}
+                    color={user.is_active !== false ? 'success' : 'default'}
                     size="small"
                   />
                 </TableCell>
                 <TableCell>
-                  {new Date(user.createdAt).toLocaleDateString()}
+                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                 </TableCell>
                 <TableCell>
                   <Button
@@ -133,7 +139,7 @@ function Users() {
             ))}
             {filteredUsers.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} align="center">
+                <TableCell colSpan={7} align="center">
                   No users found
                 </TableCell>
               </TableRow>
@@ -148,40 +154,93 @@ function Users() {
         <DialogContent>
           {selectedUser && (
             <Box>
-              <Typography variant="body1" gutterBottom>
-                <strong>Name:</strong> {selectedUser.name}
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>Email:</strong> {selectedUser.email}
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>Phone:</strong> {selectedUser.phone}
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>Region:</strong> {selectedUser.region || 'N/A'}
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>City:</strong> {selectedUser.city || 'N/A'}
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>Address:</strong> {selectedUser.address || 'N/A'}
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>Joined:</strong>{' '}
-                {new Date(selectedUser.createdAt).toLocaleString()}
-              </Typography>
+              <Box sx={{ mb: 3, p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  {selectedUser.fullName || selectedUser.name || 'N/A'}
+                </Typography>
+                <Chip
+                  label={selectedUser.role || 'CUSTOMER'}
+                  color={selectedUser.role === 'ADMIN' ? 'error' : selectedUser.role?.includes('DRIVER') ? 'primary' : 'default'}
+                  size="small"
+                />
+              </Box>
 
-              <Box mt={3}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: '#666' }}>
+                CONTACT INFORMATION
+              </Typography>
+              <Box sx={{ mb: 3, pl: 1 }}>
+                <Typography variant="body1" gutterBottom>
+                  <strong>Email:</strong> {selectedUser.email || 'N/A'}
+                </Typography>
+                <Typography variant="body1" gutterBottom>
+                  <strong>Phone:</strong> {selectedUser.phone || 'N/A'}
+                </Typography>
+              </Box>
+
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: '#666' }}>
+                ACCOUNT DETAILS
+              </Typography>
+              <Box sx={{ mb: 3, pl: 1 }}>
+                <Typography variant="body1" gutterBottom>
+                  <strong>User ID:</strong> {selectedUser._id || selectedUser.id || 'N/A'}
+                </Typography>
+                <Typography variant="body1" gutterBottom>
+                  <strong>Role:</strong> {selectedUser.role || 'CUSTOMER'}
+                </Typography>
+                <Typography variant="body1" gutterBottom>
+                  <strong>Country:</strong> {selectedUser.country || 'N/A'}
+                </Typography>
+                <Typography variant="body1" gutterBottom>
+                  <strong>Joined:</strong>{' '}
+                  {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleString() : 'N/A'}
+                </Typography>
+                <Typography variant="body1" gutterBottom>
+                  <strong>Last Updated:</strong>{' '}
+                  {selectedUser.updatedAt ? new Date(selectedUser.updatedAt).toLocaleString() : 'N/A'}
+                </Typography>
+              </Box>
+
+              {(selectedUser.role?.includes('DRIVER') || selectedUser.driver_type) && (
+                <>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: '#666' }}>
+                    DRIVER INFORMATION
+                  </Typography>
+                  <Box sx={{ mb: 3, pl: 1 }}>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Driver Type:</strong> {selectedUser.driver_type || 'N/A'}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Vehicle Number:</strong> {selectedUser.vehicle_number || 'N/A'}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Driver License:</strong> {selectedUser.driver_license || 'N/A'}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Verified:</strong>{' '}
+                      <Chip
+                        label={selectedUser.is_verified ? 'Yes' : 'No'}
+                        color={selectedUser.is_verified ? 'success' : 'warning'}
+                        size="small"
+                      />
+                    </Typography>
+                  </Box>
+                </>
+              )}
+
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: '#666' }}>
+                ACCOUNT STATUS
+              </Typography>
+              <Box mt={2}>
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={selectedUser.is_active}
+                      checked={selectedUser.is_active !== false}
                       onChange={() =>
-                        handleToggleStatus(selectedUser.id, selectedUser.is_active)
+                        handleToggleStatus(selectedUser._id || selectedUser.id, selectedUser.is_active)
                       }
                     />
                   }
-                  label={selectedUser.is_active ? 'Active' : 'Inactive'}
+                  label={selectedUser.is_active !== false ? 'Active' : 'Inactive'}
                 />
               </Box>
             </Box>
