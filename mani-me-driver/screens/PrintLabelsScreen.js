@@ -1,41 +1,83 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Modal } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Modal, ActivityIndicator, RefreshControl } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import QRCode from 'react-native-qrcode-svg';
+import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL, ENDPOINTS } from '../utils/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function PrintLabelsScreen({ navigation }) {
+  const { user, isUKDriver } = useAuth();
   const [parcelId, setParcelId] = useState('');
   const [printing, setPrinting] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [selectedParcel, setSelectedParcel] = useState(null);
+  const [recentPickups, setRecentPickups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Mock pickups - in production, fetch from API
-  const [recentPickups] = useState([
-    { 
-      id: 'MM-839201', 
-      sender: 'John Smith', 
-      pickupAddress: '45 High Street, London, W1A 1AA',
-      destination: 'Accra', 
-      receiverName: 'Kwame Mensah',
-      status: 'picked_up' 
-    },
-    { 
-      id: 'MM-839202', 
-      sender: 'Sarah Johnson', 
-      pickupAddress: '12 Park Lane, Manchester, M1 4BT',
-      destination: 'Kumasi', 
-      receiverName: 'Abena Owusu',
-      status: 'picked_up' 
-    },
-    { 
-      id: 'MM-839203', 
-      sender: 'David Brown', 
-      pickupAddress: '78 Queen\'s Road, Birmingham, B5 4AA',
-      destination: 'Takoradi', 
-      receiverName: 'Kofi Asante',
-      status: 'picked_up' 
-    },
-  ]);
+  // Fetch assigned pickups from API
+  const fetchAssignments = useCallback(async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const driverId = user?._id || user?.id;
+      
+      if (!driverId) {
+        console.log('No driver ID available');
+        setLoading(false);
+        return;
+      }
+
+      const type = isUKDriver?.() ? 'pickup' : 'delivery';
+      const url = `${API_BASE_URL}${ENDPOINTS.DRIVER_ASSIGNMENTS(driverId)}?type=${type}&limit=20`;
+      
+      console.log('Fetching assignments for labels:', url);
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      console.log('Assignments response:', data);
+
+      if (data.success && data.data?.shipments) {
+        // Map shipments to the format expected by the UI
+        const mappedPickups = data.data.shipments.map(shipment => ({
+          id: shipment.tracking_number || shipment.parcel_id_short || shipment._id,
+          sender: shipment.sender_name || 'Customer',
+          pickupAddress: `${shipment.pickup_address || ''}, ${shipment.pickup_city || ''} ${shipment.pickup_postcode || ''}`.trim(),
+          destination: shipment.delivery_city || 'Ghana',
+          receiverName: shipment.receiver_name || 'Receiver',
+          receiverAddress: `${shipment.delivery_address || ''}, ${shipment.delivery_city || ''}`.trim(),
+          receiverPhone: shipment.receiver_phone,
+          status: shipment.status,
+          weight: shipment.weight_kg,
+          specialInstructions: shipment.special_instructions,
+        }));
+        setRecentPickups(mappedPickups);
+      } else {
+        setRecentPickups([]);
+      }
+    } catch (error) {
+      console.error('Error fetching assignments:', error);
+      Alert.alert('Error', 'Failed to load assignments. Pull to refresh.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user, isUKDriver]);
+
+  useEffect(() => {
+    fetchAssignments();
+  }, [fetchAssignments]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchAssignments();
+  };
 
   const handlePrintLabel = (parcel) => {
     // Show preview with QR code before printing
@@ -95,7 +137,13 @@ export default function PrintLabelsScreen({ navigation }) {
         <Ionicons name="arrow-back" size={24} color="#0B1A33" />
       </TouchableOpacity>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        style={{ flex: 1 }} 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#83C5FA" />
+        }
+      >
         <View style={styles.header}>
           <Ionicons name="print" size={56} color="#83C5FA" />
           <Text style={styles.title}>Print Labels</Text>
@@ -132,26 +180,44 @@ export default function PrintLabelsScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Recent Pickups */}
+        {/* Recent Pickups / Assigned Jobs */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Pickups</Text>
-          {recentPickups.map((parcel) => (
-            <TouchableOpacity 
-              key={parcel.id}
-              style={styles.parcelCard}
-              onPress={() => handlePrintLabel(parcel)}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.parcelId}>{parcel.id}</Text>
-                <Text style={styles.parcelSender}>Pickup: {parcel.pickupAddress}</Text>
-                <Text style={styles.parcelDestination}>→ {parcel.destination} ({parcel.receiverName})</Text>
-              </View>
-              <View style={styles.printIconContainer}>
-                <Ionicons name="print-outline" size={28} color="#83C5FA" />
-                <Ionicons name="qr-code" size={16} color="#10B981" style={{ position: 'absolute', bottom: 2, right: 2 }} />
-              </View>
-            </TouchableOpacity>
-          ))}
+          <Text style={styles.sectionTitle}>Assigned Parcels</Text>
+          
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#83C5FA" />
+              <Text style={styles.loadingText}>Loading assignments...</Text>
+            </View>
+          ) : recentPickups.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="cube-outline" size={48} color="#D1D5DB" />
+              <Text style={styles.emptyTitle}>No Assigned Parcels</Text>
+              <Text style={styles.emptySubtitle}>You don't have any parcels assigned yet.{'\n'}Pull down to refresh.</Text>
+            </View>
+          ) : (
+            recentPickups.map((parcel, index) => (
+              <TouchableOpacity 
+                key={parcel.id || index}
+                style={styles.parcelCard}
+                onPress={() => handlePrintLabel(parcel)}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.parcelId}>{parcel.id}</Text>
+                  <Text style={styles.parcelSender}>From: {parcel.sender}</Text>
+                  <Text style={styles.parcelSender}>Pickup: {parcel.pickupAddress}</Text>
+                  <Text style={styles.parcelDestination}>→ {parcel.destination} ({parcel.receiverName})</Text>
+                  {parcel.weight && (
+                    <Text style={styles.parcelWeight}>Weight: {parcel.weight}kg</Text>
+                  )}
+                </View>
+                <View style={styles.printIconContainer}>
+                  <Ionicons name="print-outline" size={28} color="#83C5FA" />
+                  <Ionicons name="qr-code" size={16} color="#10B981" style={{ position: 'absolute', bottom: 2, right: 2 }} />
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
         {/* Info Card */}
@@ -378,6 +444,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#10B981',
     fontWeight: '600',
+  },
+  parcelWeight: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 4,
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#374151',
+    marginTop: 12,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
   },
   printIconContainer: {
     width: 48,
