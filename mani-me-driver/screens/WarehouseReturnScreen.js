@@ -58,7 +58,7 @@ export default function WarehouseReturnScreen({ navigation }) {
           onPress: () => {
             // TODO: Call API to end shift
             Alert.alert('Success', 'Shift ended successfully! See you tomorrow.', [
-              { text: 'OK', onPress: () => navigation.navigate('Home') }
+              { text: 'OK', onPress: () => navigation.navigate('Main') }
             ]);
           }
         }

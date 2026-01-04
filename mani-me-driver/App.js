@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { CashTrackingProvider } from './context/CashTrackingContext';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { TouchableOpacity, Text } from 'react-native';
+import { TouchableOpacity, Text, ActivityIndicator, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
 import { addNotificationReceivedListener, addNotificationResponseReceivedListener } from './utils/notifications';
@@ -94,36 +94,6 @@ function MainTabs() {
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
-  const notificationListener = useRef();
-  const responseListener = useRef();
-
-  useEffect(() => {
-    // Listen for notifications while app is in foreground
-    notificationListener.current = addNotificationReceivedListener(notification => {
-      logger.log('Driver received notification:', notification);
-    });
-
-    // Listen for user interactions with notifications
-    responseListener.current = addNotificationResponseReceivedListener(response => {
-      logger.log('Driver notification response:', response);
-      // Handle navigation based on notification data
-      const data = response.notification.request.content.data;
-      if (data.type === 'driver_pickup_assigned') {
-        // Navigate to pickup details or assigned jobs
-        logger.nav('Pickup', { trackingNumber: data.trackingNumber });
-      }
-    });
-
-    // Cleanup
-    return () => {
-      if (notificationListener.current) {
-        notificationListener.current.remove();
-      }
-      if (responseListener.current) {
-        responseListener.current.remove();
-      }
-    };
-  }, []);
 
   if (showSplash) {
     return (
@@ -139,29 +109,80 @@ export default function App() {
   return (
     <AuthProvider>
       <CashTrackingProvider>
-        <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Auth" component={AuthStack} />
-          <Stack.Screen name="Main" component={MainTabs} />
-          <Stack.Screen name="AssignedJobs" component={AssignedJobsScreen} />
-          <Stack.Screen name="JobDetails" component={JobDetailsScreen} />
-          <Stack.Screen name="UKPickups" component={UKPickupsScreen} />
-          <Stack.Screen name="GhanaDeliveries" component={GhanaDeliveriesScreen} />
-          <Stack.Screen name="More" component={MoreScreen} />
-          <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-          <Stack.Screen name="CashReconciliation" component={CashReconciliationScreen} />
-          <Stack.Screen name="RecordCashPickup" component={RecordCashPickupScreen} />
-          <Stack.Screen name="WarehouseReturn" component={WarehouseReturnScreen} />
-          <Stack.Screen name="ScanParcelScreen" component={ScanParcelScreen} />
-          <Stack.Screen name="PrintLabelsScreen" component={PrintLabelsScreen} />
-          <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
-          <Stack.Screen name="ChatScreen" component={ChatScreen} />
-          <Stack.Screen name="Documents" component={DocumentsScreen} />
-          <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
-          <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-        </Stack.Navigator>
-        </NavigationContainer>
+        <AppNavigator />
       </CashTrackingProvider>
     </AuthProvider>
+  );
+}
+
+// Separate navigator component that has access to AuthContext
+function AppNavigator() {
+  const { user, loading } = useAuth();
+  const notificationListener = useRef();
+  const responseListener = useRef();
+
+  useEffect(() => {
+    // Listen for notifications while app is in foreground
+    notificationListener.current = addNotificationReceivedListener(notification => {
+      logger.log('Driver received notification:', notification);
+    });
+
+    // Listen for user interactions with notifications
+    responseListener.current = addNotificationResponseReceivedListener(response => {
+      logger.log('Driver notification response:', response);
+      // Handle navigation based on notification data
+      const data = response.notification.request.content.data;
+      if (data.type === 'driver_pickup_assigned') {
+        logger.nav('Pickup', { trackingNumber: data.trackingNumber });
+      }
+    });
+
+    // Cleanup
+    return () => {
+      if (notificationListener.current) {
+        notificationListener.current.remove();
+      }
+      if (responseListener.current) {
+        responseListener.current.remove();
+      }
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0B1A33' }}>
+        <ActivityIndicator size="large" color="#83C5FA" />
+      </View>
+    );
+  }
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={user ? 'Main' : 'Auth'}>
+        {!user ? (
+          <Stack.Screen name="Auth" component={AuthStack} />
+        ) : (
+          <>
+            <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen name="AssignedJobs" component={AssignedJobsScreen} />
+            <Stack.Screen name="JobDetails" component={JobDetailsScreen} />
+            <Stack.Screen name="UKPickups" component={UKPickupsScreen} />
+            <Stack.Screen name="GhanaDeliveries" component={GhanaDeliveriesScreen} />
+            <Stack.Screen name="More" component={MoreScreen} />
+            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+            <Stack.Screen name="CashReconciliation" component={CashReconciliationScreen} />
+            <Stack.Screen name="RecordCashPickup" component={RecordCashPickupScreen} />
+            <Stack.Screen name="WarehouseReturn" component={WarehouseReturnScreen} />
+            <Stack.Screen name="ScanParcelScreen" component={ScanParcelScreen} />
+            <Stack.Screen name="PrintLabelsScreen" component={PrintLabelsScreen} />
+            <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
+            <Stack.Screen name="ChatScreen" component={ChatScreen} />
+            <Stack.Screen name="Documents" component={DocumentsScreen} />
+            <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
+            <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
