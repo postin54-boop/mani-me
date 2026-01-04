@@ -143,6 +143,17 @@ export default function UKPickupsScreen({ navigation }) {
     setShowQRModal(true);
   };
 
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Flexible';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    } catch {
+      return dateString;
+    }
+  };
+
   const renderPickupCard = ({ item: pickup }) => (
     <View
       style={[
@@ -154,133 +165,208 @@ export default function UKPickupsScreen({ navigation }) {
       <View style={styles.cardHeader}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.parcelId, { color: colors.primary }]}>
-            {pickup.parcel_id_short || pickup.id}
+            {pickup.parcel_id_short || pickup.tracking_number || pickup.id}
           </Text>
           <Text style={[styles.trackingNumber, { color: colors.textSecondary }]}>
             {pickup.tracking_number}
           </Text>
-          <Text style={[styles.customerName, { color: colors.text }]}>
-            {pickup.sender_name || pickup.customerName}
+        </View>
+        <View
+          style={[
+            styles.statusBadge,
+            {
+              backgroundColor:
+                pickup.status === 'parcel_collected' || pickup.status === 'picked_up' || pickup.status === 'completed'
+                  ? colors.success + '20'
+                  : colors.warning + '20',
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusText,
+              {
+                color:
+                  pickup.status === 'parcel_collected' || pickup.status === 'picked_up' || pickup.status === 'completed'
+                    ? colors.success
+                    : colors.warning,
+              },
+            ]}
+          >
+            {pickup.status === 'parcel_collected' || pickup.status === 'picked_up' || pickup.status === 'completed' ? 'Collected' : 'Pending'}
           </Text>
-                <Text style={[styles.timeSlot, { color: colors.secondary }]}>
-                  <Ionicons name="time-outline" size={14} /> {pickup.pickup_time || pickup.time}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.statusBadge,
-                  {
-                    backgroundColor:
-                      pickup.status === 'parcel_collected' || pickup.status === 'completed'
-                        ? colors.success + '20'
-                        : colors.warning + '20',
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusText,
-                    {
-                      color:
-                        pickup.status === 'parcel_collected' || pickup.status === 'completed'
-                          ? colors.success
-                          : colors.warning,
-                    },
-                  ]}
-                >
-                  {pickup.status === 'parcel_collected' || pickup.status === 'completed' ? 'Collected' : 'Pending'}
-                </Text>
-              </View>
-            </View>
+        </View>
+      </View>
 
-            {/* Address */}
-            <View style={styles.detailRow}>
-              <Ionicons name="location" size={18} color={colors.secondary} />
-              <Text style={[styles.detailText, { color: colors.text }]}>
-                {pickup.pickup_address || pickup.address}
-              </Text>
-            </View>
-
-            {/* Phone */}
-            <View style={styles.detailRow}>
-              <Ionicons name="call" size={18} color={colors.secondary} />
-              <Text style={[styles.detailText, { color: colors.text }]}>
-                {pickup.sender_phone || pickup.phone}
-              </Text>
-            </View>
-
-            {/* Parcel Type */}
-            <View style={styles.detailRow}>
-              <Ionicons name="cube" size={18} color={colors.secondary} />
-              <Text style={[styles.detailText, { color: colors.text }]}>
-                {pickup.parcel_type || pickup.parcelType}
-              </Text>
-            </View>
-
-            {/* Parcel Image */}
-            {pickup.parcel_image_url && (
-              <View style={styles.detailRow}>
-                <Ionicons name="image" size={18} color={colors.secondary} />
-                <Image source={{ uri: pickup.parcel_image_url }} style={styles.parcelImage} />
-              </View>
-            )}
-
-            {/* Special Instructions */}
-            {(pickup.special_instructions || pickup.specialInstructions) && (
-              <View style={[styles.instructionsBox, { backgroundColor: colors.warning + '10', borderColor: colors.warning }]}>
-                <Ionicons name="alert-circle" size={16} color={colors.warning} />
-                <Text style={[styles.instructionsText, { color: colors.text }]}>
-                  {pickup.special_instructions || pickup.specialInstructions}
-                </Text>
-              </View>
-            )}
-
-            {/* Actions */}
-            <View style={styles.actions}>
-              {pickup.qr_code_url && (
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: colors.primary }]}
-                  onPress={() => viewQRCode(pickup)}
-                >
-                  <Ionicons name="qr-code" size={20} color="#FFF" />
-                  <Text style={[styles.actionText, { color: '#FFF' }]}>
-                    QR Code
-                  </Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: colors.secondary }]}
-                onPress={() => openMaps(pickup.pickup_address || pickup.address)}
-              >
-                <Ionicons name="navigate" size={20} color="#FFF" />
-                <Text style={[styles.actionText, { color: '#FFF' }]}>
-                  Navigate
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}
-                onPress={() => callCustomer(pickup.sender_phone || pickup.phone)}
-              >
-                <Ionicons name="call" size={20} color={colors.secondary} />
-                <Text style={[styles.actionText, { color: colors.text }]}>
-                  Call
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Complete Button */}
-            {(pickup.status === 'pickup_scheduled' || pickup.status === 'pending') && (
-              <TouchableOpacity
-                style={[styles.completeBtn, { backgroundColor: colors.success }]}
-                onPress={() => markAsCompleted(pickup)}
-              >
-                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-                <Text style={styles.completeBtnText}>Mark as Picked Up</Text>
-              </TouchableOpacity>
-            )}
+      {/* Sender Info */}
+      <View style={[styles.sectionBox, { backgroundColor: colors.background }]}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>SENDER</Text>
+        <Text style={[styles.customerName, { color: colors.text }]}>
+          {pickup.sender_name || 'N/A'}
+        </Text>
+        <View style={styles.detailRow}>
+          <Ionicons name="call-outline" size={16} color={colors.secondary} />
+          <Text style={[styles.detailText, { color: colors.text }]}>
+            {pickup.sender_phone || 'No phone'}
+          </Text>
+        </View>
+        {pickup.sender_email && (
+          <View style={styles.detailRow}>
+            <Ionicons name="mail-outline" size={16} color={colors.secondary} />
+            <Text style={[styles.detailText, { color: colors.text }]}>
+              {pickup.sender_email}
+            </Text>
           </View>
-        );
+        )}
+      </View>
+
+      {/* Pickup Details */}
+      <View style={[styles.sectionBox, { backgroundColor: colors.background }]}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>PICKUP DETAILS</Text>
+        <View style={styles.detailRow}>
+          <Ionicons name="location" size={16} color={colors.secondary} />
+          <Text style={[styles.detailText, { color: colors.text, flex: 1 }]}>
+            {pickup.pickup_address ? `${pickup.pickup_address}${pickup.pickup_city ? ', ' + pickup.pickup_city : ''}${pickup.pickup_postcode ? ' ' + pickup.pickup_postcode : ''}` : 'Address not provided'}
+          </Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Ionicons name="calendar-outline" size={16} color={colors.secondary} />
+          <Text style={[styles.detailText, { color: colors.text }]}>
+            {formatDate(pickup.pickup_date)}
+          </Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Ionicons name="time-outline" size={16} color={colors.secondary} />
+          <Text style={[styles.detailText, { color: colors.text }]}>
+            {pickup.pickup_time || 'Flexible'}
+          </Text>
+        </View>
+      </View>
+
+      {/* Parcel Details */}
+      <View style={[styles.sectionBox, { backgroundColor: colors.background }]}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>PARCEL INFO</Text>
+        <View style={styles.detailRow}>
+          <Ionicons name="cube-outline" size={16} color={colors.secondary} />
+          <Text style={[styles.detailText, { color: colors.text }]}>
+            {pickup.parcel_description || pickup.parcel_type || 'General'}
+            {pickup.parcel_size && ` (${pickup.parcel_size})`}
+          </Text>
+        </View>
+        {pickup.weight_kg && (
+          <View style={styles.detailRow}>
+            <Ionicons name="scale-outline" size={16} color={colors.secondary} />
+            <Text style={[styles.detailText, { color: colors.text }]}>
+              {pickup.weight_kg} kg
+            </Text>
+          </View>
+        )}
+        {pickup.dimensions && (
+          <View style={styles.detailRow}>
+            <Ionicons name="resize-outline" size={16} color={colors.secondary} />
+            <Text style={[styles.detailText, { color: colors.text }]}>
+              {pickup.dimensions}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Destination (Ghana) */}
+      <View style={[styles.sectionBox, { backgroundColor: '#10B98110' }]}>
+        <Text style={[styles.sectionTitle, { color: colors.success }]}>🇬🇭 DESTINATION</Text>
+        <Text style={[styles.customerName, { color: colors.text }]}>
+          {pickup.receiver_name || 'N/A'}
+        </Text>
+        <View style={styles.detailRow}>
+          <Ionicons name="location" size={16} color={colors.success} />
+          <Text style={[styles.detailText, { color: colors.text, flex: 1 }]}>
+            {pickup.delivery_address ? `${pickup.delivery_address}${pickup.delivery_city ? ', ' + pickup.delivery_city : ''}${pickup.delivery_region ? ', ' + pickup.delivery_region : ''}` : pickup.ghana_destination || 'Ghana'}
+          </Text>
+        </View>
+        {pickup.receiver_phone && (
+          <View style={styles.detailRow}>
+            <Ionicons name="call-outline" size={16} color={colors.success} />
+            <Text style={[styles.detailText, { color: colors.text }]}>
+              {pickup.receiver_phone}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Parcel Image */}
+      {pickup.parcel_image_url && (
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: pickup.parcel_image_url }} style={styles.parcelImage} />
+        </View>
+      )}
+
+      {/* Special Instructions */}
+      {pickup.special_instructions && (
+        <View style={[styles.instructionsBox, { backgroundColor: colors.warning + '10', borderColor: colors.warning }]}>
+          <Ionicons name="alert-circle" size={16} color={colors.warning} />
+          <Text style={[styles.instructionsText, { color: colors.text }]}>
+            {pickup.special_instructions}
+          </Text>
+        </View>
+      )}
+
+      {/* Payment Info */}
+      {pickup.payment_method && (
+        <View style={styles.paymentRow}>
+          <View style={styles.detailRow}>
+            <Ionicons name={pickup.payment_method === 'cash' ? 'cash-outline' : 'card-outline'} size={16} color={colors.secondary} />
+            <Text style={[styles.detailText, { color: colors.text }]}>
+              {pickup.payment_method === 'cash' ? 'Cash on Pickup' : 'Paid by Card'}
+            </Text>
+          </View>
+          {pickup.total_cost > 0 && (
+            <Text style={[styles.costText, { color: colors.primary }]}>
+              £{pickup.total_cost?.toFixed(2)}
+            </Text>
+          )}
+        </View>
+      )}
+
+      {/* Actions */}
+      <View style={styles.actions}>
+        {pickup.qr_code_url && (
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+            onPress={() => viewQRCode(pickup)}
+          >
+            <Ionicons name="qr-code" size={20} color="#FFF" />
+            <Text style={[styles.actionText, { color: '#FFF' }]}>QR</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: colors.secondary }]}
+          onPress={() => openMaps(pickup.pickup_address || pickup.address)}
+        >
+          <Ionicons name="navigate" size={20} color="#FFF" />
+          <Text style={[styles.actionText, { color: '#FFF' }]}>Navigate</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}
+          onPress={() => callCustomer(pickup.sender_phone || pickup.phone)}
+        >
+          <Ionicons name="call" size={20} color={colors.secondary} />
+          <Text style={[styles.actionText, { color: colors.text }]}>Call</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Complete Button */}
+      {(pickup.status === 'pickup_scheduled' || pickup.status === 'pending' || pickup.status === 'booked') && (
+        <TouchableOpacity
+          style={[styles.completeBtn, { backgroundColor: colors.success }]}
+          onPress={() => markAsCompleted(pickup)}
+        >
+          <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+          <Text style={styles.completeBtnText}>Mark as Picked Up</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
   const renderFooter = () => {
     if (!loadingMore) return null;
@@ -522,10 +608,38 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   parcelImage: {
-    width: 60,
-    height: 60,
+    width: 100,
+    height: 100,
     borderRadius: 8,
-    marginLeft: 12,
+  },
+  imageContainer: {
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  sectionBox: {
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  costText: {
+    fontSize: 18,
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,

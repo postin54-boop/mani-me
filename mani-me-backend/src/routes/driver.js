@@ -39,27 +39,63 @@ router.get('/:id/assignments', async (req, res) => {
     const assignments = shipments.map(shipment => ({
       _id: shipment._id,
       id: shipment._id,
-      parcel_id_short: shipment.tracking_number?.substring(0, 8) || 'N/A',
+      parcel_id_short: shipment.parcel_id_short || shipment.tracking_number?.substring(0, 8) || 'N/A',
+      parcel_id: shipment.parcel_id,
       tracking_number: shipment.tracking_number,
+      
+      // Sender details (UK)
       sender_name: shipment.sender_name,
       sender_phone: shipment.sender_phone,
+      sender_email: shipment.sender_email,
+      
+      // Pickup address (UK)
       pickup_address: shipment.pickup_address,
       pickup_city: shipment.pickup_city,
       pickup_postcode: shipment.pickup_postcode,
       pickup_date: shipment.pickup_date,
       pickup_time: shipment.pickup_time,
+      
+      // Receiver details (Ghana)
       receiver_name: shipment.receiver_name,
       receiver_phone: shipment.receiver_phone,
+      receiver_alternate_phone: shipment.receiver_alternate_phone,
+      
+      // Delivery address (Ghana)
       delivery_address: shipment.delivery_address,
       delivery_city: shipment.delivery_city,
+      delivery_region: shipment.delivery_region,
+      ghana_destination: shipment.ghana_destination,
+      
+      // Parcel details
       parcel_type: shipment.parcel_description || 'General',
+      parcel_description: shipment.parcel_description,
+      parcel_size: shipment.parcel_size,
+      parcel_value: shipment.parcel_value,
       parcel_image_url: shipment.parcel_image_url,
-      special_instructions: shipment.special_instructions,
-      status: shipment.status,
-      warehouse_status: shipment.warehouse_status,
-      qr_code_url: shipment.qr_code_url,
       weight_kg: shipment.weight_kg,
       dimensions: shipment.dimensions,
+      
+      // Special info
+      special_instructions: shipment.special_instructions,
+      is_self_dropoff: shipment.is_self_dropoff,
+      
+      // Status
+      status: shipment.status,
+      shipment_status: shipment.shipment_status,
+      warehouse_status: shipment.warehouse_status,
+      
+      // Payment
+      payment_method: shipment.payment_method,
+      payment_status: shipment.payment_status,
+      total_cost: shipment.total_cost,
+      
+      // QR & Images
+      qr_code_url: shipment.qr_code_url,
+      customer_photo_url: shipment.customer_photo_url,
+      
+      // Timestamps
+      createdAt: shipment.createdAt,
+      booked_at: shipment.booked_at,
     }));
 
     res.json({
