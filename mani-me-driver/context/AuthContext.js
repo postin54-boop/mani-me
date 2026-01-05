@@ -36,11 +36,32 @@ export const AuthProvider = ({ children }) => {
       const storedUser = await AsyncStorage.getItem("user");
       
       if (storedToken && storedUser) {
-        const userData = JSON.parse(storedUser);
-        setToken(storedToken);
-        setUser(userData);
-        setRole(userData.role);
-        setDriverType(userData.driver_type);
+        // Validate token with backend before setting user
+        try {
+          const response = await axios.get(`${API_BASE}/auth/me`, {
+            headers: { Authorization: `Bearer ${storedToken}` }
+          });
+          
+          if (response.data && response.data.user) {
+            // Token is valid, use the fresh user data from server
+            const userData = response.data.user;
+            setToken(storedToken);
+            setUser(userData);
+            setRole(userData.role);
+            setDriverType(userData.driver_type);
+            // Update stored user data with fresh data
+            await AsyncStorage.setItem("user", JSON.stringify(userData));
+          } else {
+            // Invalid response, clear stored data
+            await AsyncStorage.removeItem("token");
+            await AsyncStorage.removeItem("user");
+          }
+        } catch (validateError) {
+          // Token is invalid or expired, clear stored data
+          logger.log("Token validation failed, clearing stored data");
+          await AsyncStorage.removeItem("token");
+          await AsyncStorage.removeItem("user");
+        }
       }
     } catch (error) {
       logger.error("Error loading user from storage:", error);

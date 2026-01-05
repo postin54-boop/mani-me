@@ -17,6 +17,46 @@ router.get('/test', (req, res) => {
   });
 });
 
+// GET CURRENT USER - Validate token and return user data
+router.get('/me', async (req, res) => {
+  try {
+    // Get token from Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Find user
+    const user = await User.findById(decoded.user_id);
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    return res.json({
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        driver_type: user.driver_type,
+        country: user.country,
+      }
+    });
+  } catch (error) {
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+    console.error('Auth /me error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // REGISTER
 router.post('/register', registerLimiter, async (req, res) => {
   try {
