@@ -103,7 +103,7 @@ export default function ShopCheckoutScreen({ route, navigation }) {
             {
               text: 'OK',
               onPress: () => {
-                navigation.navigate('Home');
+                navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
               }
             }
           ]

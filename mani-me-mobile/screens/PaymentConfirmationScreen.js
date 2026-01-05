@@ -86,7 +86,7 @@ Thank you for choosing Mani Me! 🚚
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => navigation.navigate('Home')}
+          onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Home' }] })}
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
@@ -326,7 +326,7 @@ Thank you for choosing Mani Me! 🚚
 
         <TouchableOpacity
           style={[styles.secondaryButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={() => navigation.navigate('Home')}
+          onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Home' }] })}
         >
           <Ionicons name="home-outline" size={24} color={colors.primary} />
           <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>Back to Home</Text>
