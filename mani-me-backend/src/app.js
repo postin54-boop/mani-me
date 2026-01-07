@@ -71,11 +71,7 @@ app.get('/api/health', (req, res) => {
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.json({ 
-    name: 'Mani-Me Backend API',
-    version: '1.0.0',
-    status: 'running',
-  });
+  res.status(200).send('🚚 ManiMe Backend is Live');
 });
 
 // Halt processing if request has timed out
