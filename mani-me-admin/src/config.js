@@ -8,7 +8,7 @@ const isDev = process.env.NODE_ENV === 'development';
 
 // API Configuration
 const DEV_API_URL = 'http://192.168.0.138:4000';
-const PROD_API_URL = process.env.REACT_APP_API_URL || 'https://api.manime.com';
+const PROD_API_URL = process.env.REACT_APP_API_URL || 'https://mani-me-backend.onrender.com';
 
 // Export the appropriate URL based on environment
 export const API_BASE_URL = isDev ? DEV_API_URL : PROD_API_URL;
