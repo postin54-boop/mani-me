@@ -13,63 +13,63 @@ const promoCodes = [
     type: 'percentage',
     value: 10,
     description: 'Welcome offer for new customers - 10% off your first order',
-    expiryDate: new Date('2025-12-31'),
+    expiryDate: new Date('2026-12-31'),
     usageLimit: 1000,
     usedCount: 0,
     minOrderValue: 20,
     maxDiscount: 50,
     status: 'active',
-    applicableTo: ['shipments', 'groceries', 'packaging']
+    applicableTo: 'all'
   },
   {
     code: 'FESTIVE25',
     type: 'percentage',
     value: 25,
     description: 'Festive season special - 25% off',
-    expiryDate: new Date('2025-12-25'),
+    expiryDate: new Date('2026-12-25'),
     usageLimit: 500,
     usedCount: 0,
     minOrderValue: 50,
     maxDiscount: 100,
     status: 'active',
-    applicableTo: ['shipments']
+    applicableTo: 'shipping'
   },
   {
     code: 'FLAT5',
     type: 'fixed',
     value: 5,
     description: 'Flat £5 off on all orders',
-    expiryDate: new Date('2026-01-31'),
+    expiryDate: new Date('2027-01-31'),
     usageLimit: 2000,
     usedCount: 0,
     minOrderValue: 15,
     status: 'active',
-    applicableTo: ['shipments', 'groceries', 'packaging']
+    applicableTo: 'all'
   },
   {
     code: 'FREESHIP',
     type: 'fixed',
     value: 10,
     description: 'Free shipping on orders over £30',
-    expiryDate: new Date('2025-12-31'),
+    expiryDate: new Date('2026-12-31'),
     usageLimit: 500,
     usedCount: 0,
     minOrderValue: 30,
     status: 'active',
-    applicableTo: ['groceries']
+    applicableTo: 'grocery'
   },
   {
     code: 'SUMMER20',
     type: 'percentage',
     value: 20,
     description: 'Summer sale - 20% off',
-    expiryDate: new Date('2025-08-31'),
+    expiryDate: new Date('2026-08-31'),
     usageLimit: 300,
     usedCount: 0,
     minOrderValue: 25,
     maxDiscount: 75,
     status: 'active',
-    applicableTo: ['shipments', 'groceries']
+    applicableTo: 'all'
   }
 ];
 

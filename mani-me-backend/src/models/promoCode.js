@@ -72,8 +72,7 @@ promoCodeSchema.pre('save', function() {
   this.updatedAt = Date.now();
 });
 
-// Add indexes for performance
-promoCodeSchema.index({ code: 1 }, { unique: true });
+// Add indexes for performance (code index already created via unique: true)
 promoCodeSchema.index({ status: 1, expiryDate: 1 });
 promoCodeSchema.index({ createdAt: -1 });
 
