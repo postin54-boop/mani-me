@@ -41,7 +41,7 @@ export default function HomeScreen({ navigation }) {
   // Fetch unread notification count
   const fetchNotificationCount = useCallback(async () => {
     try {
-      const response = await api.get('/api/notifications/user');
+      const response = await api.get('/notifications/user');
       if (response.data && response.data.notifications) {
         const unread = response.data.notifications.filter(n => !n.read).length;
         setUnreadNotifications(unread);

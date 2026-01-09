@@ -47,13 +47,17 @@ const passwordResetLimiter = rateLimit({
   }
 });
 
-// General API rate limiter - 100 requests per 15 minutes per IP
+// General API rate limiter - 300 requests per 15 minutes per IP (increased for mobile apps)
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 300, // Increased from 100 for better mobile experience
   message: 'Too many requests from this IP',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for health checks
+    return req.path === '/health' || req.path === '/api/health';
+  },
   handler: (req, res) => {
     res.status(429).json({
       message: 'Too many requests. Please slow down.',
@@ -62,9 +66,19 @@ const apiLimiter = rateLimit({
   }
 });
 
+// Stricter rate limiter for tracking endpoint (public, could be abused)
+const trackingLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50, // 50 tracking requests per 15 minutes
+  message: 'Too many tracking requests',
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 module.exports = {
   loginLimiter,
   registerLimiter,
   passwordResetLimiter,
-  apiLimiter
+  apiLimiter,
+  trackingLimiter
 };

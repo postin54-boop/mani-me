@@ -10,4 +10,9 @@ const PaymentSchema = new mongoose.Schema({
   logs: [{ type: String }],
 });
 
+// Add indexes for performance
+PaymentSchema.index({ booking_id: 1 });
+PaymentSchema.index({ status: 1, createdAt: -1 });
+PaymentSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Payment', PaymentSchema);

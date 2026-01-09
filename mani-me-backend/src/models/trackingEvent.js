@@ -8,4 +8,8 @@ const TrackingEventSchema = new mongoose.Schema({
   notes: { type: String },
 });
 
+// Add indexes for performance
+TrackingEventSchema.index({ parcel_id: 1, timestamp: -1 });
+TrackingEventSchema.index({ timestamp: -1 });
+
 module.exports = mongoose.model('TrackingEvent', TrackingEventSchema);

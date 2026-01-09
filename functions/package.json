@@ -13,9 +13,11 @@
   },
   "main": "index.js",
   "dependencies": {
+    "expo-server-sdk": "^3.7.0",
     "firebase-admin": "^11.10.1",
-    "firebase-functions": "^7.0.0",
-    "qrcode": "^1.5.4"
+    "firebase-functions": "^4.4.1",
+    "qrcode": "^1.5.4",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "firebase-functions-test": "^3.4.1"

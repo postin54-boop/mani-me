@@ -29,6 +29,7 @@ const Message = require('./message');
 const Category = require('./category');
 const Product = require('./product');
 const CashReconciliation = require('./cashReconciliation');
+const PromoCode = require('./promoCode');
 
 module.exports = {
   // Core
@@ -57,10 +58,12 @@ module.exports = {
   Category,
   Product,
   CashReconciliation,
+  PromoCode,
   
   // Lowercase aliases for backward compatibility
   user: User,
   shipment: Shipment,
   item: Item,
   address: Address,
+  promoCode: PromoCode,
 };

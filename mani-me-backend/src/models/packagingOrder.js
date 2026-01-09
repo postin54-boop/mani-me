@@ -50,4 +50,10 @@ packagingOrderSchema.pre('save', function() {
   this.updatedAt = Date.now();
 });
 
+// Add indexes for performance
+packagingOrderSchema.index({ user_id: 1, createdAt: -1 });
+packagingOrderSchema.index({ status: 1 });
+packagingOrderSchema.index({ payment_status: 1 });
+packagingOrderSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('PackagingOrder', packagingOrderSchema);

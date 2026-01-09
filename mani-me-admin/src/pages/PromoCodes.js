@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -24,6 +24,10 @@ import {
   Grid,
   Card,
   CardContent,
+  CircularProgress,
+  Alert,
+  Snackbar,
+  TablePagination,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -31,50 +35,25 @@ import {
   Delete as DeleteIcon,
   LocalOffer as OfferIcon,
   TrendingUp as TrendingIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
+import api from '../api';
 
 export default function PromoCodes() {
-  const [promoCodes, setPromoCodes] = useState([
-    {
-      id: 1,
-      code: 'WELCOME10',
-      type: 'percentage',
-      value: 10,
-      description: 'Welcome offer for new customers',
-      expiryDate: '2025-12-31',
-      usageLimit: 100,
-      usedCount: 23,
-      minOrderValue: 20,
-      status: 'active'
-    },
-    {
-      id: 2,
-      code: 'FESTIVE25',
-      type: 'percentage',
-      value: 25,
-      description: 'Festive season special',
-      expiryDate: '2025-12-25',
-      usageLimit: 50,
-      usedCount: 8,
-      minOrderValue: 50,
-      status: 'active'
-    },
-    {
-      id: 3,
-      code: 'FLAT5',
-      type: 'fixed',
-      value: 5,
-      description: 'Flat £5 off on all orders',
-      expiryDate: '2026-01-31',
-      usageLimit: 200,
-      usedCount: 145,
-      minOrderValue: 15,
-      status: 'active'
-    },
-  ]);
+  const [promoCodes, setPromoCodes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState({ totalActive: 0, totalUsage: 0, totalDiscountGiven: 0 });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  
+  // Pagination
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
 
   const [openDialog, setOpenDialog] = useState(false);
   const [editingPromo, setEditingPromo] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     code: '',
     type: 'percentage',
@@ -83,7 +62,50 @@ export default function PromoCodes() {
     expiryDate: '',
     usageLimit: '',
     minOrderValue: '',
+    maxDiscount: '',
   });
+
+  // Fetch promo codes from API
+  const fetchPromoCodes = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/promo-codes', {
+        params: { page: page + 1, limit: rowsPerPage }
+      });
+      setPromoCodes(response.data.promoCodes || []);
+      setTotalCount(response.data.total || 0);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching promo codes:', err);
+      setError('Failed to load promo codes');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, rowsPerPage]);
+
+  // Fetch stats
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await api.get('/promo-codes/stats/overview');
+      setStats(response.data);
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPromoCodes();
+    fetchStats();
+  }, [fetchPromoCodes, fetchStats]);
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
   const handleOpenDialog = (promo = null) => {
     if (promo) {
@@ -92,10 +114,11 @@ export default function PromoCodes() {
         code: promo.code,
         type: promo.type,
         value: promo.value,
-        description: promo.description,
-        expiryDate: promo.expiryDate,
+        description: promo.description || '',
+        expiryDate: promo.expiryDate ? promo.expiryDate.split('T')[0] : '',
         usageLimit: promo.usageLimit,
-        minOrderValue: promo.minOrderValue,
+        minOrderValue: promo.minOrderValue || 0,
+        maxDiscount: promo.maxDiscount || '',
       });
     } else {
       setEditingPromo(null);
@@ -107,6 +130,7 @@ export default function PromoCodes() {
         expiryDate: '',
         usageLimit: '',
         minOrderValue: '',
+        maxDiscount: '',
       });
     }
     setOpenDialog(true);
@@ -117,65 +141,118 @@ export default function PromoCodes() {
     setEditingPromo(null);
   };
 
-  const handleSave = () => {
-    if (editingPromo) {
-      setPromoCodes(
-        promoCodes.map((p) =>
-          p.id === editingPromo.id
-            ? { ...p, ...formData }
-            : p
-        )
-      );
-    } else {
-      const newPromo = {
-        id: promoCodes.length + 1,
-        ...formData,
-        usedCount: 0,
-        status: 'active',
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const payload = {
+        code: formData.code.toUpperCase(),
+        type: formData.type,
+        value: Number(formData.value),
+        description: formData.description,
+        expiryDate: formData.expiryDate,
+        usageLimit: Number(formData.usageLimit),
+        minOrderValue: Number(formData.minOrderValue) || 0,
+        maxDiscount: formData.maxDiscount ? Number(formData.maxDiscount) : null,
       };
-      setPromoCodes([...promoCodes, newPromo]);
+
+      if (editingPromo) {
+        await api.put(`/promo-codes/${editingPromo._id}`, payload);
+        setSnackbar({ open: true, message: 'Promo code updated successfully', severity: 'success' });
+      } else {
+        await api.post('/promo-codes', payload);
+        setSnackbar({ open: true, message: 'Promo code created successfully', severity: 'success' });
+      }
+      handleCloseDialog();
+      fetchPromoCodes();
+      fetchStats();
+    } catch (err) {
+      console.error('Error saving promo code:', err);
+      setSnackbar({ 
+        open: true, 
+        message: err.response?.data?.message || 'Failed to save promo code', 
+        severity: 'error' 
+      });
+    } finally {
+      setSaving(false);
     }
-    handleCloseDialog();
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this promo code?')) {
-      setPromoCodes(promoCodes.filter((p) => p.id !== id));
+      try {
+        await api.delete(`/promo-codes/${id}`);
+        setSnackbar({ open: true, message: 'Promo code deleted', severity: 'success' });
+        fetchPromoCodes();
+        fetchStats();
+      } catch (err) {
+        console.error('Error deleting promo code:', err);
+        setSnackbar({ open: true, message: 'Failed to delete promo code', severity: 'error' });
+      }
     }
   };
 
-  const handleToggleStatus = (id) => {
-    setPromoCodes(
-      promoCodes.map((p) =>
-        p.id === id
-          ? { ...p, status: p.status === 'active' ? 'inactive' : 'active' }
-          : p
-      )
+  const handleToggleStatus = async (promo) => {
+    try {
+      const newStatus = promo.status === 'active' ? 'inactive' : 'active';
+      await api.put(`/promo-codes/${promo._id}`, { status: newStatus });
+      setSnackbar({ open: true, message: `Promo code ${newStatus}`, severity: 'success' });
+      fetchPromoCodes();
+      fetchStats();
+    } catch (err) {
+      console.error('Error toggling status:', err);
+      setSnackbar({ open: true, message: 'Failed to update status', severity: 'error' });
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  if (loading && promoCodes.length === 0) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <CircularProgress />
+      </Box>
     );
-  };
-
-  const totalRevenue = promoCodes.reduce((sum, p) => {
-    if (p.type === 'percentage') {
-      return sum + (p.usedCount * 25 * p.value / 100); // Assuming avg order £25
-    } else {
-      return sum + (p.usedCount * p.value);
-    }
-  }, 0);
-
-  const totalUsage = promoCodes.reduce((sum, p) => sum + p.usedCount, 0);
-  const activePromos = promoCodes.filter(p => p.status === 'active').length;
+  }
 
   return (
     <Box>
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={4000} 
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Promo Codes</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Create Promo Code
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={() => { fetchPromoCodes(); fetchStats(); }}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            Create Promo Code
+          </Button>
+        </Box>
       </Box>
 
       {/* Summary Cards */}
@@ -188,7 +265,7 @@ export default function PromoCodes() {
                   <Typography color="textSecondary" gutterBottom>
                     Active Promos
                   </Typography>
-                  <Typography variant="h4">{activePromos}</Typography>
+                  <Typography variant="h4">{stats.totalActive || 0}</Typography>
                 </Box>
                 <OfferIcon sx={{ fontSize: 40, color: '#2196F3' }} />
               </Box>
@@ -203,7 +280,7 @@ export default function PromoCodes() {
                   <Typography color="textSecondary" gutterBottom>
                     Total Usage
                   </Typography>
-                  <Typography variant="h4">{totalUsage}</Typography>
+                  <Typography variant="h4">{stats.totalUsage || 0}</Typography>
                 </Box>
                 <TrendingIcon sx={{ fontSize: 40, color: '#4CAF50' }} />
               </Box>
@@ -218,7 +295,7 @@ export default function PromoCodes() {
                   <Typography color="textSecondary" gutterBottom>
                     Discount Given
                   </Typography>
-                  <Typography variant="h4">£{totalRevenue.toFixed(2)}</Typography>
+                  <Typography variant="h4">£{(stats.totalDiscountGiven || 0).toFixed(2)}</Typography>
                 </Box>
                 <OfferIcon sx={{ fontSize: 40, color: '#FF9800' }} />
               </Box>
@@ -245,7 +322,7 @@ export default function PromoCodes() {
           </TableHead>
           <TableBody>
             {promoCodes.map((promo) => (
-              <TableRow key={promo.id}>
+              <TableRow key={promo._id}>
                 <TableCell>
                   <Chip 
                     label={promo.code} 
@@ -281,7 +358,7 @@ export default function PromoCodes() {
                     label={promo.status}
                     size="small"
                     color={promo.status === 'active' ? 'success' : 'default'}
-                    onClick={() => handleToggleStatus(promo.id)}
+                    onClick={() => handleToggleStatus(promo)}
                     sx={{ cursor: 'pointer' }}
                   />
                 </TableCell>
@@ -289,7 +366,7 @@ export default function PromoCodes() {
                   <IconButton onClick={() => handleOpenDialog(promo)} size="small" color="primary">
                     <EditIcon />
                   </IconButton>
-                  <IconButton onClick={() => handleDelete(promo.id)} size="small" color="error">
+                  <IconButton onClick={() => handleDelete(promo._id)} size="small" color="error">
                     <DeleteIcon />
                   </IconButton>
                 </TableCell>
@@ -297,6 +374,15 @@ export default function PromoCodes() {
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={totalCount}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
       </TableContainer>
 
       {/* Add/Edit Dialog */}
@@ -372,11 +458,28 @@ export default function PromoCodes() {
               onChange={(e) => setFormData({ ...formData, minOrderValue: e.target.value })}
               placeholder="Minimum order amount to use this code"
             />
+
+            {formData.type === 'percentage' && (
+              <TextField
+                label="Max Discount (£)"
+                type="number"
+                fullWidth
+                value={formData.maxDiscount}
+                onChange={(e) => setFormData({ ...formData, maxDiscount: e.target.value })}
+                placeholder="Optional: Cap the maximum discount"
+                helperText="Leave empty for no cap"
+              />
+            )}
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained">
+          <Button onClick={handleCloseDialog} disabled={saving}>Cancel</Button>
+          <Button 
+            onClick={handleSave} 
+            variant="contained"
+            disabled={saving}
+            startIcon={saving ? <CircularProgress size={20} /> : null}
+          >
             {editingPromo ? 'Update' : 'Create'}
           </Button>
         </DialogActions>

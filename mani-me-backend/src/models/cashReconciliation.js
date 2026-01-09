@@ -19,4 +19,9 @@ const cashReconciliationSchema = new mongoose.Schema({
   shiftDate: { type: Date, default: Date.now },
 });
 
+// Add indexes for performance
+cashReconciliationSchema.index({ driver: 1, submittedAt: -1 });
+cashReconciliationSchema.index({ status: 1 });
+cashReconciliationSchema.index({ submittedAt: -1 });
+
 module.exports = mongoose.model('CashReconciliation', cashReconciliationSchema);

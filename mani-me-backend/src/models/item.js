@@ -7,4 +7,7 @@ const itemSchema = new mongoose.Schema({
   value: Number,
 });
 
+// Add index for performance
+itemSchema.index({ shipmentId: 1 });
+
 module.exports = mongoose.model("Item", itemSchema);

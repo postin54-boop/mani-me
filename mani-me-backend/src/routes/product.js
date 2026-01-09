@@ -2,11 +2,38 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/product');
 
-// Get all products
+// Get all products (with pagination)
 router.get('/', async (req, res) => {
   try {
-    const products = await Product.find();
-    res.json(products);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    const category = req.query.category;
+    const search = req.query.search;
+
+    // Build query
+    let query = {};
+    if (category) {
+      query.category = category;
+    }
+    if (search) {
+      query.name = { $regex: search, $options: 'i' };
+    }
+
+    const [products, total] = await Promise.all([
+      Product.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Product.countDocuments(query)
+    ]);
+
+    res.json({
+      products,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

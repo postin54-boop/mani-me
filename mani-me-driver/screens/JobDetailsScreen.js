@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Linking, A
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
+import axios from "axios";
+import { API_BASE_URL } from "../utils/config";
 
 const BRAND = {
   primary: "#0B1A33",
@@ -15,7 +17,7 @@ const BRAND = {
 };
 
 export default function JobDetailsScreen({ route, navigation }) {
-  const { isUKDriver } = useAuth();
+  const { isUKDriver, token } = useAuth();
   
   // Get job from route params
   const job = route?.params?.job || {};
@@ -69,18 +71,57 @@ export default function JobDetailsScreen({ route, navigation }) {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
 
+  // Map step keys to actual shipment statuses
+  const stepToStatus = {
+    arrived: 'driver_arrived',
+    intake: 'parcel_received',
+    paid: 'payment_confirmed',
+    loaded: 'picked_up',
+    scanned: 'parcel_scanned',
+    delivered: 'delivered',
+    proof: 'delivery_confirmed',
+  };
+
   const markNextStep = async (steps, setSteps, stepKey, actionLabel) => {
     const idx = steps.findIndex(s => !s.done);
     if (idx !== -1 && steps[idx].key === stepKey) {
       setLoading(true);
       setSuccessMsg("");
-      setTimeout(() => {
+      
+      try {
+        // Get the shipment ID
+        const shipmentId = job._id || job.id;
+        
+        if (!shipmentId) {
+          throw new Error('No shipment ID found');
+        }
+
+        // Map step to backend status
+        const newStatus = stepToStatus[stepKey];
+        
+        if (newStatus) {
+          // Call backend API to update shipment status
+          await axios.put(
+            `${API_BASE_URL}/api/shipments/${shipmentId}/status`,
+            { status: newStatus },
+            token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+          );
+        }
+
+        // Update local state on success
         const newSteps = steps.map((s, i) => i === idx ? { ...s, done: true } : s);
         setSteps(newSteps);
-        setLoading(false);
         setSuccessMsg(`${actionLabel} completed!`);
         setTimeout(() => setSuccessMsg(""), 1500);
-      }, 1200);
+      } catch (error) {
+        console.error('Status update error:', error);
+        Alert.alert(
+          'Update Failed',
+          error.response?.data?.message || error.message || 'Failed to update status. Please try again.'
+        );
+      } finally {
+        setLoading(false);
+      }
     }
   };
 

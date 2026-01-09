@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,7 +18,7 @@ export default function NotificationsScreen({ navigation }) {
   const fetchNotifications = useCallback(async () => {
     try {
       setError(null);
-      const response = await api.get('/api/notifications/user');
+      const response = await api.get('/notifications/user');
       if (response.data && response.data.notifications) {
         setNotifications(response.data.notifications);
       } else if (Array.isArray(response.data)) {
@@ -123,7 +123,9 @@ export default function NotificationsScreen({ navigation }) {
           <Text style={styles.loadingText}>Loading notifications...</Text>
         </View>
       ) : (
-        <ScrollView 
+        <FlatList
+          data={notifications}
+          keyExtractor={(item) => item._id || item.id || String(Math.random())}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           refreshControl={
@@ -134,15 +136,13 @@ export default function NotificationsScreen({ navigation }) {
               colors={['#83C5FA']}
             />
           }
-        >
-          {error && (
+          ListHeaderComponent={error ? (
             <View style={styles.errorCard}>
               <Ionicons name="alert-circle-outline" size={20} color="#EF4444" />
               <Text style={styles.errorText}>{error}</Text>
             </View>
-          )}
-
-          {notifications.length === 0 ? (
+          ) : null}
+          ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconContainer}>
                 <Ionicons name="notifications-off-outline" size={64} color="#83C5FA" />
@@ -152,29 +152,27 @@ export default function NotificationsScreen({ navigation }) {
                 When you have updates about your parcels, promos, or important alerts, they'll appear here.
               </Text>
             </View>
-          ) : (
-            notifications.map((notif) => (
-              <TouchableOpacity 
-                key={notif._id || notif.id} 
-                style={[styles.card, !notif.read && styles.unreadCard]}
-                onPress={() => markAsRead(notif._id || notif.id)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.iconBlock, { backgroundColor: notif.read ? '#F3F4F6' : '#83C5FA15' }]}>
-                  {getNotificationIcon(notif.type)}
+          }
+          renderItem={({ item: notif }) => (
+            <TouchableOpacity 
+              style={[styles.card, !notif.read && styles.unreadCard]}
+              onPress={() => markAsRead(notif._id || notif.id)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.iconBlock, { backgroundColor: notif.read ? '#F3F4F6' : '#83C5FA15' }]}>
+                {getNotificationIcon(notif.type)}
+              </View>
+              <View style={styles.cardContent}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.title}>{notif.title}</Text>
+                  {!notif.read && <View style={styles.unreadDot} />}
                 </View>
-                <View style={styles.cardContent}>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.title}>{notif.title}</Text>
-                    {!notif.read && <View style={styles.unreadDot} />}
-                  </View>
-                  <Text style={styles.message}>{notif.message || notif.body}</Text>
-                  <Text style={styles.time}>{formatTime(notif.createdAt || notif.created_at)}</Text>
-                </View>
-              </TouchableOpacity>
-            ))
+                <Text style={styles.message}>{notif.message || notif.body}</Text>
+                <Text style={styles.time}>{formatTime(notif.createdAt || notif.created_at)}</Text>
+              </View>
+            </TouchableOpacity>
           )}
-        </ScrollView>
+        />
       )}
     </View>
   );

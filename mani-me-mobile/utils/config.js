@@ -10,9 +10,8 @@ const LOCAL_URL = "http://192.168.0.138:4000";
 // Determine the best API URL based on platform
 const getApiUrl = () => {
   // First check for environment/config override
-  const configUrl = Constants.expoConfig?.extra?.apiUrl?.replace('/api', '');
+  const configUrl = Constants.expoConfig?.extra?.apiUrl;
   if (configUrl) return configUrl;
-  
   // Always use production URL (change to LOCAL_URL for local testing)
   return PRODUCTION_URL;
 };

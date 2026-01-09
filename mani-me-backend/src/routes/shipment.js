@@ -6,11 +6,14 @@ const { sendShipmentStatusNotification } = require('../services/notificationServ
 const { sendPickupAssignedNotification } = require('../services/notificationService');
 const { cache, cacheKeys } = require('../utils/cache');
 
-// Get recent shipments for a user (last 5, sorted by date)
+// Get recent shipments for a user (last 5, sorted by date, excluding cancelled)
 router.get('/recent/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const shipments = await Shipment.find({ userId: userId })
+    const shipments = await Shipment.find({ 
+      userId: userId,
+      status: { $ne: 'cancelled' } // Exclude cancelled shipments
+    })
       .sort({ createdAt: -1 })
       .limit(5)
       .select('tracking_number receiver_name status warehouse_status createdAt updatedAt')

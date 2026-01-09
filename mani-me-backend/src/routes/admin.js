@@ -115,11 +115,12 @@ router.get('/dashboard', verifyAdmin, async (req, res) => {
     const totalOrders = await Shipment.countDocuments();
     const totalUsers = await User.countDocuments();
     
-    const paidOrders = await Shipment.find({ payment_status: 'paid' });
-    
-    const totalRevenue = paidOrders.reduce((sum, order) => {
-      return sum + (parseFloat(order.price) || 0);
-    }, 0);
+    // Use aggregation for revenue calculation (efficient at scale)
+    const revenueResult = await Shipment.aggregate([
+      { $match: { payment_status: 'paid' } },
+      { $group: { _id: null, totalRevenue: { $sum: { $toDouble: '$price' } } } }
+    ]);
+    const totalRevenue = revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
 
     const pendingOrders = await Shipment.countDocuments({ status: 'pending' });
 
@@ -134,11 +135,42 @@ router.get('/dashboard', verifyAdmin, async (req, res) => {
   }
 });
 
-// Get all orders
+// Get all orders (with pagination)
 router.get('/orders', verifyAdmin, async (req, res) => {
   try {
-    const orders = await Shipment.find().sort({ createdAt: -1 });
-    res.json(orders);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    const status = req.query.status;
+    const search = req.query.search;
+
+    // Build query
+    let query = {};
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    if (search) {
+      query.$or = [
+        { tracking_number: { $regex: search, $options: 'i' } },
+        { sender_name: { $regex: search, $options: 'i' } },
+        { receiver_name: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const [orders, total] = await Promise.all([
+      Shipment.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Shipment.countDocuments(query)
+    ]);
+
+    res.json({
+      orders,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -160,11 +192,42 @@ router.put('/orders/:id/status', verifyAdmin, async (req, res) => {
   }
 });
 
-// Get all users
+// Get all users (with pagination)
 router.get('/users', verifyAdmin, async (req, res) => {
   try {
-    const users = await User.find().select('-password').sort({ createdAt: -1 });
-    res.json(users);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    const search = req.query.search;
+    const role = req.query.role;
+
+    // Build query
+    let query = {};
+    if (role && role !== 'all') {
+      query.role = role;
+    }
+    if (search) {
+      query.$or = [
+        { email: { $regex: search, $options: 'i' } },
+        { fullName: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const [users, total] = await Promise.all([
+      User.find(query).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit),
+      User.countDocuments(query)
+    ]);
+
+    res.json({
+      users,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }

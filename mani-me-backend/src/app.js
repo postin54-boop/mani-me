@@ -2,6 +2,7 @@
 const express = require('express');
 const app = express();
 const { errorHandler } = require('./middleware/errorHandler');
+const { apiLimiter } = require('./middleware/rateLimiter');
 
 // ======================
 // Security & Performance Middleware
@@ -24,14 +25,34 @@ app.use(compression({
   level: 6, // Balance between speed and compression
 }));
 
-// CORS configuration
+// CORS configuration - Secure for production
 const cors = require('cors');
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:4000',
+  'https://mani-me-admin.vercel.app',
+  'https://mani-me.vercel.app',
+  'https://manime.co.uk',
+  'https://admin.manime.co.uk'
+];
+
 app.use(cors({
-  origin: true, // Allow all origins in development
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
+
+// Apply rate limiting globally to all API routes
+app.use('/api', apiLimiter);
 
 // Body parsing with size limits
 app.use(express.json({ limit: '10mb' }));
@@ -105,6 +126,7 @@ app.use('/api/addresses', require('./routes/addressRoutes'));
 app.use('/api/items', require('./routes/itemRoutes'));
 app.use('/api/scans', require('./routes/scans'));
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/promo-codes', require('./routes/promoCode'));
 
 // 404 handler for unknown routes
 app.use((req, res, next) => {

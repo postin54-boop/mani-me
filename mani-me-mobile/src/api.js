@@ -7,8 +7,8 @@ import axiosRetry from 'axios-retry';
 import logger from '../utils/logger';
 
 // Production API URL
-const PRODUCTION_URL = "https://mani-me-backend.onrender.com/api";
-const LOCAL_URL = "http://192.168.0.138:4000/api";
+const PRODUCTION_URL = "https://mani-me-backend.onrender.com";
+const LOCAL_URL = "http://192.168.0.138:4000";
 
 // Set to true to use local backend, false for production
 const USE_LOCAL_BACKEND = false;
@@ -17,7 +17,7 @@ const USE_LOCAL_BACKEND = false;
 const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || (USE_LOCAL_BACKEND && __DEV__ ? LOCAL_URL : PRODUCTION_URL);
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL.endsWith('/api') ? API_BASE_URL : API_BASE_URL + '/api',
   timeout: 30000, // 30 second timeout
   headers: {
     'Content-Type': 'application/json',

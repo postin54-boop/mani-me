@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const validate = require('../middleware/validate');
 const { payment: paymentValidation } = require('../validations');
+const PromoCode = require('../models/promoCode');
 
 // Stripe initialization - MUST have secret key
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -9,44 +10,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-// In-memory promo codes (in production, use database)
-const promoCodes = [
-  {
-    code: 'WELCOME10',
-    type: 'percentage',
-    value: 10,
-    description: 'Welcome offer for new customers',
-    expiryDate: '2025-12-31',
-    usageLimit: 100,
-    usedCount: 23,
-    minOrderValue: 20,
-    status: 'active'
-  },
-  {
-    code: 'FESTIVE25',
-    type: 'percentage',
-    value: 25,
-    description: 'Festive season special',
-    expiryDate: '2025-12-25',
-    usageLimit: 50,
-    usedCount: 8,
-    minOrderValue: 50,
-    status: 'active'
-  },
-  {
-    code: 'FLAT5',
-    type: 'fixed',
-    value: 5,
-    description: 'Flat £5 off on all orders',
-    expiryDate: '2026-01-31',
-    usageLimit: 200,
-    usedCount: 145,
-    minOrderValue: 15,
-    status: 'active'
-  },
-];
-
-// Validate promo code
+// Validate promo code (uses database now)
 router.post('/validate-promo', async (req, res) => {
   try {
     const { code, orderValue } = req.body;
@@ -55,8 +19,11 @@ router.post('/validate-promo', async (req, res) => {
       return res.status(400).json({ valid: false, message: 'Promo code is required' });
     }
 
-    // Find promo code
-    const promo = promoCodes.find(p => p.code === code.toUpperCase() && p.status === 'active');
+    // Find promo code from database
+    const promo = await PromoCode.findOne({ 
+      code: code.toUpperCase(), 
+      status: 'active' 
+    });
 
     if (!promo) {
       return res.status(404).json({ valid: false, message: 'Invalid promo code' });
@@ -64,6 +31,9 @@ router.post('/validate-promo', async (req, res) => {
 
     // Check expiry
     if (new Date(promo.expiryDate) < new Date()) {
+      // Auto-update status to expired
+      promo.status = 'expired';
+      await promo.save();
       return res.status(400).json({ valid: false, message: 'Promo code has expired' });
     }
 
@@ -73,7 +43,7 @@ router.post('/validate-promo', async (req, res) => {
     }
 
     // Check minimum order value
-    if (orderValue < promo.minOrderValue) {
+    if (orderValue && orderValue < promo.minOrderValue) {
       return res.status(400).json({ 
         valid: false, 
         message: `Minimum order value of £${promo.minOrderValue} required` 
@@ -82,21 +52,28 @@ router.post('/validate-promo', async (req, res) => {
 
     // Calculate discount
     let discount = 0;
-    if (promo.type === 'percentage') {
-      discount = orderValue * (promo.value / 100);
-    } else {
-      discount = promo.value;
+    if (orderValue) {
+      if (promo.type === 'percentage') {
+        discount = orderValue * (promo.value / 100);
+        // Apply max discount cap if set
+        if (promo.maxDiscount && discount > promo.maxDiscount) {
+          discount = promo.maxDiscount;
+        }
+      } else {
+        discount = promo.value;
+      }
     }
 
     return res.json({
       valid: true,
       promo: {
+        id: promo._id,
         code: promo.code,
         type: promo.type,
         value: promo.value,
         description: promo.description
       },
-      discount: discount
+      discount: Math.round(discount * 100) / 100
     });
   } catch (error) {
     console.error('Promo validation error:', error);
