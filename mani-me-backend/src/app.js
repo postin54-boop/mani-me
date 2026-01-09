@@ -25,26 +25,37 @@ app.use(compression({
   level: 6, // Balance between speed and compression
 }));
 
-// CORS configuration - Secure for production
+// CORS configuration - Allow all origins for now (can restrict later)
 const cors = require('cors');
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:4000',
+  'http://localhost:8081',
+  'http://localhost:19006',
   'https://mani-me-admin.vercel.app',
   'https://mani-me.vercel.app',
   'https://manime.co.uk',
-  'https://admin.manime.co.uk'
+  'https://admin.manime.co.uk',
+  'https://mani-me-backend.onrender.com'
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
+    // Allow requests with no origin (mobile apps, Postman, curl, etc.)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+    // Allow all origins in development or if origin is in whitelist
+    if (allowedOrigins.includes(origin) || 
+        origin.endsWith('.vercel.app') || 
+        origin.endsWith('.onrender.com') ||
+        origin.endsWith('.netlify.app') ||
+        process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
-    return callback(new Error('Not allowed by CORS'));
+    
+    // Log blocked origins for debugging
+    console.warn(`CORS blocked origin: ${origin}`);
+    return callback(null, true); // Allow anyway for now - tighten later
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
