@@ -38,9 +38,12 @@ function Users() {
   const fetchUsers = async () => {
     try {
       const response = await api.get('/api/admin/users');
-      setUsers(response.data);
+      // Handle both old format (array) and new format ({ users, pagination })
+      const usersData = response.data.users || response.data;
+      setUsers(Array.isArray(usersData) ? usersData : []);
     } catch (error) {
       logger.error('Error fetching users:', error);
+      setUsers([]);
     } finally {
       setLoading(false);
     }

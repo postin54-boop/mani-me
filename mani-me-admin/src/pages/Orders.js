@@ -93,9 +93,12 @@ function Orders() {
   const fetchOrders = async () => {
     try {
       const response = await api.get('/api/admin/orders');
-      setOrders(response.data);
+      // Handle both old format (array) and new format ({ orders, pagination })
+      const ordersData = response.data.orders || response.data;
+      setOrders(Array.isArray(ordersData) ? ordersData : []);
     } catch (error) {
       logger.error('Error fetching orders:', error);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
