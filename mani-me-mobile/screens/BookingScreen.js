@@ -585,7 +585,7 @@ export default function BookingScreen({ navigation, route }) {
                             </Text>
                             {item.size && (
                               <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>
-                                {item.size} • {item.estimatedWeight}kg
+                                Size: {item.size}
                               </Text>
                             )}
                           </View>
@@ -794,7 +794,7 @@ export default function BookingScreen({ navigation, route }) {
                         <Text style={[styles.itemOptionLabel, { color: colors.text }]}>{item.label}</Text>
                         {item.size && !item.requiresInput && (
                           <Text style={[styles.itemOptionMeta, { color: colors.textSecondary }]}>
-                            {item.size} • {item.estimatedWeight}kg
+                            Size: {item.size}
                           </Text>
                         )}
                       </View>

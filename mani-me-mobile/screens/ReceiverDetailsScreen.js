@@ -136,7 +136,7 @@ export default function ReceiverDetailsScreen({ route, navigation }) {
             Card Payment
           </Text>
           <Text style={[styles.paymentDescription, { color: colors.textSecondary }]}>
-            Pay now with card
+            Pay after pickup
           </Text>
           {paymentMethod === 'card' && (
             <View style={[styles.selectedBadge, { backgroundColor: colors.primary }]}>
@@ -164,7 +164,7 @@ export default function ReceiverDetailsScreen({ route, navigation }) {
             Cash on Pickup
           </Text>
           <Text style={[styles.paymentDescription, { color: colors.textSecondary }]}>
-            Pay when picked up
+            Pay cash to driver
           </Text>
           {paymentMethod === 'cash' && (
             <View style={[styles.selectedBadge, { backgroundColor: colors.secondary }]}>

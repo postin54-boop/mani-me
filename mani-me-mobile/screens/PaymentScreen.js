@@ -90,7 +90,77 @@ export default function PaymentScreen({ route, navigation }) {
     );
   };
 
+  // Card payment - book now, charge later (after driver verifies parcel)
+  const handlePayCard = async () => {
+    setLoading(true);
 
+    try {
+      const requestBody = {
+        ...bookingData,
+        payment_method: 'card',
+        payment_status: 'pending', // Will be charged after driver confirms
+        payment_amount: calculateTotal(),
+        promo_code: appliedPromo?.code || null,
+        promo_discount: appliedPromo ? (appliedPromo.type === 'percentage' 
+          ? (bookingData.total_estimated_price * appliedPromo.value / 100) 
+          : appliedPromo.value) : 0,
+      };
+      
+      logger.log('📦 Sending card booking request to:', `${API_BASE_URL}/api/shipments/create`);
+      logger.log('📦 Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await fetch(`${API_BASE_URL}/api/shipments/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+      
+      logger.log('📦 Response status:', response.status);
+      logger.log('📦 Response data:', JSON.stringify(data, null, 2));
+
+      if (response.ok) {
+        const receiptData = {
+          trackingNumber: data.tracking_number,
+          parcelId: data.parcel_id,
+          parcelIdShort: data.parcel_id_short,
+          bookingMode: bookingData?.booking_mode,
+          boxes: bookingData?.boxes || [],
+          items: bookingData?.items || [],
+          senderName: bookingData?.sender_name,
+          senderPhone: bookingData?.sender_phone,
+          receiverName: bookingData?.receiver_name,
+          receiverPhone: bookingData?.receiver_phone,
+          pickupCity: bookingData?.pickup_city,
+          deliveryCity: bookingData?.delivery_city,
+          subtotal: bookingData?.total_estimated_price,
+          discount: appliedPromo ? (appliedPromo.type === 'percentage' 
+            ? (bookingData.total_estimated_price * appliedPromo.value / 100) 
+            : appliedPromo.value) : 0,
+          promoCode: appliedPromo?.code || null,
+          total: calculateTotal(),
+          paymentMethod: 'Card (Pay After Pickup)',
+          paymentStatus: 'Pending',
+          bookingDate: new Date().toISOString(),
+        };
+
+        navigation.navigate('PaymentConfirmation', {
+          ...receiptData,
+          amount: calculateTotal(),
+        });
+      } else {
+        Alert.alert('Error', data.error || 'Booking failed');
+      }
+    } catch (error) {
+      logger.error('Booking error:', error);
+      Alert.alert('Error', 'An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePayCash = async () => {
     setLoading(true);
@@ -351,11 +421,24 @@ export default function PaymentScreen({ route, navigation }) {
         <View style={[styles.paymentSection, { backgroundColor: colors.surface }]}>
           <View style={styles.cardPaymentHeader}>
             <Ionicons name="card" size={24} color={colors.text} />
-            <Text style={[styles.sectionTitle, { color: colors.text, marginLeft: SIZES.sm }]}>Card Payment</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text, marginLeft: SIZES.sm }]}>💳 Pay with Card</Text>
           </View>
-          <Text style={[styles.paymentNote, { color: colors.textSecondary, marginBottom: SIZES.md }]}>
-            Apple Pay not available. Please use cash payment option below.
+          <Text style={[styles.cashInfo, { color: colors.textSecondary, marginBottom: 4 }]}>
+            {"✔ Book now, pay after pickup\n✔ Driver will verify parcel size\n✔ Card charged after confirmation"}
           </Text>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: colors.primary }, loading && styles.buttonDisabled]}
+            onPress={handlePayCard}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={colors.accent} />
+            ) : (
+              <Text style={[styles.buttonText, { color: colors.accent }]}>
+                Continue – Card Payment on Pickup
+              </Text>
+            )}
+          </TouchableOpacity>
         </View>
       )}
 
@@ -381,7 +464,7 @@ export default function PaymentScreen({ route, navigation }) {
             <ActivityIndicator color={colors.primary} />
           ) : (
             <Text style={[styles.buttonText, styles.cashButtonText, { color: colors.primary }]}>
-              Continue – Payment on Pickup
+              Continue – Cash Payment on Pickup
             </Text>
           )}
         </TouchableOpacity>
