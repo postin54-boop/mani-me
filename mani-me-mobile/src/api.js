@@ -7,7 +7,7 @@ import axiosRetry from 'axios-retry';
 import logger from '../utils/logger';
 
 // Production API URL
-const PRODUCTION_URL = "https://mani-me-backend.onrender.com";
+const PRODUCTION_URL = "https://mani-me.onrender.com";
 const LOCAL_URL = "http://192.168.0.138:4000";
 
 // Set to true to use local backend, false for production

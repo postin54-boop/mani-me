@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 // Production API URL (Render deployment)
-const PRODUCTION_URL = "https://mani-me-backend.onrender.com";
+const PRODUCTION_URL = "https://mani-me.onrender.com";
 
 // Local development URL (your machine's IP)
 const LOCAL_URL = "http://192.168.0.138:4000";

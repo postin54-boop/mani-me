@@ -7,7 +7,7 @@
 const isDev = __DEV__;
 
 // API Configuration - Render production URL
-const PROD_API_URL = 'https://mani-me-backend.onrender.com';
+const PROD_API_URL = 'https://mani-me.onrender.com';
 
 // Always use production URL
 export const API_BASE_URL = PROD_API_URL;
