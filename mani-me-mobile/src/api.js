@@ -18,7 +18,7 @@ const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || (USE_LOCAL_BACKEND &
 
 const api = axios.create({
   baseURL: API_BASE_URL.endsWith('/api') ? API_BASE_URL : API_BASE_URL + '/api',
-  timeout: 30000, // 30 second timeout
+  timeout: 60000, // 60 second timeout (Render free tier can take 30s+ to wake up)
   headers: {
     'Content-Type': 'application/json',
   },

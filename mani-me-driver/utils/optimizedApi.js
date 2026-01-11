@@ -9,7 +9,7 @@ const API_BASE = `${API_BASE_URL}/api`;
 // Create axios instance with optimized settings
 const apiClient = axios.create({
   baseURL: API_BASE,
-  timeout: 15000, // 15 second timeout
+  timeout: 60000, // 60 second timeout (Render free tier cold start)
   headers: {
     'Content-Type': 'application/json',
   },

@@ -39,7 +39,7 @@ export const ENDPOINTS = {
 // App Configuration
 export const APP_CONFIG = {
   // Request timeouts
-  REQUEST_TIMEOUT: 15000, // 15 seconds
+  REQUEST_TIMEOUT: 60000, // 60 seconds (Render free tier cold start)
   
   // Cache durations (in milliseconds)
   CACHE_DURATION: 2 * 60 * 1000, // 2 minutes

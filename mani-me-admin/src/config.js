@@ -63,7 +63,7 @@ export const ENDPOINTS = {
 // App Configuration
 export const APP_CONFIG = {
   // Request timeouts
-  REQUEST_TIMEOUT: 30000, // 30 seconds
+  REQUEST_TIMEOUT: 60000, // 60 seconds (Render free tier cold start)
   
   // Pagination defaults
   DEFAULT_PAGE_SIZE: 10,
