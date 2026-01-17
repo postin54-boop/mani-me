@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: mani-me-backend
+    name: mani-me
     runtime: node
     plan: free
     buildCommand: npm install
