@@ -219,7 +219,7 @@ export default function TermsScreen({ navigation }) {
             • Email: legal@manimeapp.com
           </Text>
           <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
-            • Phone: +44 20 1234 5678
+            • Phone: +44 7958 086887
           </Text>
           <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
             • Live Chat: Available in the app 24/7

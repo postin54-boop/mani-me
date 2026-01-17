@@ -36,7 +36,7 @@ const allowedOrigins = [
   'https://mani-me.vercel.app',
   'https://manime.co.uk',
   'https://admin.manime.co.uk',
-  'https://mani-me-backend.onrender.com'
+  'https://mani-me.onrender.com'
 ];
 
 app.use(cors({

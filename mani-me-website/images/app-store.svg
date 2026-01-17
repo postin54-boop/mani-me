@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 60">
+  <rect width="180" height="60" fill="#000000" rx="10"/>
+  
+  <!-- Apple logo -->
+  <g transform="translate(15, 12)">
+    <path d="M22.5,17.5 C22.5,14 25,11.5 28,11.5 C29.5,11.5 30.5,12 31.5,13 C32.5,12 33.5,11.5 35,11.5 C38,11.5 40.5,14 40.5,17.5 C40.5,24 32,32 31.5,32.5 C31,32 22.5,24 22.5,17.5 Z M31.5,8 C29.5,8 28,6.5 28,4.5 C30,4.5 32,6 32,8 L31.5,8 Z" 
+          fill="#FFFFFF" transform="scale(0.7) translate(-20, 0)"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="45" y="22" font-size="8" fill="#FFFFFF" font-family="Inter, sans-serif">Download on the</text>
+  <text x="45" y="40" font-size="16" fill="#FFFFFF" font-family="Inter, sans-serif" font-weight="600">App Store</text>
+</svg>

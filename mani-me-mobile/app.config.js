@@ -52,7 +52,7 @@ export default {
       // Environment-specific configuration
       // For local development, use your machine's IP address
       // For production, use the deployed API URL
-      apiUrl: process.env.API_URL || process.env.EXPO_PUBLIC_API_URL || "https://mani-me-backend.onrender.com",
+      apiUrl: process.env.API_URL || process.env.EXPO_PUBLIC_API_URL || "https://mani-me.onrender.com",
       stripePublishableKey: process.env.STRIPE_KEY || process.env.EXPO_PUBLIC_STRIPE_KEY || "pk_test_51SkMiJRx556lxcckTLrW8xVroC3TflDIKMBfSdat6KAoaLXO4MQPBkUNi4F0pLizmMp6lmHjhxQJGoXu6Iq3PrnB00QfalR70y",
       environment: process.env.NODE_ENV || "development",
       

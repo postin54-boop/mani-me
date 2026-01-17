@@ -42,8 +42,8 @@ export default function HelpSupportScreen({ navigation }) {
     {
       icon: 'call-outline',
       label: 'Call Support',
-      value: '+44 123 456 7890',
-      action: () => Linking.openURL('tel:+441234567890'),
+      value: '+44 7958 086887',
+      action: () => Linking.openURL('tel:+447958086887'),
     },
     {
       icon: 'mail-outline',
@@ -54,8 +54,8 @@ export default function HelpSupportScreen({ navigation }) {
     {
       icon: 'logo-whatsapp',
       label: 'WhatsApp',
-      value: '+44 123 456 7890',
-      action: () => Linking.openURL('https://wa.me/441234567890'),
+      value: '+44 7958 086887',
+      action: () => Linking.openURL('https://wa.me/447958086887'),
     },
   ];
 

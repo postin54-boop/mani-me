@@ -1,0 +1,10 @@
+# robots.txt for manimeapp.com
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://manimeapp.com/sitemap.xml
+
+# Crawl-delay for polite bots
+Crawl-delay: 1

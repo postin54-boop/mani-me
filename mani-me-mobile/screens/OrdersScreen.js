@@ -628,7 +628,7 @@ export default function OrdersScreen({ navigation }) {
                       // Show warehouse details
                       Alert.alert(
                         'Warehouse Location',
-                        '📍 Mani Me Warehouse\n123 London Road\nLondon E1 4AA\n\n🕐 Mon-Fri: 9AM - 6PM\nSat: 10AM - 4PM\n\n📞 020 1234 5678\n\nPlease bring your tracking number:\n' + selectedParcel?.tracking_number,
+                        '📍 Mani Me Warehouse\n123 London Road\nLondon E1 4AA\n\n🕐 Mon-Fri: 9AM - 6PM\nSat: 10AM - 4PM\n\n📞 07958 086887\n\nPlease bring your tracking number:\n' + selectedParcel?.tracking_number,
                         [
                           { 
                             text: 'Get Directions', 

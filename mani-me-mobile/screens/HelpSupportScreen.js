@@ -103,9 +103,9 @@ export default function HelpSupportScreen({ navigation }) {
           <ContactOption
             icon="call"
             title="Phone Support"
-            subtitle="+44 20 1234 5678"
+            subtitle="+44 7958 086887"
             color="#8B5CF6"
-            onPress={() => openURL('tel:+442012345678')}
+            onPress={() => openURL('tel:+447958086887')}
           />
           
           <ContactOption
@@ -113,7 +113,7 @@ export default function HelpSupportScreen({ navigation }) {
             title="WhatsApp"
             subtitle="Message us on WhatsApp"
             color="#25D366"
-            onPress={() => openURL('https://wa.me/442012345678')}
+            onPress={() => openURL('https://wa.me/447958086887')}
           />
         </View>
 
