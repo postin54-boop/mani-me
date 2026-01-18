@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, TextInput, Alert, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { getAddresses, createAddress, updateAddress, deleteAddress } from '../src/api';
 import { useUser } from '../context/UserContext';
 import { useThemeColors, SIZES, FONTS, SHADOWS } from '../constants/theme';
@@ -67,13 +68,14 @@ export default function SavedAddressesScreen({ navigation }) {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, flex: 1 }]}> 
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: SIZES.xxl, paddingBottom: SIZES.md, backgroundColor: colors.primary }}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: SIZES.md }}>
-          <Ionicons name="arrow-back" size={SIZES.iconMd} color={colors.accent} />
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.accent, flex: 1 }]}>Saved Addresses</Text>
-      </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.primary, flex: 1 }]} edges={['top']}> 
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: SIZES.md, backgroundColor: colors.primary }}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: SIZES.md }}>
+            <Ionicons name="arrow-back" size={SIZES.iconMd} color={colors.accent} />
+          </TouchableOpacity>
+          <Text style={[styles.title, { color: colors.accent, flex: 1, marginBottom: 0 }]}>Saved Addresses</Text>
+        </View>
       <View style={[styles.form, { backgroundColor: colors.surface, ...SHADOWS.small, marginBottom: SIZES.lg, position: 'relative', bottom: undefined, left: undefined, right: undefined, zIndex: undefined }] }>
         <Text style={{ color: colors.primary, fontWeight: '600', fontSize: SIZES.body, marginBottom: SIZES.xs }}>Add / Edit Address</Text>
         <TextInput placeholder="House No." value={form.houseNumber} onChangeText={t => setForm(f => ({ ...f, houseNumber: t }))} style={[styles.input, { color: colors.text, borderColor: colors.border, fontSize: SIZES.h4, ...FONTS.regular }]} placeholderTextColor={colors.textLight} />
@@ -104,7 +106,8 @@ export default function SavedAddressesScreen({ navigation }) {
         refreshing={loading}
         onRefresh={fetchAddresses}
       />
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
