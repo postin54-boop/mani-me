@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, Alert, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TextInput, Alert, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getAddresses, createAddress, updateAddress, deleteAddress } from '../src/api';
 import { useUser } from '../context/UserContext';
@@ -56,70 +56,321 @@ export default function SavedAddressesScreen({ navigation }) {
   };
 
   const handleDelete = async (addressId) => {
-    setLoading(true);
-    try {
-      await deleteAddress(addressId);
-      fetchAddresses();
-    } catch (e) {
-      Alert.alert('Error', 'Failed to delete address');
-    } finally {
-      setLoading(false);
-    }
+    Alert.alert(
+      'Delete Address',
+      'Are you sure you want to delete this address?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              await deleteAddress(addressId);
+              fetchAddresses();
+            } catch (e) {
+              Alert.alert('Error', 'Failed to delete address');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.primary, flex: 1 }]} edges={['top']}> 
-      <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: SIZES.md, backgroundColor: colors.primary }}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: SIZES.md }}>
-            <Ionicons name="arrow-back" size={SIZES.iconMd} color={colors.accent} />
+  const renderHeader = () => (
+    <View style={styles.formContainer}>
+      <View style={[styles.form, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.formTitle, { color: colors.text }]}>
+          {editingId ? 'Edit Address' : 'Add New Address'}
+        </Text>
+        <TextInput 
+          placeholder="House No. / Street" 
+          value={form.houseNumber} 
+          onChangeText={t => setForm(f => ({ ...f, houseNumber: t }))} 
+          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]} 
+          placeholderTextColor={colors.textLight} 
+        />
+        <TextInput 
+          placeholder="Post Code" 
+          value={form.postCode} 
+          onChangeText={t => setForm(f => ({ ...f, postCode: t }))} 
+          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]} 
+          placeholderTextColor={colors.textLight}
+          autoCapitalize="characters"
+        />
+        <TextInput 
+          placeholder="City" 
+          value={form.city} 
+          onChangeText={t => setForm(f => ({ ...f, city: t }))} 
+          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]} 
+          placeholderTextColor={colors.textLight} 
+        />
+        <TextInput 
+          placeholder="Phone Number" 
+          value={form.phone} 
+          onChangeText={t => setForm(f => ({ ...f, phone: t }))} 
+          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]} 
+          placeholderTextColor={colors.textLight}
+          keyboardType="phone-pad"
+        />
+        <View style={styles.buttonRow}>
+          {editingId && (
+            <TouchableOpacity 
+              onPress={() => {
+                setForm({ houseNumber: '', postCode: '', city: '', phone: '' });
+                setEditingId(null);
+              }} 
+              style={[styles.cancelBtn, { borderColor: colors.border }]}
+            >
+              <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Cancel</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity 
+            onPress={handleSave} 
+            style={[styles.saveBtn, { backgroundColor: colors.primary, flex: editingId ? 1 : undefined }]} 
+            disabled={loading}
+          >
+            <Text style={styles.saveBtnText}>{editingId ? 'Update' : 'Add'} Address</Text>
           </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.accent, flex: 1, marginBottom: 0 }]}>Saved Addresses</Text>
         </View>
-      <View style={[styles.form, { backgroundColor: colors.surface, ...SHADOWS.small, marginBottom: SIZES.lg, position: 'relative', bottom: undefined, left: undefined, right: undefined, zIndex: undefined }] }>
-        <Text style={{ color: colors.primary, fontWeight: '600', fontSize: SIZES.body, marginBottom: SIZES.xs }}>Add / Edit Address</Text>
-        <TextInput placeholder="House No." value={form.houseNumber} onChangeText={t => setForm(f => ({ ...f, houseNumber: t }))} style={[styles.input, { color: colors.text, borderColor: colors.border, fontSize: SIZES.h4, ...FONTS.regular }]} placeholderTextColor={colors.textLight} />
-        <TextInput placeholder="Post Code" value={form.postCode} onChangeText={t => setForm(f => ({ ...f, postCode: t }))} style={[styles.input, { color: colors.text, borderColor: colors.border, fontSize: SIZES.h4, ...FONTS.regular }]} placeholderTextColor={colors.textLight} />
-        <TextInput placeholder="City" value={form.city} onChangeText={t => setForm(f => ({ ...f, city: t }))} style={[styles.input, { color: colors.text, borderColor: colors.border, fontSize: SIZES.h4, ...FONTS.regular }]} placeholderTextColor={colors.textLight} />
-        <TextInput placeholder="Phone No." value={form.phone} onChangeText={t => setForm(f => ({ ...f, phone: t }))} style={[styles.input, { color: colors.text, borderColor: colors.border, fontSize: SIZES.h4, ...FONTS.regular }]} placeholderTextColor={colors.textLight} />
-        <TouchableOpacity onPress={handleSave} style={[styles.saveBtn, { backgroundColor: colors.primary }]} disabled={loading}>
-          <Text style={{ color: colors.accent, fontWeight: '600', fontSize: SIZES.h4, ...FONTS.semiBold }}>{editingId ? 'Update' : 'Add'} Address</Text>
+      </View>
+      
+      {addresses.length > 0 && (
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Your Addresses</Text>
+      )}
+    </View>
+  );
+
+  const renderAddressCard = ({ item }) => (
+    <View style={[styles.addressCard, { backgroundColor: colors.surface }]}>
+      <View style={styles.addressInfo}>
+        <View style={[styles.iconContainer, { backgroundColor: colors.primary + '15' }]}>
+          <Ionicons name="location" size={20} color={colors.primary} />
+        </View>
+        <View style={styles.addressText}>
+          <Text style={[styles.addressMain, { color: colors.text }]}>
+            {item.houseNumber}, {item.city}
+          </Text>
+          <Text style={[styles.addressSub, { color: colors.textSecondary }]}>
+            {item.postCode}
+          </Text>
+          {item.phone && (
+            <Text style={[styles.addressPhone, { color: colors.textSecondary }]}>
+              📞 {item.phone}
+            </Text>
+          )}
+        </View>
+      </View>
+      <View style={styles.actionRow}>
+        <TouchableOpacity 
+          onPress={() => handleEdit(item)} 
+          style={[styles.actionBtn, { backgroundColor: colors.primary + '15' }]}
+        >
+          <Ionicons name="pencil" size={16} color={colors.primary} />
+          <Text style={[styles.actionText, { color: colors.primary }]}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={() => handleDelete(item._id)} 
+          style={[styles.actionBtn, { backgroundColor: '#FF3B3015' }]}
+        >
+          <Ionicons name="trash-outline" size={16} color="#FF3B30" />
+          <Text style={[styles.actionText, { color: '#FF3B30' }]}>Delete</Text>
         </TouchableOpacity>
       </View>
-      <FlatList
-        contentContainerStyle={{ paddingBottom: 180 }}
-        data={addresses}
-        keyExtractor={item => item._id}
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => handleEdit(item)} activeOpacity={0.8}>
-            <View style={[styles.addressCard, { backgroundColor: colors.surface, ...SHADOWS.small }] }>
-              <Text style={[styles.label, { color: colors.primary }]}>{item.houseNumber}, {item.postCode}, {item.city}</Text>
-              <Text style={{ color: colors.textSecondary }}>{item.phone}</Text>
-              <View style={styles.row}>
-                <TouchableOpacity onPress={() => handleEdit(item)} style={[styles.editBtn, { backgroundColor: colors.secondary }]}><Text style={{ color: colors.accent }}>Edit</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDelete(item._id)} style={[styles.deleteBtn, { backgroundColor: colors.error }]}><Text style={{ color: colors.accent }}>Delete</Text></TouchableOpacity>
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={<Text style={{ color: colors.textSecondary, textAlign: 'center', marginTop: SIZES.lg }}>No addresses saved.</Text>}
-        refreshing={loading}
-        onRefresh={fetchAddresses}
-      />
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.primary }} edges={['top']}>
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: colors.primary }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Saved Addresses</Text>
+        <View style={{ width: 40 }} />
       </View>
+
+      {/* Content */}
+      <KeyboardAvoidingView 
+        style={{ flex: 1, backgroundColor: colors.background }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <FlatList
+          data={addresses}
+          keyExtractor={item => item._id}
+          renderItem={renderAddressCard}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="location-outline" size={48} color={colors.textLight} />
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                No saved addresses yet
+              </Text>
+              <Text style={[styles.emptySubtext, { color: colors.textLight }]}>
+                Add your first address above
+              </Text>
+            </View>
+          }
+          contentContainerStyle={styles.listContent}
+          refreshing={loading}
+          onRefresh={fetchAddresses}
+          showsVerticalScrollIndicator={false}
+        />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: SIZES.md },
-  title: { fontSize: SIZES.h3, fontWeight: '700', marginBottom: SIZES.sm },
-  addressCard: { padding: SIZES.md, borderRadius: SIZES.radiusMd, marginBottom: SIZES.sm },
-  label: { fontWeight: 'bold', fontSize: SIZES.body },
-  row: { flexDirection: 'row', marginTop: SIZES.sm },
-  editBtn: { marginRight: SIZES.sm, padding: SIZES.xs, borderRadius: SIZES.radiusSm },
-  deleteBtn: { padding: SIZES.xs, borderRadius: SIZES.radiusSm },
-  form: { marginTop: SIZES.lg, padding: SIZES.md, borderRadius: SIZES.radiusMd },
-  input: { backgroundColor: 'transparent', borderWidth: 1, borderRadius: SIZES.radiusSm, padding: SIZES.sm, marginBottom: SIZES.sm },
-  saveBtn: { padding: SIZES.md, borderRadius: SIZES.radiusMd, alignItems: 'center', marginTop: SIZES.sm },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  listContent: {
+    paddingBottom: 32,
+  },
+  formContainer: {
+    padding: 16,
+  },
+  form: {
+    padding: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  formTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    fontSize: 15,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  saveBtn: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  saveBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  cancelBtn: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    paddingHorizontal: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  addressCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  addressInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  addressText: {
+    flex: 1,
+  },
+  addressMain: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  addressSub: {
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  addressPhone: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    gap: 12,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+  },
+  actionText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 48,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    marginTop: 4,
+  },
 });
