@@ -71,15 +71,15 @@ export default function JobDetailsScreen({ route, navigation }) {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
 
-  // Map step keys to actual shipment statuses
+  // Map step keys to actual shipment statuses (aligned with backend)
   const stepToStatus = {
-    arrived: 'driver_arrived',
-    intake: 'parcel_received',
-    paid: 'payment_confirmed',
+    arrived: 'driver_en_route',
+    intake: 'picked_up',
+    paid: 'picked_up',
     loaded: 'picked_up',
-    scanned: 'parcel_scanned',
+    scanned: 'out_for_delivery',
     delivered: 'delivered',
-    proof: 'delivery_confirmed',
+    proof: 'delivered',
   };
 
   const markNextStep = async (steps, setSteps, stepKey, actionLabel) => {

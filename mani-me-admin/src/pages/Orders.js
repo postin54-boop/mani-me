@@ -153,11 +153,27 @@ function Orders() {
 
   const getStatusColor = (status) => {
     const statusStyles = {
+      // Main tracking statuses
+      booked: { bgcolor: alpha('#3B82F6', 0.1), color: '#3B82F6' },
       pending: { bgcolor: alpha('#f59e0b', 0.1), color: '#f59e0b' },
+      pending_pickup: { bgcolor: alpha('#f59e0b', 0.1), color: '#f59e0b' },
+      driver_assigned: { bgcolor: alpha('#8b5cf6', 0.1), color: '#8b5cf6' },
+      driver_en_route: { bgcolor: alpha('#8b5cf6', 0.1), color: '#8b5cf6' },
+      picked_up: { bgcolor: alpha('#10b981', 0.1), color: '#10b981' },
+      parcel_collected: { bgcolor: alpha('#10b981', 0.1), color: '#10b981' },
+      at_uk_warehouse: { bgcolor: alpha('#06B6D4', 0.1), color: '#06B6D4' },
+      processing: { bgcolor: alpha('#06B6D4', 0.1), color: '#06B6D4' },
+      departed_uk: { bgcolor: alpha('#6366F1', 0.1), color: '#6366F1' },
+      in_transit: { bgcolor: alpha('#3b82f6', 0.1), color: '#3b82f6' },
       'in-transit': { bgcolor: alpha('#3b82f6', 0.1), color: '#3b82f6' },
+      arrived_ghana: { bgcolor: alpha('#10b981', 0.1), color: '#10b981' },
+      customs: { bgcolor: alpha('#f59e0b', 0.1), color: '#f59e0b' },
+      customs_cleared: { bgcolor: alpha('#10b981', 0.1), color: '#10b981' },
+      out_for_delivery: { bgcolor: alpha('#EC4899', 0.1), color: '#EC4899' },
       delivered: { bgcolor: alpha('#10b981', 0.1), color: '#10b981' },
       cancelled: { bgcolor: alpha('#ef4444', 0.1), color: '#ef4444' },
-      'parcel_collected': { bgcolor: alpha('#8b5cf6', 0.1), color: '#8b5cf6' },
+      on_hold: { bgcolor: alpha('#f59e0b', 0.1), color: '#f59e0b' },
+      returned: { bgcolor: alpha('#ef4444', 0.1), color: '#ef4444' },
     };
     return statusStyles[status] || { bgcolor: alpha('#666', 0.1), color: '#666' };
   };
@@ -229,10 +245,23 @@ function Orders() {
             sx={{ borderRadius: 2 }}
           >
             <MenuItem value="all">All Statuses</MenuItem>
-            <MenuItem value="pending">Pending</MenuItem>
-            <MenuItem value="in-transit">In Transit</MenuItem>
+            <MenuItem value="booked">Booked</MenuItem>
+            <MenuItem value="pending_pickup">Pending Pickup</MenuItem>
+            <MenuItem value="driver_assigned">Driver Assigned</MenuItem>
+            <MenuItem value="driver_en_route">Driver En Route</MenuItem>
+            <MenuItem value="picked_up">Picked Up</MenuItem>
+            <MenuItem value="at_uk_warehouse">At UK Warehouse</MenuItem>
+            <MenuItem value="processing">Processing</MenuItem>
+            <MenuItem value="departed_uk">Departed UK</MenuItem>
+            <MenuItem value="in_transit">In Transit</MenuItem>
+            <MenuItem value="arrived_ghana">Arrived Ghana</MenuItem>
+            <MenuItem value="customs">Customs</MenuItem>
+            <MenuItem value="customs_cleared">Customs Cleared</MenuItem>
+            <MenuItem value="out_for_delivery">Out for Delivery</MenuItem>
             <MenuItem value="delivered">Delivered</MenuItem>
+            <MenuItem value="on_hold">On Hold</MenuItem>
             <MenuItem value="cancelled">Cancelled</MenuItem>
+            <MenuItem value="returned">Returned</MenuItem>
           </Select>
         </FormControl>
       </Box>
@@ -582,16 +611,23 @@ function Orders() {
                         label="Delivery Status"
                         sx={{ borderRadius: 2 }}
                       >
-                        <MenuItem value="pending">Pending</MenuItem>
-                        <MenuItem value="parcel_collected">Parcel Collected</MenuItem>
-                        <MenuItem value="in-transit">In Transit</MenuItem>
-                        <MenuItem value="at-warehouse">At Warehouse</MenuItem>
-                        <MenuItem value="customs-clearance">Customs Clearance</MenuItem>
-                        <MenuItem value="out-for-delivery">Out for Delivery</MenuItem>
+                        <MenuItem value="booked">Booked</MenuItem>
+                        <MenuItem value="pending_pickup">Pending Pickup</MenuItem>
+                        <MenuItem value="driver_assigned">Driver Assigned</MenuItem>
+                        <MenuItem value="driver_en_route">Driver En Route</MenuItem>
+                        <MenuItem value="picked_up">Picked Up</MenuItem>
+                        <MenuItem value="at_uk_warehouse">At UK Warehouse</MenuItem>
+                        <MenuItem value="processing">Processing</MenuItem>
+                        <MenuItem value="departed_uk">Departed UK</MenuItem>
+                        <MenuItem value="in_transit">In Transit</MenuItem>
+                        <MenuItem value="arrived_ghana">Arrived Ghana</MenuItem>
+                        <MenuItem value="customs">Customs</MenuItem>
+                        <MenuItem value="customs_cleared">Customs Cleared</MenuItem>
+                        <MenuItem value="out_for_delivery">Out for Delivery</MenuItem>
                         <MenuItem value="delivered">Delivered</MenuItem>
-                        <MenuItem value="failed-delivery">Failed Delivery</MenuItem>
-                        <MenuItem value="returned">Returned</MenuItem>
+                        <MenuItem value="on_hold">On Hold</MenuItem>
                         <MenuItem value="cancelled">Cancelled</MenuItem>
+                        <MenuItem value="returned">Returned</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>

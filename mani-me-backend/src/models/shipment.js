@@ -70,7 +70,25 @@ const shipmentSchema = new mongoose.Schema({
   tracking_number: { type: String },
   shipment_status: {
     type: String,
-    enum: ['booked', 'picked_up', 'in_transit', 'customs', 'out_for_delivery', 'delivered', 'cancelled'],
+    enum: [
+      'booked',              // 1. Customer booked shipment
+      'pending_pickup',      // 2. Waiting for driver assignment
+      'driver_assigned',     // 3. UK driver assigned
+      'driver_en_route',     // 4. UK driver on way to pickup
+      'picked_up',           // 5. Parcel collected by UK driver
+      'at_uk_warehouse',     // 6. Arrived at UK warehouse
+      'processing',          // 7. Being sorted/packed at warehouse
+      'departed_uk',         // 8. Shipped from UK
+      'in_transit',          // 9. In transit to Ghana
+      'arrived_ghana',       // 10. Arrived at Ghana warehouse
+      'customs',             // 11. In customs clearance
+      'customs_cleared',     // 12. Cleared customs
+      'out_for_delivery',    // 13. Ghana driver delivering
+      'delivered',           // 14. Successfully delivered
+      'cancelled',           // Cancelled
+      'on_hold',             // On hold (issue)
+      'returned'             // Returned to sender
+    ],
     default: 'booked'
   },
 
@@ -83,14 +101,24 @@ const shipmentSchema = new mongoose.Schema({
   recipient_signature_name: { type: String },
   delivery_notes: { type: String },
 
-  // Timestamps for each status
+  // Timestamps for each status (expanded)
   booked_at: { type: Date },
+  pending_pickup_at: { type: Date },
+  driver_assigned_at: { type: Date },
+  driver_en_route_at: { type: Date },
   picked_up_at: { type: Date },
+  at_uk_warehouse_at: { type: Date },
+  processing_at: { type: Date },
+  departed_uk_at: { type: Date },
   in_transit_at: { type: Date },
+  arrived_ghana_at: { type: Date },
   customs_at: { type: Date },
+  customs_cleared_at: { type: Date },
   out_for_delivery_at: { type: Date },
   delivered_at: { type: Date },
   cancelled_at: { type: Date },
+  on_hold_at: { type: Date },
+  returned_at: { type: Date },
 
   // QR Code & Images
   qr_code_url: { type: String },
