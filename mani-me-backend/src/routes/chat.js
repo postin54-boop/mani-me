@@ -3,19 +3,26 @@ const router = express.Router();
 const { db } = require('../firebase');
 const Message = require('../models/message');
 
-// Send a message
+// Send a message (supports both shipment chat and support chat)
 router.post('/send', async (req, res) => {
   try {
-    const { shipment_id, sender_id, sender_role, message, sender_name } = req.body;
+    const { shipment_id, sender_id, sender_role, message, sender_name, chat_type } = req.body;
 
-    if (!shipment_id || !sender_id || !sender_role || !message) {
-      return res.status(400).json({ error: "Missing required fields" });
+    // Validate required fields
+    if (!sender_id || !sender_role || !message) {
+      return res.status(400).json({ error: "Missing required fields: sender_id, sender_role, message" });
     }
 
+    // Determine chat type and conversation_id
+    const isSupport = chat_type === 'support' || !shipment_id;
+    const conversation_id = isSupport ? `support_${sender_id}` : shipment_id;
+
     const messageData = {
-      shipment_id,
+      conversation_id,
+      shipment_id: shipment_id || null,
+      chat_type: isSupport ? 'support' : 'shipment',
       sender_id,
-      sender_role, // 'user' or 'driver'
+      sender_role, // 'user', 'driver', or 'admin'
       sender_name: sender_name || 'Unknown',
       message,
       timestamp: new Date().toISOString(),
@@ -113,6 +120,67 @@ router.get('/unread/:user_id', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching unread count:', error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Get support chat messages for a user
+router.get('/support/:user_id', async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const conversation_id = `support_${user_id}`;
+
+    const messagesSnapshot = await db.collection('messages')
+      .where('conversation_id', '==', conversation_id)
+      .orderBy('timestamp', 'asc')
+      .get();
+
+    const messages = [];
+    messagesSnapshot.forEach(doc => {
+      messages.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+
+    res.json({ messages });
+
+  } catch (error) {
+    console.error('Error fetching support messages:', error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Get all support conversations (for admin)
+router.get('/support-conversations', async (req, res) => {
+  try {
+    // Get distinct support conversations
+    const messagesSnapshot = await db.collection('messages')
+      .where('chat_type', '==', 'support')
+      .orderBy('timestamp', 'desc')
+      .limit(100)
+      .get();
+
+    // Group by conversation_id to get unique conversations
+    const conversationsMap = new Map();
+    messagesSnapshot.forEach(doc => {
+      const data = doc.data();
+      if (!conversationsMap.has(data.conversation_id)) {
+        conversationsMap.set(data.conversation_id, {
+          conversation_id: data.conversation_id,
+          user_id: data.sender_id,
+          user_name: data.sender_name,
+          last_message: data.message,
+          last_timestamp: data.timestamp,
+          read: data.read
+        });
+      }
+    });
+
+    res.json({ conversations: Array.from(conversationsMap.values()) });
+
+  } catch (error) {
+    console.error('Error fetching support conversations:', error);
     res.status(500).json({ error: "Server error" });
   }
 });

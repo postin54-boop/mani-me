@@ -20,6 +20,7 @@ export const API_BASE_URL = (isDev && USE_LOCAL_BACKEND) ? DEV_API_URL : PROD_AP
 export const ENDPOINTS = {
   // Auth
   LOGIN: '/api/admin/login',
+  VERIFY: '/api/admin/verify',
   
   // Dashboard
   STATS: '/api/admin/stats',

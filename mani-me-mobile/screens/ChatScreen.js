@@ -16,7 +16,8 @@ export default function ChatScreen({ route, navigation }) {
     driver_name = 'Support',
     tracking_number = null,
   } = route?.params || {};
-  // Only use these params, no cross-logic
+  
+  // Determine if this is a support chat or shipment chat
   const isSupportChat = !shipment_id;
   const { colors, isDark } = useThemeColors();
   const { user } = useUser();
@@ -26,22 +27,35 @@ export default function ChatScreen({ route, navigation }) {
   const [loading, setLoading] = useState(false);
   const flatListRef = useRef(null);
 
+  // Get user ID - handle both 'id' and '_id' formats
+  const userId = user?.id || user?._id;
+  
+  // Generate conversation_id for support chats
+  const conversation_id = isSupportChat ? `support_${userId}` : shipment_id;
+
   useEffect(() => {
-    if (!shipment_id) {
-      logger.log("No shipment_id → skipping listener setup");
-      setMessages([]);
+    if (!userId) {
+      logger.log("No user ID → skipping listener setup");
       return;
     }
 
-    logger.log("Setting up real-time listener for shipment_id:", shipment_id);
+    logger.log("Setting up real-time listener for:", isSupportChat ? `support chat (${conversation_id})` : `shipment ${shipment_id}`);
     
     // Create real-time listener for messages
     const messagesRef = collection(db, 'messages');
-    const q = query(
-      messagesRef,
-      where('shipment_id', '==', shipment_id),
-      orderBy('timestamp', 'asc')
-    );
+    
+    // Use conversation_id for support chats, shipment_id for shipment chats
+    const q = isSupportChat 
+      ? query(
+          messagesRef,
+          where('conversation_id', '==', conversation_id),
+          orderBy('timestamp', 'asc')
+        )
+      : query(
+          messagesRef,
+          where('shipment_id', '==', shipment_id),
+          orderBy('timestamp', 'asc')
+        );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const newMessages = [];
@@ -64,24 +78,32 @@ export default function ChatScreen({ route, navigation }) {
 
     // Cleanup listener on unmount
     return () => unsubscribe();
-  }, [shipment_id]);
+  }, [shipment_id, conversation_id, userId, isSupportChat]);
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
-    if (!shipment_id) {
-      Alert.alert('Missing parcel', 'Please open chat from a parcel to message your driver.');
+    
+    // Get user ID - handle both 'id' and '_id' formats
+    const userId = user?.id || user?._id;
+    
+    if (!userId) {
+      logger.error('No user ID found. User object:', user);
+      Alert.alert('Error', 'Please log in to send messages.');
       return;
     }
 
     setLoading(true);
     try {
       const payload = {
-        shipment_id,
-        sender_id: user.id,
+        shipment_id: isSupportChat ? null : shipment_id,
+        chat_type: isSupportChat ? 'support' : 'shipment',
+        sender_id: userId,
         sender_role: 'user',
-        sender_name: user.name,
+        sender_name: user?.name || user?.fullName || 'Customer',
         message: newMessage.trim(),
       };
+      
+      logger.log('Sending message payload:', payload);
 
       await api.post('/chat/send', payload);
       setNewMessage('');
@@ -99,7 +121,7 @@ export default function ChatScreen({ route, navigation }) {
   };
 
   const renderMessage = ({ item }) => {
-    const isMyMessage = item.sender_id === user.id;
+    const isMyMessage = item.sender_id === userId;
     const messageTime = new Date(item.timestamp).toLocaleTimeString('en-US', { 
       hour: 'numeric', 
       minute: '2-digit' 
@@ -142,13 +164,28 @@ export default function ChatScreen({ route, navigation }) {
     );
   };
 
+  // Determine header text based on chat type
+  const headerTitle = isSupportChat ? 'Support Team' : (driver_name || 'Driver');
+  const headerSubtitle = isSupportChat ? 'We typically reply within minutes' : `Parcel: ${tracking_number}`;
+
+  // Quick actions based on chat type
+  const quickActions = isSupportChat ? [
+    { icon: 'help-circle-outline', text: 'Track order', message: 'I need help tracking my order' },
+    { icon: 'calendar-outline', text: 'Reschedule', message: 'I need to reschedule my pickup' },
+    { icon: 'pricetag-outline', text: 'Pricing', message: 'I have a question about pricing' },
+  ] : [
+    { icon: 'home-outline', text: "I'm ready", message: "I'm home and ready for pickup" },
+    { icon: 'car-outline', text: 'Parking', message: 'You can park in front of the house' },
+    { icon: 'call-outline', text: 'Call me', message: 'Please call me when you arrive' },
+  ];
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       
       {/* Header */}
       <LinearGradient
-        colors={[colors.primary, colors.primaryDark]}
+        colors={isSupportChat ? ['#10B981', '#059669'] : [colors.primary, colors.primaryDark]}
         style={styles.header}
       >
         <TouchableOpacity 
@@ -159,36 +196,32 @@ export default function ChatScreen({ route, navigation }) {
         </TouchableOpacity>
         
         <View style={styles.headerInfo}>
-          <Text style={styles.headerTitle}>{driver_name || 'Driver'}</Text>
-          <Text style={styles.headerSubtitle}>Parcel: {tracking_number}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {isSupportChat && (
+              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                <Ionicons name="headset-outline" size={18} color="#FFFFFF" />
+              </View>
+            )}
+            <View>
+              <Text style={styles.headerTitle}>{headerTitle}</Text>
+              <Text style={styles.headerSubtitle}>{headerSubtitle}</Text>
+            </View>
+          </View>
         </View>
       </LinearGradient>
 
-      {/* Quick Action Buttons - Customer responses */}
+      {/* Quick Action Buttons */}
       <View style={[styles.quickActions, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity 
-          style={[styles.quickButton, { backgroundColor: colors.background }]}
-          onPress={() => sendQuickMessage("I'm home and ready for pickup")}
-        >
-          <Ionicons name="home-outline" size={18} color={colors.primary} />
-          <Text style={[styles.quickButtonText, { color: colors.text }]}>I'm ready</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.quickButton, { backgroundColor: colors.background }]}
-          onPress={() => sendQuickMessage("You can park in front of the house")}
-        >
-          <Ionicons name="car-outline" size={18} color={colors.primary} />
-          <Text style={[styles.quickButtonText, { color: colors.text }]}>Parking</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.quickButton, { backgroundColor: colors.background }]}
-          onPress={() => sendQuickMessage("Please call me when you arrive")}
-        >
-          <Ionicons name="call-outline" size={18} color={colors.primary} />
-          <Text style={[styles.quickButtonText, { color: colors.text }]}>Call me</Text>
-        </TouchableOpacity>
+        {quickActions.map((action, index) => (
+          <TouchableOpacity 
+            key={index}
+            style={[styles.quickButton, { backgroundColor: colors.background }]}
+            onPress={() => sendQuickMessage(action.message)}
+          >
+            <Ionicons name={action.icon} size={18} color={isSupportChat ? '#10B981' : colors.primary} />
+            <Text style={[styles.quickButtonText, { color: colors.text }]}>{action.text}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Messages List */}
@@ -197,28 +230,33 @@ export default function ChatScreen({ route, navigation }) {
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={renderMessage}
-        contentContainerStyle={styles.messagesList}
+        contentContainerStyle={[styles.messagesList, { paddingBottom: 100 }]}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="chatbubbles-outline" size={64} color={colors.textSecondary} />
+            <Ionicons 
+              name={isSupportChat ? "headset-outline" : "chatbubbles-outline"} 
+              size={64} 
+              color={isSupportChat ? '#10B981' : colors.textSecondary} 
+            />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              No messages yet
+              {isSupportChat ? 'How can we help?' : 'No messages yet'}
             </Text>
             <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
-              Start a conversation with your driver
+              {isSupportChat 
+                ? 'Send us a message and we\'ll respond shortly' 
+                : 'Start a conversation with your driver'}
             </Text>
           </View>
         }
       />
 
-      {/* Input Area */}
+      {/* Input Area - Fixed at bottom */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: 'transparent' }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <View style={[styles.inputBar, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: insets.bottom || 10 }]}> 
+        <View style={[styles.inputBar, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: insets.bottom || 16 }]}> 
           <View style={[styles.inputBox, { backgroundColor: colors.surface, shadowColor: colors.primary }]}> 
             <TextInput
               style={[styles.inputText, { color: colors.text }]}
@@ -250,34 +288,33 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingBottom: 0,
   },
-    inputBar: {
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      padding: 10,
-      borderTopWidth: 1,
-      position: 'relative',
-      zIndex: 10,
-    },
-    inputBox: {
-      flex: 1,
-      borderRadius: 24,
-      paddingHorizontal: 18,
-      paddingVertical: 8,
-      marginRight: 8,
-      minHeight: 44,
-      maxHeight: 120,
-      justifyContent: 'center',
-      elevation: 3,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 8,
-    },
-    inputText: {
-      fontSize: 16,
-      minHeight: 28,
-      maxHeight: 100,
-      padding: 0,
-    },
+  inputBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+  },
+  inputBox: {
+    flex: 1,
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    marginRight: 8,
+    minHeight: 44,
+    maxHeight: 120,
+    justifyContent: 'center',
+    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
+  inputText: {
+    fontSize: 16,
+    minHeight: 28,
+    maxHeight: 100,
+    padding: 0,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

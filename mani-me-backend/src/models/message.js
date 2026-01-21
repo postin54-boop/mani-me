@@ -1,14 +1,24 @@
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
-  shipment_id: {
+  conversation_id: {
     type: String,
     required: true,
     index: true
   },
+  shipment_id: {
+    type: String,
+    required: false, // Optional for support chats
+    index: true
+  },
+  chat_type: {
+    type: String,
+    enum: ['shipment', 'support'],
+    default: 'shipment',
+    index: true
+  },
   sender_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String, // Changed to String to support both ObjectId and string IDs
     required: true
   },
   sender_role: {
@@ -39,7 +49,9 @@ const messageSchema = new mongoose.Schema({
 });
 
 // Index for efficient queries
+messageSchema.index({ conversation_id: 1, timestamp: 1 });
 messageSchema.index({ shipment_id: 1, timestamp: 1 });
 messageSchema.index({ sender_id: 1, read: 1 });
+messageSchema.index({ chat_type: 1, timestamp: -1 });
 
 module.exports = mongoose.model('Message', messageSchema);

@@ -109,6 +109,25 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
   }
 });
 
+// Verify admin token - used by frontend to validate stored tokens
+router.get('/verify', verifyAdmin, async (req, res) => {
+  try {
+    // Token is valid if we reach here (verifyAdmin middleware passed)
+    res.json({ 
+      valid: true, 
+      message: 'Token is valid',
+      admin: {
+        id: req.admin.user_id || req.admin.id,
+        email: req.admin.email,
+        role: req.admin.role
+      }
+    });
+  } catch (error) {
+    console.error('Token verification error:', error);
+    res.status(401).json({ valid: false, message: 'Invalid token' });
+  }
+});
+
 // Get dashboard statistics
 router.get('/dashboard', verifyAdmin, async (req, res) => {
   try {

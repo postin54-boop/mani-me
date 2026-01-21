@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import CircularProgress from '@mui/material/CircularProgress';
+import Box from '@mui/material/Box';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
@@ -19,23 +21,57 @@ import ParcelPrices from './pages/ParcelPrices';
 import ParcelItems from './pages/ParcelItems';
 import CashReconciliation from './pages/CashReconciliation';
 import theme from './theme';
+import api from './api';
+import { ENDPOINTS, APP_CONFIG } from './config';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  // Verify token on app load
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const hasSeenOnboarding = localStorage.getItem('adminHasSeenOnboarding');
-    setIsAuthenticated(!!token);
-    // Show onboarding if logged in but hasn't seen it
-    if (token && !hasSeenOnboarding) {
-      setShowOnboarding(true);
-    }
+    const verifyToken = async () => {
+      const token = localStorage.getItem(APP_CONFIG.TOKEN_KEY);
+      
+      if (!token) {
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Verify token with backend
+        const response = await api.get(ENDPOINTS.VERIFY);
+        if (response.data.valid) {
+          setIsAuthenticated(true);
+          // Check if should show onboarding
+          const hasSeenOnboarding = localStorage.getItem('adminHasSeenOnboarding');
+          if (!hasSeenOnboarding) {
+            setShowOnboarding(true);
+          }
+        } else {
+          // Token invalid - clear storage and redirect to login
+          localStorage.removeItem(APP_CONFIG.TOKEN_KEY);
+          localStorage.removeItem(APP_CONFIG.ADMIN_ID_KEY);
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        // Token verification failed - clear storage
+        console.error('Token verification failed:', error);
+        localStorage.removeItem(APP_CONFIG.TOKEN_KEY);
+        localStorage.removeItem(APP_CONFIG.ADMIN_ID_KEY);
+        setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    verifyToken();
   }, []);
 
   const handleLogin = (token) => {
-    localStorage.setItem('adminToken', token);
+    localStorage.setItem(APP_CONFIG.TOKEN_KEY, token);
     setIsAuthenticated(true);
     // Check if should show onboarding
     const hasSeenOnboarding = localStorage.getItem('adminHasSeenOnboarding');
@@ -49,11 +85,32 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('adminToken');
+    localStorage.removeItem(APP_CONFIG.TOKEN_KEY);
+    localStorage.removeItem(APP_CONFIG.ADMIN_ID_KEY);
     // Also remove any old token keys for backward compatibility
     localStorage.removeItem('token');
     setIsAuthenticated(false);
   };
+
+  // Show loading spinner while verifying token
+  if (isLoading) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            height: '100vh',
+            backgroundColor: '#f5f5f5'
+          }}
+        >
+          <CircularProgress size={48} />
+        </Box>
+      </ThemeProvider>
+    );
+  }
 
   // Show onboarding if authenticated but hasn't seen it
   if (isAuthenticated && showOnboarding) {
