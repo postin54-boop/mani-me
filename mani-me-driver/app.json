@@ -6,11 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "automatic",
-    "extra": {
-      "eas": {
-        "projectId": "mani-me-app"
-      }
-    },
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -28,13 +23,22 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#071D33"
       },
-      "package": "com.yourcompany.manimedriver"
+      "package": "com.yourcompany.manimedriver",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "favicon": "./assets/app-icon.png"
     },
     "plugins": [
       "expo-barcode-scanner"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "815691ca-dd63-4fa2-8230-bd8daa36bedd"
+      }
+    },
+    "owner": "postin54"
   }
 }
