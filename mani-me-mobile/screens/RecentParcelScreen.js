@@ -8,7 +8,7 @@ import { API_BASE_URL } from '../utils/config';
 
 export default function RecentParcelScreen({ navigation }) {
   const { colors, isDark } = useThemeColors();
-  const { user } = useUser();
+  const { user, token } = useUser();
   const [parcels, setParcels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -17,7 +17,12 @@ export default function RecentParcelScreen({ navigation }) {
   const fetchParcels = async () => {
     try {
       setError(null);
-      const response = await fetch(`${API_BASE_URL}/api/shipments/user/${user?.id}`);
+      const response = await fetch(`${API_BASE_URL}/api/shipments/user/${user?.id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch parcels');
       }

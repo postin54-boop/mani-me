@@ -10,7 +10,7 @@ import logger from '../utils/logger';
 
 export default function TrackingSearchScreen({ navigation }) {
   const { colors, isDark } = useThemeColors();
-  const { user } = useUser();
+  const { user, token } = useUser();
   const [trackingNumber, setTrackingNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingRecent, setLoadingRecent] = useState(true);
@@ -21,7 +21,12 @@ export default function TrackingSearchScreen({ navigation }) {
     try {
       setLoadingRecent(true);
       setRecentError(null);
-      const response = await fetch(`${API_BASE_URL}/api/shipments/user/${user?.id}`);
+      const response = await fetch(`${API_BASE_URL}/api/shipments/user/${user?.id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       if (!response.ok) {
         throw new Error(`Failed to fetch parcels: ${response.status}`);
       }
