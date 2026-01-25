@@ -16,7 +16,7 @@ export default function OrdersScreen({ navigation }) {
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ total_parcels: 0, delivered: 0, in_transit: 0 });
-  const { user } = useUser();
+  const { user, token } = useUser();
 
   // Pickup management state
   const [actionModalVisible, setActionModalVisible] = useState(false);
@@ -46,6 +46,7 @@ export default function OrdersScreen({ navigation }) {
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
       });
       clearTimeout(timeoutId);
@@ -86,6 +87,7 @@ export default function OrdersScreen({ navigation }) {
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
       });
       clearTimeout(timeoutId);
@@ -207,7 +209,7 @@ export default function OrdersScreen({ navigation }) {
               const parcelId = selectedParcel._id || selectedParcel.id;
               const response = await fetch(`${API_BASE_URL}/api/shipments/dropoff/${parcelId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               });
               
               if (response.ok) {
@@ -259,7 +261,7 @@ export default function OrdersScreen({ navigation }) {
               const parcelId = selectedParcel._id || selectedParcel.id;
               const response = await fetch(`${API_BASE_URL}/api/shipments/cancel/${parcelId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               });
               
               if (response.ok) {
@@ -296,7 +298,7 @@ export default function OrdersScreen({ navigation }) {
       const parcelId = selectedParcel._id || selectedParcel.id;
       const response = await fetch(`${API_BASE_URL}/api/shipments/reschedule/${parcelId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           new_pickup_date: rescheduleDate,
           reason: rescheduleReason,
@@ -351,7 +353,7 @@ export default function OrdersScreen({ navigation }) {
               const parcelId = selectedParcel._id || selectedParcel.id;
               const response = await fetch(`${API_BASE_URL}/api/shipments/cancel-dropoff/${parcelId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               });
               
               if (response.ok) {
