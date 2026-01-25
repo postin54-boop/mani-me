@@ -117,21 +117,26 @@ function Layout({ children, onLogout }) {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, position: 'relative', zIndex: 1 }}>
           <Box
             sx={{
-              width: 48,
-              height: 48,
-              borderRadius: 2.5,
-              background: 'white',
+              width: 44,
+              height: 44,
+              borderRadius: 2,
+              background: 'linear-gradient(145deg, #ffffff 0%, #f5f5f5 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-              p: 0.5,
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.8)',
+              overflow: 'hidden',
             }}
           >
             <img 
               src="/logo.png" 
               alt="Mani Me Logo" 
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              style={{ 
+                width: 36, 
+                height: 36, 
+                objectFit: 'contain',
+                borderRadius: 4,
+              }}
             />
           </Box>
           <Box>
