@@ -8,7 +8,7 @@ export default {
     icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",
     splash: {
-      image: "./assets/splash-icon.png",
+      image: "./assets/logo.png",
       resizeMode: "contain",
       backgroundColor: "#0B1F33"
     },
