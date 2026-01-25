@@ -15,7 +15,7 @@ import {
   Dimensions,
   Image,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -175,7 +175,7 @@ export default function LoginScreen({ navigation }) {
             <Ionicons name="arrow-back" size={24} color="#83C5FA" />
           </TouchableOpacity>
 
-          {/* Logo Header */}
+          {/* Logo Header - Circular Logo */}
           <Animated.View style={[
             styles.iconContainer,
             { 
@@ -185,7 +185,7 @@ export default function LoginScreen({ navigation }) {
           ]}>
             <Image 
               source={require('../assets/logo.png')} 
-              style={styles.logo}
+              style={styles.logoImage}
               resizeMode="contain"
             />
           </Animated.View>
@@ -366,17 +366,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  logo: {
+  logoImage: {
     width: 120,
     height: 120,
-  },
-  iconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(131, 197, 250, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   headerContainer: {
     alignItems: 'center',

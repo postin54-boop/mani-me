@@ -12,6 +12,7 @@ import {
   Alert,
   Animated,
   Dimensions,
+  Image,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -192,7 +193,7 @@ const RegisterScreen = ({ navigation }) => {
             <Ionicons name="arrow-back" size={24} color="#83C5FA" />
           </TouchableOpacity>
 
-          {/* Icon Header */}
+          {/* Icon Header - Circular Logo */}
           <Animated.View style={[
             styles.iconContainer,
             { 
@@ -200,9 +201,11 @@ const RegisterScreen = ({ navigation }) => {
               transform: [{ scale: iconScale }]
             }
           ]}>
-            <View style={styles.iconCircle}>
-              <MaterialCommunityIcons name="account-plus" size={50} color="#10B981" />
-            </View>
+            <Image 
+              source={require('../assets/logo.png')} 
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </Animated.View>
 
           {/* Title */}
@@ -345,13 +348,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  iconCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  logoImage: {
+    width: 120,
+    height: 120,
   },
   headerContainer: {
     alignItems: 'center',
