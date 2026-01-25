@@ -9,11 +9,12 @@ import { updateProfile, updateEmail } from 'firebase/auth';
 import { auth, db } from '../firebaseConfig';
 import { updateDoc, doc } from 'firebase/firestore';
 import { useThemeColors, SIZES, FONTS, SHADOWS } from '../constants/theme';
+import { API_BASE_URL } from '../utils/config';
 
 export default function ProfileScreen({ navigation }) {
   const { colors, isDark } = useThemeColors();
   const insets = useSafeAreaInsets();
-  const { user, logout, updateUser } = useUser();
+  const { user, logout, updateUser, token } = useUser();
   
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -84,24 +85,31 @@ export default function ProfileScreen({ navigation }) {
 
     setIsSaving(true);
     try {
-      // Update Firebase Auth profile
-      if (auth.currentUser) {
-        // Update displayName
-        await updateProfile(auth.currentUser, { displayName: editedUser.name });
-        // Update email if changed
-        if (auth.currentUser.email !== editedUser.email) {
-          await updateEmail(auth.currentUser, editedUser.email);
-        }
-        // Update Firestore profile
-        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-          fullName: editedUser.name,
+      // Update backend MongoDB profile
+      const response = await fetch(`${API_BASE_URL}/api/auth/update-profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: user?.id,
+          name: editedUser.name,
+          email: editedUser.email,
           phone: editedUser.phone,
           address: editedUser.address,
-          profileImage: profileImage || '',
-        });
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
       }
-      // Update local user context
-      updateUser({ ...user, ...editedUser, profileImage });
+
+      const data = await response.json();
+      
+      // Update local user context with response data
+      updateUser({ ...user, ...data.user, profileImage });
       setIsEditing(false);
       Alert.alert('Success', 'Profile updated successfully');
     } catch (error) {
