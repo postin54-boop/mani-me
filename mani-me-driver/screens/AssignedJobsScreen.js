@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useContext, useCallback } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, RefreshControl } from "react-native";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, RefreshControl } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../context/AuthContext";
 import { API_BASE_URL, ENDPOINTS } from "../utils/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import logger from "../utils/logger";
 
 export default function AssignedJobsScreen() {
   const navigation = useNavigation();
@@ -31,7 +33,7 @@ export default function AssignedJobsScreen() {
       const type = isUKDriver() ? 'pickup' : 'delivery';
       const url = `${API_BASE_URL}${ENDPOINTS.DRIVER_ASSIGNMENTS(driverId)}?type=${type}`;
       
-      console.log('Fetching jobs from:', url);
+      logger.api('GET', url);
       
       const response = await fetch(url, {
         headers: {
@@ -41,7 +43,7 @@ export default function AssignedJobsScreen() {
       });
 
       const data = await response.json();
-      console.log('Jobs response:', data);
+      logger.log('Jobs response:', data.success);
 
       if (data.success && data.data?.shipments) {
         // Map backend data to display format
@@ -207,6 +209,16 @@ export default function AssignedJobsScreen() {
             </View>
           </TouchableOpacity>
         )}
+        // Performance optimizations
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={8}
+        getItemLayout={(data, index) => ({
+          length: 200, // Approximate card height
+          offset: 200 * index,
+          index,
+        })}
       />
     </SafeAreaView>
   );

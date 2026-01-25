@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Modal, ActivityIndicator, RefreshControl } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import QRCode from 'react-native-qrcode-svg';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL, ENDPOINTS } from '../utils/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import logger from '../utils/logger';
 
 export default function PrintLabelsScreen({ navigation }) {
   const { user, isUKDriver } = useAuth();
@@ -15,6 +18,180 @@ export default function PrintLabelsScreen({ navigation }) {
   const [recentPickups, setRecentPickups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const qrCodeRef = useRef(null);
+
+  // Generate label HTML for printing
+  const generateLabelHTML = (parcel, qrDataUrl) => {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: Arial, sans-serif; 
+            padding: 10mm;
+            width: 100mm;
+          }
+          .label {
+            border: 2px solid #000;
+            padding: 4mm;
+            background: #fff;
+          }
+          .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 3mm;
+            margin-bottom: 3mm;
+          }
+          .logo { font-size: 18pt; font-weight: bold; color: #0B1A33; }
+          .parcel-id { font-size: 14pt; font-weight: bold; margin-top: 2mm; }
+          .qr-section { 
+            text-align: center; 
+            padding: 3mm 0;
+            border-bottom: 1px dashed #000;
+          }
+          .qr-section img { width: 30mm; height: 30mm; }
+          .info-section { padding: 2mm 0; font-size: 9pt; }
+          .info-row { margin: 1.5mm 0; }
+          .label-title { font-weight: bold; color: #666; font-size: 8pt; }
+          .label-value { font-weight: bold; font-size: 10pt; }
+          .destination {
+            background: #0B1A33;
+            color: white;
+            text-align: center;
+            padding: 3mm;
+            font-size: 14pt;
+            font-weight: bold;
+            margin-top: 2mm;
+          }
+          .footer { 
+            text-align: center; 
+            font-size: 7pt; 
+            color: #666; 
+            margin-top: 2mm;
+            border-top: 1px solid #ccc;
+            padding-top: 2mm;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="label">
+          <div class="header">
+            <div class="logo">MANI ME</div>
+            <div style="font-size: 8pt; color: #666;">UK ↔ Ghana Parcel Service</div>
+            <div class="parcel-id">${parcel.id}</div>
+          </div>
+          
+          <div class="qr-section">
+            <img src="${qrDataUrl}" alt="QR Code" />
+            <div style="font-size: 8pt; color: #666; margin-top: 1mm;">Scan for tracking</div>
+          </div>
+          
+          <div class="info-section">
+            <div class="info-row">
+              <div class="label-title">FROM:</div>
+              <div class="label-value">${parcel.sender || 'Sender'}</div>
+              <div style="font-size: 8pt;">${parcel.pickupAddress || 'UK'}</div>
+            </div>
+            
+            <div class="info-row" style="margin-top: 3mm;">
+              <div class="label-title">TO:</div>
+              <div class="label-value">${parcel.receiverName || 'Receiver'}</div>
+              <div style="font-size: 8pt;">${parcel.receiverAddress || 'Ghana'}</div>
+              ${parcel.receiverPhone ? `<div style="font-size: 8pt;">Tel: ${parcel.receiverPhone}</div>` : ''}
+            </div>
+            
+            ${parcel.weight ? `<div class="info-row"><span class="label-title">Weight:</span> ${parcel.weight} kg</div>` : ''}
+          </div>
+          
+          <div class="destination">
+            🇬🇭 ${parcel.destination || 'GHANA'}
+          </div>
+          
+          <div class="footer">
+            Printed: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}<br/>
+            www.mani-me.com
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
+  // Print label using system print dialog
+  const printLabel = async (parcel) => {
+    setPrinting(true);
+    
+    try {
+      // Generate QR code as data URL
+      const qrDataUrl = await new Promise((resolve) => {
+        // Create a simple QR code data URL
+        const trackingUrl = `https://mani-me.com/track/${parcel.id}`;
+        // Use a placeholder - in production you'd generate actual QR
+        resolve(`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(trackingUrl)}`);
+      });
+      
+      const html = generateLabelHTML(parcel, qrDataUrl);
+      
+      // Print using system dialog - shows available printers
+      await Print.printAsync({
+        html,
+        // For thermal printers, you might want specific dimensions
+        // width: 384, // 48mm * 8 dots/mm for common thermal printers
+        // height: 600,
+      });
+      
+      Alert.alert(
+        'Print Complete',
+        `Label for ${parcel.id} sent to printer!`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Print error:', error);
+      if (error.message !== 'Cancelled') {
+        Alert.alert('Print Error', 'Failed to print label. Please try again.');
+      }
+    } finally {
+      setPrinting(false);
+      setPreviewVisible(false);
+      setSelectedParcel(null);
+    }
+  };
+
+  // Share/Save label as PDF
+  const shareLabelAsPDF = async (parcel) => {
+    setPrinting(true);
+    
+    try {
+      const trackingUrl = `https://mani-me.com/track/${parcel.id}`;
+      const qrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(trackingUrl)}`;
+      
+      const html = generateLabelHTML(parcel, qrDataUrl);
+      
+      // Generate PDF
+      const { uri } = await Print.printToFileAsync({ html });
+      
+      // Share the PDF
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Label - ${parcel.id}`,
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        Alert.alert('Sharing not available', 'Sharing is not available on this device');
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      Alert.alert('Error', 'Failed to generate PDF. Please try again.');
+    } finally {
+      setPrinting(false);
+      setPreviewVisible(false);
+      setSelectedParcel(null);
+    }
+  };
 
   // Fetch assigned pickups from API
   const fetchAssignments = useCallback(async () => {
@@ -23,7 +200,7 @@ export default function PrintLabelsScreen({ navigation }) {
       const driverId = user?._id || user?.id;
       
       if (!driverId) {
-        console.log('No driver ID available');
+        logger.warn('No driver ID available for print labels');
         setLoading(false);
         return;
       }
@@ -31,7 +208,7 @@ export default function PrintLabelsScreen({ navigation }) {
       const type = isUKDriver?.() ? 'pickup' : 'delivery';
       const url = `${API_BASE_URL}${ENDPOINTS.DRIVER_ASSIGNMENTS(driverId)}?type=${type}&limit=20`;
       
-      console.log('Fetching assignments for labels:', url);
+      logger.api('GET', url);
       
       const response = await fetch(url, {
         headers: {
@@ -41,7 +218,7 @@ export default function PrintLabelsScreen({ navigation }) {
       });
 
       const data = await response.json();
-      console.log('Assignments response:', data);
+      logger.log('Print labels: fetched', data.data?.shipments?.length || 0, 'assignments');
 
       if (data.success && data.data?.shipments) {
         // Map shipments to the format expected by the UI
@@ -86,20 +263,15 @@ export default function PrintLabelsScreen({ navigation }) {
   };
 
   const confirmPrint = () => {
-    setPrinting(true);
-    setPreviewVisible(false);
-    
-    // TODO: Send to printer with QR code
-    // Label format: Parcel ID + QR Code + Pickup Address + Destination + Receiver
-    setTimeout(() => {
-      setPrinting(false);
-      Alert.alert(
-        'Label Printed Successfully',
-        `Label with QR code sent to printer!\n\nParcel: ${selectedParcel.id}\nPickup: ${selectedParcel.pickupAddress || 'UK Address'}\nDestination: ${selectedParcel.destination}`,
-        [{ text: 'OK' }]
-      );
-      setSelectedParcel(null);
-    }, 1500);
+    if (selectedParcel) {
+      printLabel(selectedParcel);
+    }
+  };
+
+  const handleSharePDF = () => {
+    if (selectedParcel) {
+      shareLabelAsPDF(selectedParcel);
+    }
   };
 
   const handleScanAndPrint = () => {
@@ -286,8 +458,18 @@ export default function PrintLabelsScreen({ navigation }) {
               <TouchableOpacity 
                 style={styles.cancelModalButton}
                 onPress={() => setPreviewVisible(false)}
+                disabled={printing}
               >
                 <Text style={styles.cancelModalText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.shareModalButton}
+                onPress={handleSharePDF}
+                disabled={printing}
+              >
+                <Ionicons name="share-outline" size={20} color="#0B1A33" style={{ marginRight: 6 }} />
+                <Text style={styles.shareModalText}>Share PDF</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -295,9 +477,9 @@ export default function PrintLabelsScreen({ navigation }) {
                 onPress={confirmPrint}
                 disabled={printing}
               >
-                <Ionicons name="print" size={20} color="#fff" style={{ marginRight: 8 }} />
+                <Ionicons name="print" size={20} color="#fff" style={{ marginRight: 6 }} />
                 <Text style={styles.printModalText}>
-                  {printing ? 'Printing...' : 'Print Label'}
+                  {printing ? 'Printing...' : 'Print'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -592,29 +774,45 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   cancelModalButton: {
-    flex: 1,
     paddingVertical: 14,
+    paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#E5E7EB',
     alignItems: 'center',
   },
   cancelModalText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: '#6B7280',
   },
-  printModalButton: {
-    flex: 1,
+  shareModalButton: {
     flexDirection: 'row',
-    backgroundColor: '#83C5FA',
+    backgroundColor: '#F3F4F6',
     paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  shareModalText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0B1A33',
+  },
+  printModalButton: {
+    flexDirection: 'row',
+    backgroundColor: '#0B1A33',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   printModalText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: '#fff',
   },

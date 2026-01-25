@@ -3,13 +3,40 @@ const express = require('express');
 const app = express();
 const { errorHandler } = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter');
+const { v4: uuidv4 } = require('uuid');
 
 // ======================
-// Security & Performance Middleware
+// Security Middleware (CRITICAL)
+// ======================
+
+// Helmet for security headers (OWASP recommended)
+const helmet = require('helmet');
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Allow embedding from mobile apps
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
+
+// ======================
+// Performance Middleware
 // ======================
 
 // Trust proxy for proper IP detection behind load balancer
 app.set('trust proxy', 1);
+
+// Request ID for distributed tracing
+app.use((req, res, next) => {
+  req.id = req.headers['x-request-id'] || uuidv4();
+  res.setHeader('X-Request-ID', req.id);
+  next();
+});
 
 // Request timeout middleware (prevent hanging requests)
 const timeout = require('connect-timeout');
@@ -65,18 +92,30 @@ app.use(cors({
 // Apply rate limiting globally to all API routes
 app.use('/api', apiLimiter);
 
-// Body parsing with size limits
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body parsing with size limits (reduced for security)
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-// Request logging (lightweight)
+// Input sanitization middleware (prevents NoSQL injection)
+const { sanitizeMiddleware } = require('./utils/sanitize');
+app.use(sanitizeMiddleware);
+
+// Request logging with structured logger
+const logger = require('./utils/logger');
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
     // Only log slow requests or errors
     if (duration > 1000 || res.statusCode >= 400) {
-      console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`);
+      logger.info('Request completed', {
+        requestId: req.id,
+        method: req.method,
+        path: req.originalUrl,
+        status: res.statusCode,
+        duration: `${duration}ms`,
+        ip: req.ip
+      });
     }
   });
   next();
@@ -112,32 +151,39 @@ app.use((req, res, next) => {
 });
 
 // ======================
-// API Routes
+// API Routes (v1 - versioned for future compatibility)
 // ======================
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/bookings', require('./routes/booking'));
-app.use('/api/parcel-prices', require('./routes/parcelPrice'));
-app.use('/api/parcels', require('./routes/parcel'));
-app.use('/api/shipments', require('./routes/shipment'));
-app.use('/api/tracking', require('./routes/tracking'));
-app.use('/api/payments', require('./routes/payment'));
-app.use('/api/notifications', require('./routes/notification'));
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/drivers', require('./routes/driver'));
-app.use('/api/products', require('./routes/product'));
-app.use('/api/categories', require('./routes/category'));
-app.use('/api/chat', require('./routes/chat'));
-app.use('/api/cash-reconciliation', require('./routes/cashReconciliation'));
-app.use('/api/shop', require('./routes/shop'));
-app.use('/api/grocery', require('./routes/grocery'));
-app.use('/api/settings', require('./routes/settings'));
-app.use('/api/labels', require('./routes/labels'));
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/addresses', require('./routes/addressRoutes'));
-app.use('/api/items', require('./routes/itemRoutes'));
-app.use('/api/scans', require('./routes/scans'));
-app.use('/api/upload', require('./routes/upload'));
-app.use('/api/promo-codes', require('./routes/promoCode'));
+const apiV1 = express.Router();
+
+// Mount all routes on v1 router
+apiV1.use('/admin', require('./routes/admin'));
+apiV1.use('/bookings', require('./routes/booking'));
+apiV1.use('/parcel-prices', require('./routes/parcelPrice'));
+apiV1.use('/parcels', require('./routes/parcel'));
+apiV1.use('/shipments', require('./routes/shipment'));
+apiV1.use('/tracking', require('./routes/tracking'));
+apiV1.use('/payments', require('./routes/payment'));
+apiV1.use('/notifications', require('./routes/notification'));
+apiV1.use('/auth', require('./routes/auth'));
+apiV1.use('/drivers', require('./routes/driver'));
+apiV1.use('/products', require('./routes/product'));
+apiV1.use('/categories', require('./routes/category'));
+apiV1.use('/chat', require('./routes/chat'));
+apiV1.use('/cash-reconciliation', require('./routes/cashReconciliation'));
+apiV1.use('/shop', require('./routes/shop'));
+apiV1.use('/grocery', require('./routes/grocery'));
+apiV1.use('/settings', require('./routes/settings'));
+apiV1.use('/labels', require('./routes/labels'));
+apiV1.use('/users', require('./routes/userRoutes'));
+apiV1.use('/addresses', require('./routes/addressRoutes'));
+apiV1.use('/items', require('./routes/itemRoutes'));
+apiV1.use('/scans', require('./routes/scans'));
+apiV1.use('/upload', require('./routes/upload'));
+apiV1.use('/promo-codes', require('./routes/promoCode'));
+
+// Mount v1 API (both /api and /api/v1 for backwards compatibility)
+app.use('/api/v1', apiV1);
+app.use('/api', apiV1); // Backwards compatible - remove in v2
 
 // 404 handler for unknown routes
 app.use((req, res, next) => {

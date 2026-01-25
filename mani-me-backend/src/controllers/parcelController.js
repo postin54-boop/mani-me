@@ -1,11 +1,20 @@
-// ======================
-// Parcel Controller
-// ======================
+/**
+ * Parcel Controller
+ * Handles warehouse and parcel-related operations
+ * @module controllers/parcelController
+ */
+
 const Shipment = require('../models/shipment');
 const ParcelItem = require('../models/parcelItem');
 const { generateParcelId } = require('../utils/idGenerator');
+const logger = require('../utils/logger');
 
-// Get parcel counts per warehouse (summary for admin UI)
+/**
+ * Get parcel counts per warehouse (summary for admin UI)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
+ */
 exports.getWarehouseSummary = async (req, res) => {
   try {
     
@@ -37,12 +46,17 @@ exports.getWarehouseSummary = async (req, res) => {
     
     res.json({ UK: ukCount, Ghana: ghanaCount });
   } catch (err) {
-    console.error('Warehouse summary error:', err);
+    logger.error('Warehouse summary error', { error: err.message });
     res.status(500).json({ message: 'Error fetching warehouse summary', error: err.message });
   }
 };
 
-// Get all warehouse parcels (for admin UI)
+/**
+ * Get all warehouse parcels (for admin UI)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
+ */
 exports.getWarehouseParcels = async (req, res) => {
   try {
     // Fetch all shipments with warehouse status
@@ -72,11 +86,21 @@ exports.getWarehouseParcels = async (req, res) => {
     
     res.json(formatted);
   } catch (err) {
-    console.error('Warehouse parcels error:', err);
+    logger.error('Warehouse parcels error', { error: err.message });
     res.status(500).json({ message: 'Error fetching warehouse parcels', error: err.message });
   }
 };
 
+/**
+ * Create a new parcel item
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Parcel item data
+ * @param {string} req.body.bookingId - Associated booking ID
+ * @param {string} req.body.itemType - Type of item
+ * @param {string} req.body.itemLetter - Item letter identifier
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
+ */
 exports.createParcelItem = async (req, res) => {
   // ...validate input, get booking, etc.
   const { bookingId, itemType, itemLetter } = req.body;

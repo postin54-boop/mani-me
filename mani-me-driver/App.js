@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CashTrackingProvider } from './context/CashTrackingContext';
+import { NetworkProvider } from './context/NetworkContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -50,43 +52,30 @@ function MainTabs() {
           let iconName;
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'ShiftClock') {
-            iconName = focused ? 'time' : 'time-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
-          // For ShiftClock, icon is handled in tabBarButton below
-          if (route.name === 'ShiftClock') return null;
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName} size={24} color={color} />;
         },
         tabBarActiveTintColor: colors.secondary,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
           backgroundColor: colors.surface,
-          borderTopColor: 'transparent',
-          position: 'absolute',
-          left: 16,
-          right: 16,
-          bottom: 24,
-          borderRadius: 28,
-          height: 44,
-          // No shadow, flat
-          elevation: 0,
-          shadowColor: 'transparent',
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0,
-          shadowRadius: 0,
-          paddingBottom: 0,
-          paddingTop: 0,
+          borderTopColor: colors.border || '#E5E7EB',
+          borderTopWidth: 1,
+          height: 70,
+          paddingBottom: 10,
+          paddingTop: 10,
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '600',
+          marginTop: 4,
         },
+        tabBarShowLabel: true,
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      {/* ShiftClockScreen tab removed */}
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -107,11 +96,15 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <CashTrackingProvider>
-        <AppNavigator />
-      </CashTrackingProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <NetworkProvider>
+        <AuthProvider>
+          <CashTrackingProvider>
+            <AppNavigator />
+          </CashTrackingProvider>
+        </AuthProvider>
+      </NetworkProvider>
+    </ErrorBoundary>
   );
 }
 

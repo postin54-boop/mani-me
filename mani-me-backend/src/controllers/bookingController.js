@@ -1,9 +1,25 @@
+/**
+ * Booking Controller
+ * Handles booking creation and management
+ * @module controllers/bookingController
+ */
+
 const Booking = require('../models/booking');
 const { generateBookingId } = require('../utils/idGenerator');
+const logger = require('../utils/logger');
 
 const User = require('../models/user');
 const { sendPushNotification } = require('../services/notificationService');
 
+/**
+ * Create a new booking
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Booking data
+ * @param {string} req.body.origin - Origin code (e.g., 'UK')
+ * @param {Object} req.user - Authenticated user from middleware
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
+ */
 exports.createBooking = async (req, res) => {
   // ...validate input, get user, etc.
   // Generate hierarchical booking ID
@@ -28,7 +44,7 @@ exports.createBooking = async (req, res) => {
     await Promise.allSettled(notifyPromises);
   } catch (e) {
     // Log but don't block booking
-    console.error('Admin notification error:', e);
+    logger.error('Admin notification error', { error: e.message, bookingId: booking.id });
   }
 
   res.status(201).json(booking);

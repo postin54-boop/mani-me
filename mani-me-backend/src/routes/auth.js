@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { user: User } = require('../models');
 const { validatePassword, validateEmail, sanitizeInput } = require('../utils/validation');
+const logger = require('../utils/logger');
 const { loginLimiter, registerLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
 const validate = require('../middleware/validate');
 const { auth: authValidation } = require('../validations');
@@ -52,7 +53,7 @@ router.get('/me', async (req, res) => {
     if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
-    console.error('Auth /me error:', error);
+    logger.error('Auth /me error:', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -127,7 +128,7 @@ router.post('/register', registerLimiter, async (req, res) => {
       token 
     });
   } catch (error) {
-    console.error(error);
+    logger.error('Registration error:', { error: error.message });
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -171,7 +172,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    logger.error('Login error:', { error: error.message });
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -196,7 +197,7 @@ router.post('/update-push-token', async (req, res) => {
 
     return res.json({ message: "Push token updated successfully" });
   } catch (error) {
-    console.error(error);
+    logger.error('Push token update error:', { error: error.message });
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -243,8 +244,68 @@ router.put('/update-profile', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(error);
+    logger.error('Profile update error:', { error: error.message });
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+// REFRESH TOKEN - Issue new token if current token is valid
+router.post('/refresh', async (req, res) => {
+  try {
+    // Get token from Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    // Verify current token (even if expired, we can still read the payload)
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      // If token is expired but otherwise valid, we can still refresh
+      if (err.name === 'TokenExpiredError') {
+        decoded = jwt.decode(token);
+      } else {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+    }
+
+    if (!decoded || !decoded.user_id) {
+      return res.status(401).json({ error: 'Invalid token payload' });
+    }
+
+    // Find user to ensure they still exist and are active
+    const user = await User.findById(decoded.user_id);
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    // Issue new token
+    const newToken = jwt.sign(
+      { user_id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.json({
+      message: "Token refreshed successfully",
+      token: newToken,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        driver_type: user.driver_type,
+        country: user.country,
+      }
+    });
+  } catch (error) {
+    logger.error('Token refresh error:', { error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 

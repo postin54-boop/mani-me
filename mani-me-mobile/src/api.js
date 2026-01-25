@@ -14,7 +14,11 @@ const LOCAL_URL = "http://192.168.0.138:4000";
 const USE_LOCAL_BACKEND = false;
 
 // Use local backend in dev when USE_LOCAL_BACKEND is true, otherwise production
-const API_BASE_URL = (USE_LOCAL_BACKEND && __DEV__) ? LOCAL_URL : (Constants.expoConfig?.extra?.apiUrl || PRODUCTION_URL);
+// Handle null/undefined apiUrl from config
+const configApiUrl = Constants.expoConfig?.extra?.apiUrl;
+const API_BASE_URL = (USE_LOCAL_BACKEND && __DEV__) 
+  ? LOCAL_URL 
+  : (configApiUrl && typeof configApiUrl === 'string' ? configApiUrl : PRODUCTION_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL.endsWith('/api') ? API_BASE_URL : API_BASE_URL + '/api',

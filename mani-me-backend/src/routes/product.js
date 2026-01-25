@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/product');
+const { escapeRegex } = require('../utils/sanitize');
 
 // Get all products (with pagination)
 router.get('/', async (req, res) => {
@@ -17,7 +18,8 @@ router.get('/', async (req, res) => {
       query.category = category;
     }
     if (search) {
-      query.name = { $regex: search, $options: 'i' };
+      const safeSearch = escapeRegex(search);
+      query.name = { $regex: safeSearch, $options: 'i' };
     }
 
     const [products, total] = await Promise.all([

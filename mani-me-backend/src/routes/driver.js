@@ -1,18 +1,21 @@
 const express = require('express');
 const router = express.Router();
+const logger = require('../utils/logger');
 
 const driverController = require('../controllers/driverController');
 const { db } = require('../firebase');
 const { shipment: Shipment } = require('../models');
+const { verifyToken, verifyAdmin } = require('../middleware/auth');
 
-// Get all drivers
-router.get('/', driverController.getDrivers);
+// Get all drivers - Admin only
+router.get('/', verifyAdmin, driverController.getDrivers);
 
-// Add a new driver
-router.post('/', driverController.addDriver);
+// Add a new driver - Admin only
+router.post('/', verifyAdmin, driverController.addDriver);
 
 // Get driver assignments (pickups or deliveries) with pagination
-router.get('/:id/assignments', async (req, res) => {
+// Protected: requires authentication (driver accessing own assignments)
+router.get('/:id/assignments', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { type, page = 1, limit = 20 } = req.query;
@@ -109,7 +112,7 @@ router.get('/:id/assignments', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching driver assignments:', error);
+    logger.error('Error fetching driver assignments', { error: error.message, driverId: req.params.id });
     res.status(500).json({ error: 'Server error', details: error.message });
   }
 });
@@ -143,7 +146,7 @@ router.put('/pickups/:id/status', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error updating pickup status:', error);
+    logger.error('Error updating pickup status', { error: error.message, shipmentId: req.params.id });
     res.status(500).json({ error: 'Server error', details: error.message });
   }
 });
@@ -189,7 +192,7 @@ router.put('/deliveries/:id/status', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error updating delivery status:', error);
+    logger.error('Error updating delivery status', { error: error.message, shipmentId: req.params.id });
     res.status(500).json({ error: 'Server error', details: error.message });
   }
 });
@@ -220,7 +223,7 @@ router.post('/clock-in', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error clocking in:', error);
+    logger.error('Error clocking in', { error: error.message, driverId: req.body.driver_id });
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
@@ -259,7 +262,7 @@ router.post('/clock-out', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error clocking out:', error);
+    logger.error('Error clocking out', { error: error.message, driverId: req.body.driver_id });
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
@@ -292,7 +295,7 @@ router.get('/shifts/:driver_id', async (req, res) => {
     res.json({ shifts });
 
   } catch (error) {
-    console.error('Error fetching shifts:', error);
+    logger.error('Error fetching shifts', { error: error.message, driverId: req.params.driver_id });
     res.status(500).json({ error: "Server error" });
   }
 });

@@ -5,9 +5,14 @@ const { v4: uuidv4 } = require('uuid');
 const { sendShipmentStatusNotification } = require('../services/notificationService');
 const { sendPickupAssignedNotification } = require('../services/notificationService');
 const { cache, cacheKeys } = require('../utils/cache');
+const { verifyToken, verifyAdmin, optionalAuth } = require('../middleware/auth');
+const { escapeRegex } = require('../utils/sanitize');
+const { trackingLimiter } = require('../middleware/rateLimiter');
+const logger = require('../utils/logger');
 
 // Get recent shipments for a user (last 5, sorted by date, excluding cancelled)
-router.get('/recent/:userId', async (req, res) => {
+// Protected: requires authentication
+router.get('/recent/:userId', verifyToken, async (req, res) => {
   try {
     const { userId } = req.params;
     const shipments = await Shipment.find({ 
@@ -20,7 +25,7 @@ router.get('/recent/:userId', async (req, res) => {
       .lean();
     res.json({ shipments });
   } catch (error) {
-    console.error('Error fetching recent shipments:', error);
+    logger.error('Error fetching recent shipments', { error: error.message, userId: req.params.userId });
     res.status(500).json({ error: 'Failed to fetch recent shipments', details: error.message });
   }
 });
@@ -28,7 +33,8 @@ router.get('/recent/:userId', async (req, res) => {
 // Assign a driver to a shipment and notify the driver
 
 // Assign a driver to a shipment (pickup or delivery) and notify the driver
-router.put('/assign-driver/:id', async (req, res) => {
+// Protected: requires admin authentication
+router.put('/assign-driver/:id', verifyAdmin, async (req, res) => {
   try {
     const { driver_id, type } = req.body;
     if (!driver_id || !type || !['pickup', 'delivery'].includes(type)) {
@@ -60,7 +66,7 @@ router.put('/assign-driver/:id', async (req, res) => {
       try {
         await sendPickupAssignedNotification(driver.push_token, shipment, driver);
       } catch (notifError) {
-        console.error('Failed to send assignment notification:', notifError);
+        logger.error('Failed to send assignment notification', { error: notifError.message, driverId: driver_id });
       }
     }
 
@@ -69,7 +75,7 @@ router.put('/assign-driver/:id', async (req, res) => {
       shipment
     });
   } catch (error) {
-    console.error(error);
+    logger.error('Assign driver error', { error: error.message, shipmentId: req.params.id });
     res.status(500).json({ error: 'Server error', details: error.message });
   }
 });
@@ -82,7 +88,8 @@ const {
 } = require('../utils/parcelIdGenerator');
 
 // Create a new shipment booking
-router.post('/create', async (req, res) => {
+// Protected: requires authentication
+router.post('/create', verifyToken, async (req, res) => {
   try {
     const {
       user_id,
@@ -255,7 +262,7 @@ router.post('/create', async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    logger.error('Shipment creation failed', { error: error.message });
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
@@ -263,16 +270,37 @@ router.post('/create', async (req, res) => {
 // Get all shipments for a specific user
 
 // Get all shipments for a specific user, including driver info
-router.get('/user/:id', async (req, res) => {
+// Protected: requires authentication
+// Supports pagination for large datasets
+router.get('/user/:id', verifyToken, async (req, res) => {
   try {
-    const shipments = await Shipment.find({ userId: req.params.id })
-      .sort({ createdAt: -1 })
-      .populate('pickup_driver_id', 'name email phone country verification_status')
-      .populate('delivery_driver_id', 'name email phone country verification_status')
-      .lean();
-    res.json({ shipments });
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100); // Max 100 per page
+    const skip = (page - 1) * limit;
+
+    const [shipments, total] = await Promise.all([
+      Shipment.find({ userId: req.params.id })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('pickup_driver_id', 'name email phone country verification_status')
+        .populate('delivery_driver_id', 'name email phone country verification_status')
+        .lean(),
+      Shipment.countDocuments({ userId: req.params.id })
+    ]);
+
+    res.json({ 
+      success: true,
+      shipments,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
-    console.error(error);
+    logger.error('Error fetching user shipments', { error: error.message, userId: req.params.id });
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -280,7 +308,8 @@ router.get('/user/:id', async (req, res) => {
 // Track a shipment by tracking number
 
 // Track a shipment by tracking number, including driver info (CACHED)
-router.get('/track/:tracking_number', async (req, res) => {
+// Rate limited to prevent enumeration attacks
+router.get('/track/:tracking_number', trackingLimiter, async (req, res) => {
   try {
     const { tracking_number } = req.params;
     const cacheKey = cacheKeys.shipmentByTracking(tracking_number);
@@ -306,13 +335,14 @@ router.get('/track/:tracking_number', async (req, res) => {
     }
     res.json({ shipment });
   } catch (error) {
-    console.error(error);
+    logger.error('Error tracking shipment', { error: error.message, tracking_number: req.params.tracking_number });
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // Update shipment status
-router.put('/update-status/:id', async (req, res) => {
+// Protected: requires authentication (driver or admin)
+router.put('/update-status/:id', verifyToken, async (req, res) => {
   try {
     const { status } = req.body;
     
@@ -349,7 +379,7 @@ router.put('/update-status/:id', async (req, res) => {
           status
         );
       } catch (notifError) {
-        console.error('Failed to send notification:', notifError);
+        logger.error('Failed to send notification', { error: notifError.message, shipmentId: req.params.id });
         // Don't fail the request if notification fails
       }
     }
@@ -360,13 +390,73 @@ router.put('/update-status/:id', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Update status error:', error);
+    logger.error('Update status error', { error: error.message, shipmentId: req.params.id });
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
 
+// Alias: PUT /:id/status - for driver app compatibility
+// Protected: requires authentication (driver or admin)
+router.put('/:id/status', verifyToken, async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    const shipment = await Shipment.findById(req.params.id)
+      .populate('userId', 'push_token name email');
+    
+    if (!shipment) {
+      return res.status(404).json({ success: false, error: "Shipment not found" });
+    }
+
+    // Update status and corresponding timestamp
+    const previousStatus = shipment.status;
+    shipment.status = status;
+    
+    const timestampField = `${status}_at`;
+    if (shipment[timestampField] !== undefined) {
+      shipment[timestampField] = new Date();
+    }
+
+    await shipment.save();
+
+    // Invalidate cache
+    if (shipment.tracking_number) {
+      cache.delete(cacheKeys.shipmentByTracking(shipment.tracking_number));
+    }
+
+    // Send push notification
+    const user = shipment.userId;
+    if (user && user.push_token) {
+      try {
+        await sendShipmentStatusNotification(
+          user.push_token,
+          shipment.tracking_number,
+          status
+        );
+      } catch (notifError) {
+        logger.error('Failed to send notification', { error: notifError.message, shipmentId: req.params.id });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Status updated successfully",
+      data: {
+        shipment,
+        previousStatus,
+        newStatus: status
+      }
+    });
+
+  } catch (error) {
+    logger.error('Update status error', { error: error.message, shipmentId: req.params.id });
+    res.status(500).json({ success: false, error: "Server error", details: error.message });
+  }
+});
+
 // Get shipment statistics for a user
-router.get('/stats/:userId', async (req, res) => {
+// Protected: requires authentication
+router.get('/stats/:userId', verifyToken, async (req, res) => {
   try {
     const total = await Shipment.countDocuments({ userId: req.params.userId });
     const delivered = await Shipment.countDocuments({ 
@@ -385,13 +475,14 @@ router.get('/stats/:userId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    logger.error('Error fetching shipment stats', { error: error.message, userId: req.params.userId });
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // Mark shipment for self drop-off at warehouse
-router.put('/dropoff/:id', async (req, res) => {
+// Protected: requires authentication
+router.put('/dropoff/:id', verifyToken, async (req, res) => {
   try {
     const shipment = await Shipment.findById(req.params.id)
       .populate('userId', 'push_token name email');
@@ -424,13 +515,14 @@ router.put('/dropoff/:id', async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    logger.error('Error marking shipment for drop-off', { error: error.message, shipmentId: req.params.id });
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
 
 // Cancel a pickup
-router.put('/cancel/:id', async (req, res) => {
+// Protected: requires authentication
+router.put('/cancel/:id', verifyToken, async (req, res) => {
   try {
     // Use Mongoose findById instead of Sequelize findByPk
     const shipment = await Shipment.findById(req.params.id)
@@ -461,7 +553,7 @@ router.put('/cancel/:id', async (req, res) => {
     try {
       await sendPickupCancellationNotifications(shipment);
     } catch (notifError) {
-      console.error('Failed to send cancellation notifications:', notifError);
+      logger.error('Failed to send cancellation notifications', { error: notifError.message, shipmentId: req.params.id });
     }
 
     res.json({
@@ -470,13 +562,14 @@ router.put('/cancel/:id', async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    logger.error('Error cancelling shipment', { error: error.message, shipmentId: req.params.id });
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
 
 // Cancel drop-off and switch back to pickup
-router.put('/cancel-dropoff/:id', async (req, res) => {
+// Protected: requires authentication
+router.put('/cancel-dropoff/:id', verifyToken, async (req, res) => {
   try {
     const shipment = await Shipment.findById(req.params.id)
       .populate('userId', 'push_token name email');
@@ -506,7 +599,7 @@ router.put('/cancel-dropoff/:id', async (req, res) => {
         await sendDropoffCancelledNotifications(shipment);
       }
     } catch (notifError) {
-      console.error('Failed to send drop-off cancellation notifications:', notifError);
+      logger.error('Failed to send drop-off cancellation notifications', { error: notifError.message, shipmentId: req.params.id });
     }
 
     res.json({
@@ -515,13 +608,14 @@ router.put('/cancel-dropoff/:id', async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    logger.error('Error cancelling drop-off', { error: error.message, shipmentId: req.params.id });
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
 
 // Reschedule a pickup
-router.put('/reschedule/:id', async (req, res) => {
+// Protected: requires authentication
+router.put('/reschedule/:id', verifyToken, async (req, res) => {
   try {
     const { new_pickup_date, reason } = req.body;
 
@@ -557,7 +651,7 @@ router.put('/reschedule/:id', async (req, res) => {
     try {
       await sendPickupRescheduleNotifications(shipment, old_pickup_date, new_pickup_date, reason);
     } catch (notifError) {
-      console.error('Failed to send reschedule notifications:', notifError);
+      logger.error('Failed to send reschedule notifications', { error: notifError.message, shipmentId: req.params.id });
     }
 
     res.json({
@@ -566,7 +660,7 @@ router.put('/reschedule/:id', async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    logger.error('Error rescheduling pickup', { error: error.message, shipmentId: req.params.id });
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
@@ -624,13 +718,14 @@ router.get('/warehouse/:parcel_id', async (req, res) => {
     res.json(warehouseData);
 
   } catch (error) {
-    console.error(error);
+    logger.error('Error fetching warehouse parcel', { error: error.message, parcelId: req.params.parcel_id });
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
 
 // Update warehouse status
-router.put('/warehouse/:parcel_id/status', async (req, res) => {
+// Protected: requires admin authentication
+router.put('/warehouse/:parcel_id/status', verifyAdmin, async (req, res) => {
   try {
     const { parcel_id } = req.params;
     const { warehouse_status } = req.body;
@@ -661,7 +756,7 @@ router.put('/warehouse/:parcel_id/status', async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    logger.error('Error updating warehouse status', { error: error.message, parcelId: req.params.parcel_id });
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });

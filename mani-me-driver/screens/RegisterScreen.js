@@ -27,9 +27,20 @@ const isValidEmail = (email) => {
   return emailRegex.test(email.trim());
 };
 
-const isValidPhone = (phone) => {
-  const digitsOnly = phone.replace(/\D/g, '');
-  return digitsOnly.length >= 10 && digitsOnly.length <= 15;
+// UK phone validation (+44 or 07xxx format)
+const isValidUKPhone = (phone) => {
+  const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+  // UK format: +447xxx, 07xxx, 447xxx (10-11 digits after code)
+  const ukRegex = /^(\+44|44|0)7\d{9}$/;
+  return ukRegex.test(cleanPhone);
+};
+
+// Ghana phone validation (+233 or 0xxx format)
+const isValidGhanaPhone = (phone) => {
+  const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+  // Ghana format: +233xxx, 233xxx, 0xxx (9 digits after code)
+  const ghanaRegex = /^(\+233|233|0)[2-9]\d{8}$/;
+  return ghanaRegex.test(cleanPhone);
 };
 
 export default function RegisterScreen({ navigation }) {
@@ -82,8 +93,10 @@ export default function RegisterScreen({ navigation }) {
     
     if (!phone.trim()) {
       newErrors.phone = "Phone number is required";
-    } else if (!isValidPhone(phone)) {
-      newErrors.phone = "Please enter a valid phone number";
+    } else if (driverType === 'UK' && !isValidUKPhone(phone)) {
+      newErrors.phone = "Please enter a valid UK phone number (e.g. +44 7123 456789)";
+    } else if (driverType === 'Ghana' && !isValidGhanaPhone(phone)) {
+      newErrors.phone = "Please enter a valid Ghana phone number (e.g. +233 24 123 4567)";
     }
     
     if (!password) {
@@ -218,7 +231,11 @@ export default function RegisterScreen({ navigation }) {
                     styles.driverTypeButton,
                     driverType === 'UK' && styles.driverTypeActive
                   ]}
-                  onPress={() => setDriverType('UK')}
+                  onPress={() => { 
+                    setDriverType('UK'); 
+                    setPhone(''); 
+                    setErrors(prev => ({ ...prev, phone: null })); 
+                  }}
                 >
                   <Ionicons 
                     name="car-sport" 
@@ -235,7 +252,11 @@ export default function RegisterScreen({ navigation }) {
                     styles.driverTypeButton,
                     driverType === 'Ghana' && styles.driverTypeActive
                   ]}
-                  onPress={() => setDriverType('Ghana')}
+                  onPress={() => { 
+                    setDriverType('Ghana'); 
+                    setPhone(''); 
+                    setErrors(prev => ({ ...prev, phone: null })); 
+                  }}
                 >
                   <Ionicons 
                     name="car-sport" 
@@ -252,12 +273,16 @@ export default function RegisterScreen({ navigation }) {
 
             {/* Form Inputs */}
             {renderInput('Full Name', fullName, setFullName, 'John Doe', 'person-outline', 'fullName')}
-            {renderInput('Email Address', email, setEmail, 'driver@email.com', 'mail-outline', 'email', { 
+            {renderInput('Email Address', email, setEmail, 
+              driverType === 'UK' ? 'driver@email.co.uk' : 'driver@email.com.gh', 
+              'mail-outline', 'email', { 
               keyboardType: 'email-address', 
               autoCapitalize: 'none',
               autoCorrect: false 
             })}
-            {renderInput('Phone Number', phone, setPhone, '+44 7123 456789', 'call-outline', 'phone', { 
+            {renderInput('Phone Number', phone, setPhone, 
+              driverType === 'UK' ? '+44 7123 456789' : '+233 24 123 4567', 
+              'call-outline', 'phone', { 
               keyboardType: 'phone-pad' 
             })}
             {renderInput('Password', password, setPassword, 'Min 6 characters', 'lock-closed-outline', 'password', { 

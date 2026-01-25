@@ -1,4 +1,11 @@
+/**
+ * Authentication Middleware
+ * Handles JWT verification and role-based access control
+ * @module middleware/auth
+ */
+
 const jwt = require('jsonwebtoken');
+const logger = require('../utils/logger');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -63,12 +70,18 @@ exports.verifyAdmin = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.error('Admin verification error:', error);
+    logger.error('Admin verification error', { error: error.message });
     return res.status(500).json({ message: 'Authorization error', error: error.message });
   }
 };
 
-// Optional auth - continues even if no token, but sets req.user if valid token exists
+/**
+ * Optional auth middleware
+ * Continues even if no token, but sets req.user if valid token exists
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Next middleware function
+ */
 exports.optionalAuth = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) {

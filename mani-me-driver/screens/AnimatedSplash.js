@@ -1,245 +1,231 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Image, Animated, StyleSheet, Text, Dimensions, StatusBar } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Animated, StyleSheet, Text, Dimensions, StatusBar, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
+// Brand Colors - Consistent across apps
+const COLORS = {
+  deepNavy: '#0B1F33',      // Primary background - premium, secure
+  skyBlue: '#6EC1FF',       // Brand name color
+  softGrey: '#8BA3B8',      // Tagline color - subtle, calm
+  white: '#FFFFFF',         // Logo "M" color
+  logoCircle: '#0D2847',    // Slightly lighter navy for logo circle
+};
+
 export default function AnimatedSplash({ onFinish }) {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const logoFade = useRef(new Animated.Value(0)).current;
-  const textSlide = useRef(new Animated.Value(30)).current;
-  const badgeFade = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  // Animation values
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.8)).current;
+  const logoTranslateY = useRef(new Animated.Value(20)).current;
+  const textOpacity = useRef(new Animated.Value(0)).current;
+  const badgeOpacity = useRef(new Animated.Value(0)).current;
+  const taglineOpacity = useRef(new Animated.Value(0)).current;
+  const dot1Opacity = useRef(new Animated.Value(0.3)).current;
+  const dot2Opacity = useRef(new Animated.Value(0.3)).current;
+  const dot3Opacity = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
-    // Start pulse animation
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.05,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    pulse.start();
-
-    // Main animation sequence
-    Animated.sequence([
-      // Logo fade in and scale
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 8,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoFade, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-      ]),
-      // Text slide up
-      Animated.parallel([
-        Animated.timing(textSlide, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(badgeFade, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]),
-      // Wait
-      Animated.delay(1000),
-      // Fade out
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1.1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]),
+    // Stage 1: Logo fades in with gentle slide up and scale
+    Animated.parallel([
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(logoScale, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoTranslateY, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
     ]).start(() => {
-      pulse.stop();
-      onFinish();
+      // Stage 2: Brand name fades in
+      Animated.timing(textOpacity, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
+      }).start(() => {
+        // Stage 3: Driver badge and tagline fade in
+        Animated.parallel([
+          Animated.timing(badgeOpacity, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(taglineOpacity, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
     });
 
-    return () => pulse.stop();
+    // Loading dots animation (loops)
+    const animateDots = () => {
+      const dotSequence = Animated.sequence([
+        Animated.timing(dot1Opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.timing(dot2Opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.timing(dot3Opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.parallel([
+          Animated.timing(dot1Opacity, { toValue: 0.3, duration: 200, useNativeDriver: true }),
+          Animated.timing(dot2Opacity, { toValue: 0.3, duration: 200, useNativeDriver: true }),
+          Animated.timing(dot3Opacity, { toValue: 0.3, duration: 200, useNativeDriver: true }),
+        ]),
+      ]);
+      dotSequence.start(() => animateDots());
+    };
+    
+    // Start dots after a delay
+    const dotsTimer = setTimeout(animateDots, 800);
+
+    // Finish splash after 2.5 seconds (increased for better visibility)
+    const finishTimer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(logoOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.timing(textOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.timing(badgeOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.timing(taglineOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+      ]).start(() => onFinish());
+    }, 2500);
+
+    return () => {
+      clearTimeout(dotsTimer);
+      clearTimeout(finishTimer);
+    };
   }, []);
 
   return (
-    <LinearGradient
-      colors={['#0B1A33', '#071A2C', '#051525']}
-      style={styles.container}
-    >
-      <StatusBar barStyle="light-content" backgroundColor="#0B1A33" />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.deepNavy} />
       
-      {/* Background decorative circles */}
-      <View style={styles.bgCircle1} />
-      <View style={styles.bgCircle2} />
-      
-      <Animated.View
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [{ scale: scaleAnim }],
-          },
-        ]}
-      >
-        {/* Logo with glow effect */}
-        <Animated.View style={[
-          styles.logoWrapper,
-          { 
-            opacity: logoFade,
-            transform: [{ scale: pulseAnim }]
-          }
-        ]}>
-          <View style={styles.logoGlow} />
-          <Image
-            source={require('../assets/logo.png')}
-            style={styles.logo}
+      {/* Main content centered */}
+      <View style={styles.content}>
+        {/* Circular Logo */}
+        <Animated.View
+          style={[
+            styles.logoCircle,
+            {
+              opacity: logoOpacity,
+              transform: [
+                { scale: logoScale },
+                { translateY: logoTranslateY },
+              ],
+            },
+          ]}
+        >
+          <Image 
+            source={require('../assets/logo.png')} 
+            style={styles.logoImage}
             resizeMode="contain"
           />
         </Animated.View>
 
-        {/* Brand Text */}
-        <Animated.View style={[
-          styles.textContainer,
-          {
-            opacity: logoFade,
-            transform: [{ translateY: textSlide }]
-          }
-        ]}>
-          <Text style={styles.brandName}>Mani Me</Text>
-          <View style={styles.driverBadge}>
-            <Ionicons name="car-sport" size={16} color="#83C5FA" />
-            <Text style={styles.driverText}>DRIVER</Text>
-          </View>
+        {/* Brand Name */}
+        <Animated.Text style={[styles.brandName, { opacity: textOpacity }]}>
+          Mani Me
+        </Animated.Text>
+
+        {/* Driver Badge */}
+        <Animated.View style={[styles.driverBadge, { opacity: badgeOpacity }]}>
+          <Ionicons name="car-sport" size={16} color={COLORS.skyBlue} />
+          <Text style={styles.driverText}>DRIVER</Text>
         </Animated.View>
 
         {/* Tagline */}
-        <Animated.Text style={[
-          styles.tagline,
-          { opacity: badgeFade }
-        ]}>
-          Delivering trust, one parcel at a time
+        <Animated.Text style={[styles.tagline, { opacity: taglineOpacity }]}>
+          Your Parcel, Our Priority
         </Animated.Text>
-      </Animated.View>
 
-      {/* Bottom branding */}
-      <Animated.View style={[styles.bottom, { opacity: badgeFade }]}>
-        <Text style={styles.bottomText}>UK to Ghana Delivery</Text>
-      </Animated.View>
-    </LinearGradient>
+        {/* Loading Dots */}
+        <View style={styles.dotsContainer}>
+          <Animated.View style={[styles.dot, { opacity: dot1Opacity }]} />
+          <Animated.View style={[styles.dot, { opacity: dot2Opacity }]} />
+          <Animated.View style={[styles.dot, { opacity: dot3Opacity }]} />
+        </View>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.deepNavy,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  bgCircle1: {
-    position: 'absolute',
-    top: -height * 0.2,
-    right: -width * 0.3,
-    width: width * 0.8,
-    height: width * 0.8,
-    borderRadius: width * 0.4,
-    backgroundColor: 'rgba(131, 197, 250, 0.03)',
-  },
-  bgCircle2: {
-    position: 'absolute',
-    bottom: -height * 0.15,
-    left: -width * 0.2,
-    width: width * 0.6,
-    height: width * 0.6,
-    borderRadius: width * 0.3,
-    backgroundColor: 'rgba(131, 197, 250, 0.02)',
   },
   content: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoWrapper: {
+  logoCircle: {
+    width: width * 0.38,
+    height: width * 0.38,
+    borderRadius: width * 0.19,
+    backgroundColor: COLORS.logoCircle,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    // Subtle shadow for depth
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+    // Subtle border for definition
+    borderWidth: 2,
+    borderColor: 'rgba(110, 193, 255, 0.15)',
+    overflow: 'hidden',
   },
-  logoGlow: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(131, 197, 250, 0.15)',
-  },
-  logo: {
-    width: 140,
-    height: 140,
-    borderRadius: 28,
-  },
-  textContainer: {
-    alignItems: 'center',
+  logoImage: {
+    width: '100%',
+    height: '100%',
   },
   brandName: {
-    fontSize: 42,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-    marginBottom: 12,
+    marginTop: 24,
+    fontSize: 32,
+    fontWeight: '600',
+    color: COLORS.skyBlue,
+    letterSpacing: 1,
   },
   driverBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(131, 197, 250, 0.15)',
+    backgroundColor: 'rgba(110, 193, 255, 0.12)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     gap: 8,
+    marginTop: 12,
   },
   driverText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#83C5FA',
+    color: COLORS.skyBlue,
     letterSpacing: 3,
   },
   tagline: {
-    marginTop: 32,
+    marginTop: 16,
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontWeight: '500',
+    fontWeight: '400',
+    color: COLORS.softGrey,
+    letterSpacing: 1.5,
   },
-  bottom: {
-    position: 'absolute',
-    bottom: 60,
+  dotsContainer: {
+    flexDirection: 'row',
+    marginTop: 40,
+    gap: 8,
   },
-  bottomText: {
-    fontSize: 13,
-    color: 'rgba(131, 197, 250, 0.5)',
-    fontWeight: '500',
-    letterSpacing: 1,
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.skyBlue,
   },
 });

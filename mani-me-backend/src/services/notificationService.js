@@ -1,4 +1,69 @@
 /**
+ * Notification Service
+ * Handles all push notifications via Expo
+ * Integrates with job queue for async processing
+ */
+const { Expo } = require('expo-server-sdk');
+const logger = require('../utils/logger');
+const { addJob, registerProcessor, QUEUE_NAMES } = require('../utils/jobQueue');
+
+// Create a new Expo SDK client
+const expo = new Expo();
+
+/**
+ * Send push notification to a user's device
+ * @param {string} pushToken - Expo push token
+ * @param {string} title - Notification title
+ * @param {string} body - Notification body
+ * @param {object} data - Additional data to send with notification
+ * @returns {Promise<Array>} Ticket chunk from Expo
+ */
+async function sendPushNotification(pushToken, title, body, data = {}) {
+  // Check that the push token is valid
+  if (!Expo.isExpoPushToken(pushToken)) {
+    logger.warn('Invalid Expo push token:', { pushToken });
+    return null;
+  }
+
+  // Construct the notification message
+  const message = {
+    to: pushToken,
+    sound: 'default',
+    title: title,
+    body: body,
+    data: data,
+    priority: 'high',
+  };
+
+  try {
+    // Send the notification
+    const ticketChunk = await expo.sendPushNotificationsAsync([message]);
+    logger.info('Notification sent:', { pushToken: pushToken.slice(-10), title });
+    return ticketChunk;
+  } catch (error) {
+    logger.error('Error sending notification:', { error: error.message, pushToken: pushToken.slice(-10) });
+    throw error;
+  }
+}
+
+/**
+ * Queue a notification for async sending (uses job queue if available)
+ * @param {string} pushToken - Expo push token
+ * @param {string} title - Notification title
+ * @param {string} body - Notification body
+ * @param {object} data - Additional data
+ */
+async function queueNotification(pushToken, title, body, data = {}) {
+  return addJob(QUEUE_NAMES.NOTIFICATIONS, { pushToken, title, body, data });
+}
+
+// Register notification processor
+registerProcessor(QUEUE_NAMES.NOTIFICATIONS, async (data) => {
+  const { pushToken, title, body, data: notifData } = data;
+  return sendPushNotification(pushToken, title, body, notifData);
+});
+
+/**
  * Send notification to driver when a pickup is assigned
  * @param {string} pushToken - Driver's Expo push token
  * @param {object} shipment - Shipment object (with address, tracking number, etc)
@@ -15,45 +80,6 @@ async function sendPickupAssignedNotification(pushToken, shipment, driver = {}) 
     role: 'driver',
     driverId: driver.id || undefined,
   });
-}
-const { Expo } = require('expo-server-sdk');
-
-// Create a new Expo SDK client
-const expo = new Expo();
-
-/**
- * Send push notification to a user's device
- * @param {string} pushToken - Expo push token
- * @param {string} title - Notification title
- * @param {string} body - Notification body
- * @param {object} data - Additional data to send with notification
- */
-async function sendPushNotification(pushToken, title, body, data = {}) {
-  // Check that the push token is valid
-  if (!Expo.isExpoPushToken(pushToken)) {
-    console.error(`Push token ${pushToken} is not a valid Expo push token`);
-    return;
-  }
-
-  // Construct the notification message
-  const message = {
-    to: pushToken,
-    sound: 'default',
-    title: title,
-    body: body,
-    data: data,
-    priority: 'high',
-  };
-
-  try {
-    // Send the notification
-    const ticketChunk = await expo.sendPushNotificationsAsync([message]);
-    console.log('Notification sent:', ticketChunk);
-    return ticketChunk;
-  } catch (error) {
-    console.error('Error sending notification:', error);
-    throw error;
-  }
 }
 
 /**

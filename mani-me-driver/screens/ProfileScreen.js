@@ -132,7 +132,11 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
         {/* Profile Details */}
         <View style={styles.section}> 
           <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', marginBottom: 20, letterSpacing: -0.5 }}>Profile Details</Text>
@@ -189,7 +193,7 @@ export default function ProfileScreen({ navigation }) {
             style={[styles.logoutButton, { backgroundColor: colors.error, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 }]}
             onPress={async () => {
               await logout();
-              navigation.replace('Login');
+              // Navigation happens automatically when user becomes null (App.js switches to AuthStack)
             }}
           >
             <Ionicons name="log-out-outline" size={24} color={colors.accent} style={{ marginRight: 10 }} />

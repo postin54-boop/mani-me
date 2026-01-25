@@ -4,6 +4,8 @@ const { user: User, shipment: Shipment } = require('../models');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const rateLimit = require('express-rate-limit');
+const { escapeRegex } = require('../utils/sanitize');
+const logger = require('../utils/logger');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -19,7 +21,7 @@ const adminLoginLimiter = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful logins
   handler: (req, res) => {
-    console.warn('⚠️  Admin login rate limit exceeded:', req.ip);
+    logger.warn('Admin login rate limit exceeded', { ip: req.ip });
     res.status(429).json({
       message: 'Too many admin login attempts. Please try again after 15 minutes.',
       retryAfter: Math.ceil(req.rateLimit.resetTime / 1000)
@@ -48,7 +50,7 @@ const verifyAdmin = (req, res, next) => {
     req.userId = decoded.user_id || decoded.id || decoded.userId;
     next();
   } catch (error) {
-    console.error('Admin token verification error:', error.message);
+    logger.error('Admin token verification error', { error: error.message });
     return res.status(401).json({ message: 'Invalid token' });
   }
 };
@@ -67,7 +69,7 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
     const adminUser = await User.findOne({ email, role: 'ADMIN' });
 
     if (!adminUser) {
-      console.warn('⚠️  Failed admin login attempt:', email, 'from IP:', req.ip);
+      logger.warn('Failed admin login attempt', { email, ip: req.ip });
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
@@ -75,7 +77,7 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
     const isValidPassword = await bcrypt.compare(password, adminUser.password);
     
     if (!isValidPassword) {
-      console.warn('⚠️  Failed admin password for:', email, 'from IP:', req.ip);
+      logger.warn('Failed admin password', { email, ip: req.ip });
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
@@ -91,7 +93,7 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
       { expiresIn: '2h' } // Reduced from 24h for security
     );
 
-    console.log('✅ Admin login successful:', email, 'from IP:', req.ip);
+    logger.info('Admin login successful', { email, ip: req.ip });
 
     res.json({ 
       token, 
@@ -104,7 +106,7 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Admin login error:', error);
+    logger.error('Admin login error', { error: error.message });
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -123,7 +125,7 @@ router.get('/verify', verifyAdmin, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Token verification error:', error);
+    logger.error('Token verification error', { error: error.message });
     res.status(401).json({ valid: false, message: 'Invalid token' });
   }
 });
@@ -169,10 +171,11 @@ router.get('/orders', verifyAdmin, async (req, res) => {
       query.status = status;
     }
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { tracking_number: { $regex: search, $options: 'i' } },
-        { sender_name: { $regex: search, $options: 'i' } },
-        { receiver_name: { $regex: search, $options: 'i' } }
+        { tracking_number: { $regex: safeSearch, $options: 'i' } },
+        { sender_name: { $regex: safeSearch, $options: 'i' } },
+        { receiver_name: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 
@@ -226,10 +229,11 @@ router.get('/users', verifyAdmin, async (req, res) => {
       query.role = role;
     }
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { email: { $regex: search, $options: 'i' } },
-        { fullName: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } }
+        { email: { $regex: safeSearch, $options: 'i' } },
+        { fullName: { $regex: safeSearch, $options: 'i' } },
+        { phone: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 
@@ -381,7 +385,7 @@ router.put('/shipments/:id/assign-pickup-driver', verifyAdmin, async (req, res) 
         const { sendPickupAssignedNotification } = require('../services/notificationService');
         await sendPickupAssignedNotification(driver.push_token, shipment, driver);
       } catch (notifError) {
-        console.error('Failed to send notification:', notifError);
+        logger.error('Failed to send pickup notification', { error: notifError.message, driverId: driver_id });
       }
     }
 
@@ -434,7 +438,7 @@ router.put('/shipments/:id/assign-delivery-driver', verifyAdmin, async (req, res
         const { sendDeliveryAssignedNotification } = require('../services/notificationService');
         await sendDeliveryAssignedNotification(driver.push_token, shipment, driver);
       } catch (notifError) {
-        console.error('Failed to send notification:', notifError);
+        logger.error('Failed to send delivery notification', { error: notifError.message, driverId: driver_id });
       }
     }
 

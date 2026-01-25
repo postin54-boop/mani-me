@@ -170,6 +170,11 @@ shipmentSchema.index({ delivery_driver_id: 1, shipment_status: 1 }); // Ghana dr
 shipmentSchema.index({ pickup_date: 1 }); // Scheduled pickups
 shipmentSchema.index({ delivered_at: 1 }); // Delivery reports
 
+// Search indexes (phone/email lookups)
+shipmentSchema.index({ sender_phone: 1 }); // Phone search
+shipmentSchema.index({ sender_email: 1 }); // Email search
+shipmentSchema.index({ receiver_phone: 1 }); // Receiver phone search
+
 // Compound index for admin dashboard
 shipmentSchema.index({ shipment_status: 1, pickup_city: 1, createdAt: -1 });
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, StatusBar, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { initializeApp } from 'firebase/app';
@@ -17,6 +18,7 @@ export default function ChatScreen({ route, navigation }) {
     tracking_number = null,
   } = route?.params || {};
   
+  const insets = useSafeAreaInsets();
   const { colors, isDark } = useThemeColors();
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
@@ -226,7 +228,7 @@ export default function ChatScreen({ route, navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <View style={[styles.inputBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}> 
+        <View style={[styles.inputBar, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 10) }]}> 
           <View style={[styles.inputBox, { backgroundColor: colors.surface }]}> 
             <TextInput
               style={[styles.inputText, { color: colors.text }]}

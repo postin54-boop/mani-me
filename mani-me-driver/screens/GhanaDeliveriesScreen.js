@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '../constants/theme';
 import { fetchDriverAssignmentsPaginated, updateDeliveryStatus } from '../utils/optimizedApi';
 import { useAuth } from '../context/AuthContext';
+import logger from '../utils/logger';
 
 export default function GhanaDeliveriesScreen({ navigation }) {
   const { colors, isDark } = useThemeColors();
@@ -115,7 +116,7 @@ export default function GhanaDeliveriesScreen({ navigation }) {
   };
 
   const chatReceiver = (deliveryId) => {
-    console.log('Chat with receiver:', deliveryId);
+    logger.log('Chat with receiver:', deliveryId);
   };
 
   const handleDeliveryProof = (delivery) => {

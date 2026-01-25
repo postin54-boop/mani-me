@@ -10,7 +10,7 @@ export default {
     splash: {
       image: "./assets/splash-icon.png",
       resizeMode: "contain",
-      backgroundColor: "#0B1A33"
+      backgroundColor: "#0B1F33"
     },
     updates: {
       fallbackToCacheTimeout: 0
@@ -23,6 +23,8 @@ export default {
       bundleIdentifier: "com.manime.app"
     },
     android: {
+      compileSdkVersion: 34,
+      targetSdkVersion: 34,
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#0B1A33"
@@ -56,10 +58,10 @@ export default {
       apiUrl: null,
       stripePublishableKey: process.env.STRIPE_KEY || process.env.EXPO_PUBLIC_STRIPE_KEY || "pk_test_51SkMiJRx556lxcckTLrW8xVroC3TflDIKMBfSdat6KAoaLXO4MQPBkUNi4F0pLizmMp6lmHjhxQJGoXu6Iq3PrnB00QfalR70y",
       environment: process.env.NODE_ENV || "development",
-      
       eas: {
-        projectId: "your-project-id"
+        projectId: "3638c63b-4837-422f-a329-b7e169066774"
       }
-    }
+    },
+    owner: "postin54"
   }
 };

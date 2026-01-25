@@ -13,6 +13,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import logger from '../utils/logger';
 
 const { width, height } = Dimensions.get('window');
 
@@ -84,7 +85,7 @@ export default function OnboardingScreen({ navigation }) {
     try {
       await AsyncStorage.setItem('driverHasSeenOnboarding', 'true');
     } catch (e) {
-      console.log('Error saving onboarding state:', e);
+      logger.error('Error saving onboarding state:', e);
     }
     navigation.replace('Login');
   };

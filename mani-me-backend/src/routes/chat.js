@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const logger = require('../utils/logger');
 const { db } = require('../firebase');
 const Message = require('../models/message');
+const { verifyToken, verifyAdmin, optionalAuth } = require('../middleware/auth');
 
 // Send a message (supports both shipment chat and support chat)
-router.post('/send', async (req, res) => {
+// Protected: requires authentication
+router.post('/send', verifyToken, async (req, res) => {
   try {
     const { shipment_id, sender_id, sender_role, message, sender_name, chat_type } = req.body;
 
@@ -37,7 +40,7 @@ router.post('/send', async (req, res) => {
       const mongoMessage = new Message(messageData);
       await mongoMessage.save();
     } catch (mongoError) {
-      console.warn('MongoDB save failed (non-critical):', mongoError.message);
+      logger.warn('MongoDB save failed (non-critical)', { error: mongoError.message });
     }
 
     res.json({
@@ -47,13 +50,14 @@ router.post('/send', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error sending message:', error);
+    logger.error('Error sending message', { error: error.message, senderId: req.body.sender_id });
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
 
 // Get messages for a shipment
-router.get('/shipment/:shipment_id', async (req, res) => {
+// Protected: requires authentication
+router.get('/shipment/:shipment_id', verifyToken, async (req, res) => {
   try {
     const { shipment_id } = req.params;
 
@@ -73,8 +77,35 @@ router.get('/shipment/:shipment_id', async (req, res) => {
     res.json({ messages });
 
   } catch (error) {
-    console.error('Error fetching messages:', error);
+    logger.error('Error fetching messages', { error: error.message, shipmentId: req.params.shipment_id });
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Alias: GET /messages/:shipment_id - for driver app compatibility
+// Protected: requires authentication
+router.get('/messages/:shipment_id', verifyToken, async (req, res) => {
+  try {
+    const { shipment_id } = req.params;
+
+    const messagesSnapshot = await db.collection('messages')
+      .where('shipment_id', '==', shipment_id)
+      .orderBy('timestamp', 'asc')
+      .get();
+
+    const messages = [];
+    messagesSnapshot.forEach(doc => {
+      messages.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+
+    res.json({ success: true, data: { messages } });
+
+  } catch (error) {
+    logger.error('Error fetching messages', { error: error.message, shipmentId: req.params.shipment_id });
+    res.status(500).json({ success: false, error: "Server error" });
   }
 });
 
@@ -101,13 +132,14 @@ router.put('/mark-read/:shipment_id', async (req, res) => {
     res.json({ message: "Messages marked as read" });
 
   } catch (error) {
-    console.error('Error marking messages as read:', error);
+    logger.error('Error marking messages as read', { error: error.message, shipmentId: req.params.shipment_id });
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // Get unread message count for a user
-router.get('/unread/:user_id', async (req, res) => {
+// Protected: requires authentication
+router.get('/unread/:user_id', verifyToken, async (req, res) => {
   try {
     const { user_id } = req.params;
 
@@ -119,13 +151,14 @@ router.get('/unread/:user_id', async (req, res) => {
     res.json({ unread_count: messagesSnapshot.size });
 
   } catch (error) {
-    console.error('Error fetching unread count:', error);
+    logger.error('Error fetching unread count', { error: error.message, userId: req.params.user_id });
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // Get support chat messages for a user
-router.get('/support/:user_id', async (req, res) => {
+// Protected: requires authentication
+router.get('/support/:user_id', verifyToken, async (req, res) => {
   try {
     const { user_id } = req.params;
     const conversation_id = `support_${user_id}`;
@@ -146,13 +179,14 @@ router.get('/support/:user_id', async (req, res) => {
     res.json({ messages });
 
   } catch (error) {
-    console.error('Error fetching support messages:', error);
+    logger.error('Error fetching support messages', { error: error.message, userId: req.params.user_id });
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // Get all support conversations (for admin)
-router.get('/support-conversations', async (req, res) => {
+// Protected: requires admin authentication
+router.get('/support-conversations', verifyAdmin, async (req, res) => {
   try {
     // Get distinct support conversations
     const messagesSnapshot = await db.collection('messages')
@@ -180,7 +214,7 @@ router.get('/support-conversations', async (req, res) => {
     res.json({ conversations: Array.from(conversationsMap.values()) });
 
   } catch (error) {
-    console.error('Error fetching support conversations:', error);
+    logger.error('Error fetching support conversations', { error: error.message });
     res.status(500).json({ error: "Server error" });
   }
 });

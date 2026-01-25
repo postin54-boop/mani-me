@@ -45,4 +45,68 @@ router.post('/:notificationId/read', verifyToken, async (req, res) => {
   }
 });
 
+// Get notifications for a specific driver
+// Used by driver app: GET /api/notifications/driver/:driverId
+router.get('/driver/:driverId', verifyToken, async (req, res) => {
+  try {
+    const Notification = require('../models/notification');
+    const { driverId } = req.params;
+    
+    // Find notifications for this driver
+    const notifications = await Notification.find({ 
+      $or: [
+        { userId: driverId },
+        { driverId: driverId },
+        { recipientId: driverId }
+      ]
+    })
+      .sort({ createdAt: -1 })
+      .limit(50);
+    
+    // Get unread count
+    const unreadCount = await Notification.countDocuments({
+      $or: [
+        { userId: driverId },
+        { driverId: driverId },
+        { recipientId: driverId }
+      ],
+      read: { $ne: true }
+    });
+    
+    res.json({ 
+      success: true, 
+      notifications,
+      unreadCount
+    });
+  } catch (err) {
+    console.error('Error fetching driver notifications:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Mark all notifications as read for a driver
+router.post('/driver/:driverId/read-all', verifyToken, async (req, res) => {
+  try {
+    const Notification = require('../models/notification');
+    const { driverId } = req.params;
+    
+    await Notification.updateMany(
+      { 
+        $or: [
+          { userId: driverId },
+          { driverId: driverId },
+          { recipientId: driverId }
+        ],
+        read: { $ne: true }
+      },
+      { $set: { read: true } }
+    );
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error marking notifications as read:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;

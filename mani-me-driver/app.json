@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#071D33"
+      "backgroundColor": "#0B1F33"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -21,7 +21,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#071D33"
+        "backgroundColor": "#0B1F33"
       },
       "package": "com.yourcompany.manimedriver",
       "permissions": [
@@ -32,7 +32,12 @@
       "favicon": "./assets/app-icon.png"
     },
     "plugins": [
-      "expo-barcode-scanner"
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Mani Me Driver to access your camera for scanning parcels."
+        }
+      ]
     ],
     "extra": {
       "eas": {

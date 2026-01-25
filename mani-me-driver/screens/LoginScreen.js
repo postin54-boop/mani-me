@@ -127,7 +127,6 @@ export default function LoginScreen({ navigation }) {
               transform: [{ scale: iconScale }]
             }
           ]}>
-            <View style={styles.logoGlow} />
             <Image 
               source={require('../assets/logo.png')} 
               style={styles.logo}
@@ -293,17 +292,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  logoGlow: {
-    position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(131, 197, 250, 0.15)',
-  },
   logo: {
     width: 120,
     height: 120,
-    borderRadius: 24,
+    borderRadius: 16,
   },
   headerContainer: {
     alignItems: 'center',

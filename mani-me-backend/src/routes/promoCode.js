@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const logger = require('../utils/logger');
 const PromoCode = require('../models/promoCode');
+const { verifyToken, verifyAdmin } = require('../middleware/auth');
 
 // Get all promo codes (admin only)
-router.get('/', async (req, res) => {
+// Protected: requires admin authentication
+router.get('/', verifyAdmin, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
@@ -31,13 +34,14 @@ router.get('/', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching promo codes:', error);
+    logger.error('Error fetching promo codes', { error: error.message });
     res.status(500).json({ error: 'Failed to fetch promo codes' });
   }
 });
 
 // Get single promo code by ID
-router.get('/:id', async (req, res) => {
+// Protected: requires admin authentication
+router.get('/:id', verifyAdmin, async (req, res) => {
   try {
     const promoCode = await PromoCode.findById(req.params.id);
     if (!promoCode) {
@@ -45,13 +49,14 @@ router.get('/:id', async (req, res) => {
     }
     res.json(promoCode);
   } catch (error) {
-    console.error('Error fetching promo code:', error);
+    logger.error('Error fetching promo code', { error: error.message, id: req.params.id });
     res.status(500).json({ error: 'Failed to fetch promo code' });
   }
 });
 
 // Create new promo code (admin only)
-router.post('/', async (req, res) => {
+// Protected: requires admin authentication
+router.post('/', verifyAdmin, async (req, res) => {
   try {
     const { 
       code, 
@@ -96,7 +101,7 @@ router.post('/', async (req, res) => {
     await promoCode.save();
     res.status(201).json(promoCode);
   } catch (error) {
-    console.error('Error creating promo code:', error);
+    logger.error('Error creating promo code', { error: error.message, code: req.body.code });
     if (error.code === 11000) {
       return res.status(400).json({ error: 'Promo code already exists' });
     }
@@ -105,7 +110,8 @@ router.post('/', async (req, res) => {
 });
 
 // Update promo code (admin only)
-router.put('/:id', async (req, res) => {
+// Protected: requires admin authentication
+router.put('/:id', verifyAdmin, async (req, res) => {
   try {
     const { 
       code, 
@@ -148,13 +154,14 @@ router.put('/:id', async (req, res) => {
     await promoCode.save();
     res.json(promoCode);
   } catch (error) {
-    console.error('Error updating promo code:', error);
+    logger.error('Error updating promo code', { error: error.message, id: req.params.id });
     res.status(500).json({ error: 'Failed to update promo code' });
   }
 });
 
 // Delete promo code (admin only)
-router.delete('/:id', async (req, res) => {
+// Protected: requires admin authentication
+router.delete('/:id', verifyAdmin, async (req, res) => {
   try {
     const promoCode = await PromoCode.findByIdAndDelete(req.params.id);
     if (!promoCode) {
@@ -162,7 +169,7 @@ router.delete('/:id', async (req, res) => {
     }
     res.json({ message: 'Promo code deleted successfully' });
   } catch (error) {
-    console.error('Error deleting promo code:', error);
+    logger.error('Error deleting promo code', { error: error.message, id: req.params.id });
     res.status(500).json({ error: 'Failed to delete promo code' });
   }
 });
@@ -243,7 +250,7 @@ router.post('/validate', async (req, res) => {
       discount: Math.round(discount * 100) / 100 // Round to 2 decimal places
     });
   } catch (error) {
-    console.error('Error validating promo code:', error);
+    logger.error('Error validating promo code', { error: error.message, code: req.body.code });
     res.status(500).json({ valid: false, message: 'Failed to validate promo code' });
   }
 });
@@ -272,7 +279,7 @@ router.post('/apply', async (req, res) => {
 
     res.json({ message: 'Promo code applied successfully', usedCount: promo.usedCount });
   } catch (error) {
-    console.error('Error applying promo code:', error);
+    logger.error('Error applying promo code', { error: error.message, code: req.body.code });
     res.status(500).json({ error: 'Failed to apply promo code' });
   }
 });
@@ -297,7 +304,7 @@ router.get('/stats/overview', async (req, res) => {
       totalUsage: totalUsage.length > 0 ? totalUsage[0].totalUsed : 0
     });
   } catch (error) {
-    console.error('Error fetching promo stats:', error);
+    logger.error('Error fetching promo stats', { error: error.message });
     res.status(500).json({ error: 'Failed to fetch promo stats' });
   }
 });

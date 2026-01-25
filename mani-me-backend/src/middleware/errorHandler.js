@@ -17,6 +17,7 @@ const {
   ServiceUnavailableError,
   PaymentError,
 } = require('../utils/errors');
+const logger = require('../utils/logger');
 
 /**
  * Async handler wrapper - eliminates try/catch in controllers
@@ -126,9 +127,9 @@ const errorHandler = (err, req, res, next) => {
   // Only log stack for unexpected/server errors
   if (!apiError.isOperational || apiError.statusCode >= 500) {
     logData.stack = err.stack;
-    console.error('❌ SERVER ERROR:', JSON.stringify(logData, null, 2));
+    logger.error('Server error', logData);
   } else if (process.env.NODE_ENV === 'development') {
-    console.warn('⚠️  CLIENT ERROR:', JSON.stringify(logData, null, 2));
+    logger.warn('Client error', logData);
   }
 
   // Set retry-after header for rate limit errors

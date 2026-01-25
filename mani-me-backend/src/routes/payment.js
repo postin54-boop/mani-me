@@ -1,17 +1,20 @@
 const express = require('express');
 const router = express.Router();
+const logger = require('../utils/logger');
 const validate = require('../middleware/validate');
 const { payment: paymentValidation } = require('../validations');
+const { verifyToken } = require('../middleware/auth');
+const { apiLimiter } = require('../middleware/rateLimiter');
 const PromoCode = require('../models/promoCode');
 
 // Stripe initialization - MUST have secret key
 if (!process.env.STRIPE_SECRET_KEY) {
-  console.error('⚠️  WARNING: STRIPE_SECRET_KEY not set - payments will fail');
+  logger.error('STRIPE_SECRET_KEY not set - payments will fail');
 }
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-// Validate promo code (uses database now)
-router.post('/validate-promo', async (req, res) => {
+// Validate promo code (uses database now) - rate limited to prevent brute force
+router.post('/validate-promo', apiLimiter, async (req, res) => {
   try {
     const { code, orderValue } = req.body;
 
@@ -76,13 +79,13 @@ router.post('/validate-promo', async (req, res) => {
       discount: Math.round(discount * 100) / 100
     });
   } catch (error) {
-    console.error('Promo validation error:', error);
+    logger.error('Promo validation error', { error: error.message, code: req.body.code });
     res.status(500).json({ valid: false, message: 'Server error' });
   }
 });
 
-// Create payment intent
-router.post('/create-intent', async (req, res) => {
+// Create payment intent (requires authentication)
+router.post('/create-intent', verifyToken, async (req, res) => {
   try {
     const { amount, currency = 'gbp' } = req.body;
 
@@ -103,7 +106,7 @@ router.post('/create-intent', async (req, res) => {
       clientSecret: paymentIntent.client_secret,
     });
   } catch (error) {
-    console.error('Payment intent error:', error);
+    logger.error('Payment intent error', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -118,7 +121,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    logger.error('Webhook signature verification failed', { error: err.message });
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
@@ -126,15 +129,15 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   switch (event.type) {
     case 'payment_intent.succeeded':
       const paymentIntent = event.data.object;
-      console.log('PaymentIntent was successful!', paymentIntent.id);
+      logger.info('PaymentIntent succeeded', { paymentIntentId: paymentIntent.id });
       // You can update your database here
       break;
     case 'payment_intent.payment_failed':
       const failedPayment = event.data.object;
-      console.log('Payment failed:', failedPayment.id);
+      logger.warn('Payment failed', { paymentIntentId: failedPayment.id });
       break;
     default:
-      console.log(`Unhandled event type ${event.type}`);
+      logger.debug('Unhandled webhook event', { type: event.type });
   }
 
   res.json({ received: true });
