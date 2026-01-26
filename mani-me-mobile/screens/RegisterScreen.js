@@ -98,6 +98,14 @@ const RegisterScreen = ({ navigation }) => {
       newErrors.password = 'Password is required';
     } else if (password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
+    } else if (!/[A-Z]/.test(password)) {
+      newErrors.password = 'Password must contain at least one uppercase letter';
+    } else if (!/[a-z]/.test(password)) {
+      newErrors.password = 'Password must contain at least one lowercase letter';
+    } else if (!/\d/.test(password)) {
+      newErrors.password = 'Password must contain at least one number';
+    } else if (!/[!@#$%^&*(),.?":{}|<>_\-]/.test(password)) {
+      newErrors.password = 'Password must contain at least one special character';
     }
 
     setErrors(newErrors);
@@ -126,7 +134,17 @@ const RegisterScreen = ({ navigation }) => {
         navigation.replace('Login');
       }
     } catch (error) {
-      Alert.alert('Registration Error', error.response?.data?.error || error.message);
+      const serverMessage = error.response?.data?.message || error.response?.data?.error;
+      const serverErrors = error.response?.data?.errors;
+      
+      let errorMsg = serverMessage || error.message || 'Registration failed';
+      
+      // If there are specific validation errors from server, show them
+      if (serverErrors && Array.isArray(serverErrors)) {
+        errorMsg = serverErrors.join('\n');
+      }
+      
+      Alert.alert('Registration Error', errorMsg);
     } finally {
       setLoading(false);
     }

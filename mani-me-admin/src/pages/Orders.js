@@ -118,7 +118,7 @@ function Orders() {
 
   const handleUpdateStatus = async () => {
     try {
-      await api.put(`/admin/orders/${selectedOrder.id}/status`, {
+      await api.put(`/api/admin/orders/${selectedOrder.id}/status`, {
         status: newStatus,
       });
       fetchOrders();
@@ -130,7 +130,7 @@ function Orders() {
 
   const handleUpdateWarehouseStatus = async (warehouseStatus) => {
     try {
-      await api.put(`/shipments/warehouse/${selectedOrder.parcel_id || selectedOrder.id}/status`, {
+      await api.put(`/api/shipments/warehouse/${selectedOrder.parcel_id || selectedOrder.id}/status`, {
         warehouse_status: warehouseStatus,
       });
       setSelectedOrder({ ...selectedOrder, warehouse_status: warehouseStatus });

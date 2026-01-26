@@ -336,7 +336,7 @@ function Layout({ children, onLogout }) {
                   '&:hover': { bgcolor: 'grey.100' },
                 }}
               >
-                <Badge badgeContent={4} color="error">
+                <Badge badgeContent={0} color="error">
                   <NotificationsIcon />
                 </Badge>
               </IconButton>
