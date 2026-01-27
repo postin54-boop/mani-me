@@ -26,10 +26,12 @@ import {
   Skeleton,
   alpha,
   Grid,
+  Tooltip,
 } from '@mui/material';
 import PrintIcon from '@mui/icons-material/Print';
 import DownloadIcon from '@mui/icons-material/Download';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import EditIcon from '@mui/icons-material/Edit';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import api from '../api';
@@ -55,7 +57,7 @@ function Orders() {
       setLabelImageUrl(null);
       try {
         // Use shipment id for label endpoint
-        const res = await api.get(`/labels/shipment/${order.id}`, { responseType: 'blob' });
+        const res = await api.get(`/labels/shipment/${order._id || order.id}`, { responseType: 'blob' });
         const url = URL.createObjectURL(res.data);
         setLabelImageUrl(url);
       } catch (err) {
@@ -118,27 +120,37 @@ function Orders() {
 
   const handleUpdateStatus = async () => {
     try {
-      await api.put(`/api/admin/orders/${selectedOrder.id}/status`, {
+      const orderId = selectedOrder._id || selectedOrder.id;
+      console.log('Updating order status:', orderId, 'to', newStatus);
+      const response = await api.put(`/api/admin/orders/${orderId}/status`, {
         status: newStatus,
       });
+      console.log('Update response:', response.data);
+      alert('Order status updated successfully!');
       fetchOrders();
       handleCloseDialog();
     } catch (error) {
       logger.error('Error updating order status:', error);
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to update order status';
+      alert(`Error: ${errorMsg}`);
     }
   };
 
   const handleUpdateWarehouseStatus = async (warehouseStatus) => {
     try {
-      await api.put(`/api/shipments/warehouse/${selectedOrder.parcel_id || selectedOrder.id}/status`, {
+      const parcelId = selectedOrder.parcel_id || selectedOrder._id || selectedOrder.id;
+      console.log('Updating warehouse status:', parcelId, 'to', warehouseStatus);
+      const response = await api.put(`/api/shipments/warehouse/${parcelId}/status`, {
         warehouse_status: warehouseStatus,
       });
+      console.log('Warehouse update response:', response.data);
       setSelectedOrder({ ...selectedOrder, warehouse_status: warehouseStatus });
-      alert('Warehouse status updated successfully');
+      alert('Warehouse status updated successfully!');
       fetchOrders();
     } catch (error) {
       logger.error('Error updating warehouse status:', error);
-      alert(getErrorMessage(error));
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to update warehouse status';
+      alert(`Error: ${errorMsg}`);
     }
   };
 
@@ -272,9 +284,10 @@ function Orders() {
           borderRadius: 2,
           boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
           border: 'none',
+          overflowX: 'auto',
         }}
       >
-        <Table>
+        <Table sx={{ minWidth: 1200 }}>
           <TableHead>
             <TableRow sx={{ bgcolor: '#F5F7FA' }}>
               <TableCell sx={{ fontWeight: 700, color: '#666', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>Parcel ID</TableCell>
@@ -287,7 +300,7 @@ function Orders() {
               <TableCell sx={{ fontWeight: 700, color: '#666', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>Warehouse</TableCell>
               <TableCell sx={{ fontWeight: 700, color: '#666', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>Payment</TableCell>
               <TableCell sx={{ fontWeight: 700, color: '#666', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>Amount</TableCell>
-              <TableCell sx={{ fontWeight: 700, color: '#666', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>Actions</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: '#666', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, bgcolor: '#E8F5E9', minWidth: 140 }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -315,7 +328,7 @@ function Orders() {
             ) : (
               paginatedOrders.map((order) => (
               <TableRow 
-                key={order.id}
+                key={order._id || order.id}
                 sx={{
                   '&:hover': { bgcolor: '#F5F7FA' },
                   transition: 'background-color 0.2s ease',
@@ -400,29 +413,56 @@ function Orders() {
                     £{order.price?.toFixed(2) || '0.00'}
                   </Typography>
                 </TableCell>
-                <TableCell>
-                  <IconButton
+                <TableCell sx={{ bgcolor: '#F0FDF4', minWidth: 180, whiteSpace: 'nowrap' }}>
+                  <Button
+                    variant="outlined"
                     size="small"
+                    startIcon={<VisibilityIcon />}
                     onClick={() => handleViewOrder(order)}
                     sx={{
+                      mr: 0.5,
+                      textTransform: 'none',
+                      borderColor: '#83C5FA',
                       color: '#83C5FA',
-                      '&:hover': { bgcolor: alpha('#83C5FA', 0.08) },
+                      fontSize: '12px',
+                      py: 0.5,
+                      '&:hover': { bgcolor: alpha('#83C5FA', 0.1), borderColor: '#83C5FA' },
                     }}
                   >
-                    <VisibilityIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton
+                    View
+                  </Button>
+                  <Button
+                    variant="contained"
                     size="small"
+                    startIcon={<EditIcon />}
+                    onClick={() => handleViewOrder(order)}
+                    sx={{
+                      mr: 0.5,
+                      textTransform: 'none',
+                      bgcolor: '#10b981',
+                      fontSize: '12px',
+                      py: 0.5,
+                      '&:hover': { bgcolor: '#059669' },
+                    }}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<PrintIcon />}
                     onClick={() => handlePrintLabel(order)}
                     sx={{
+                      textTransform: 'none',
+                      borderColor: '#0B1A33',
                       color: '#0B1A33',
-                      ml: 1,
-                      '&:hover': { bgcolor: alpha('#0B1A33', 0.08) },
+                      fontSize: '12px',
+                      py: 0.5,
+                      '&:hover': { bgcolor: alpha('#0B1A33', 0.08), borderColor: '#0B1A33' },
                     }}
-                    title="Print Label"
                   >
-                    <PrintIcon fontSize="small" />
-                  </IconButton>
+                    Print
+                  </Button>
                 </TableCell>
               </TableRow>
             )))}
@@ -455,8 +495,9 @@ function Orders() {
           sx: { borderRadius: 2 }
         }}
       >
-        <DialogTitle sx={{ fontWeight: 700, color: '#1A1A1A', borderBottom: '1px solid #F5F7FA' }}>
-          Order Details
+        <DialogTitle sx={{ fontWeight: 700, color: '#1A1A1A', borderBottom: '1px solid #F5F7FA', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <EditIcon sx={{ color: '#10b981' }} />
+          Order Details & Edit Status
         </DialogTitle>
         <DialogContent sx={{ mt: 2 }}>
           {selectedOrder && (
@@ -597,9 +638,10 @@ function Orders() {
                 </Box>
               </Box>
 
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', fontWeight: 600, fontSize: 10, letterSpacing: 0.5, mb: 1, display: 'block' }}>
-                  Status Management
+              <Box sx={{ mb: 2, p: 2, bgcolor: '#E8F5E9', borderRadius: 2, border: '2px solid #10b981' }}>
+                <Typography variant="subtitle1" sx={{ color: '#10b981', fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <EditIcon fontSize="small" />
+                  UPDATE STATUS
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={6}>
@@ -609,7 +651,7 @@ function Orders() {
                         value={newStatus}
                         onChange={(e) => setNewStatus(e.target.value)}
                         label="Delivery Status"
-                        sx={{ borderRadius: 2 }}
+                        sx={{ borderRadius: 2, bgcolor: 'white' }}
                       >
                         <MenuItem value="booked">Booked</MenuItem>
                         <MenuItem value="pending_pickup">Pending Pickup</MenuItem>
@@ -638,22 +680,25 @@ function Orders() {
                         value={selectedOrder.warehouse_status || 'not_arrived'}
                         onChange={(e) => handleUpdateWarehouseStatus(e.target.value)}
                         label="Warehouse Status"
-                        sx={{ borderRadius: 2 }}
+                        sx={{ borderRadius: 2, bgcolor: 'white' }}
                       >
                         <MenuItem value="not_arrived">Not Arrived</MenuItem>
-                        <MenuItem value="arrived">Arrived</MenuItem>
-                        <MenuItem value="in_warehouse">In Warehouse</MenuItem>
-                        <MenuItem value="ready_to_ship">Ready to Ship</MenuItem>
+                        <MenuItem value="received">Received</MenuItem>
+                        <MenuItem value="sorted">Sorted</MenuItem>
+                        <MenuItem value="packed">Packed</MenuItem>
                         <MenuItem value="shipped">Shipped</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
                 </Grid>
+                <Typography variant="caption" sx={{ color: '#666', mt: 2, display: 'block' }}>
+                  💡 Tip: Select a new status and click "Update Status" to save changes
+                </Typography>
               </Box>
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 2, borderTop: '1px solid #F5F7FA' }}>
+        <DialogActions sx={{ p: 3, pt: 2, borderTop: '1px solid #F5F7FA', bgcolor: '#F5F7FA' }}>
           <Button 
             onClick={handleCloseDialog}
             sx={{ 
@@ -669,15 +714,18 @@ function Orders() {
             sx={{ 
               bgcolor: '#0B1A33',
               textTransform: 'none',
-              px: 3,
-              boxShadow: '0 4px 12px rgba(11, 26, 51, 0.3)',
+              px: 4,
+              py: 1.5,
+              fontSize: '1rem',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+              bgcolor: '#10b981',
               '&:hover': { 
-                bgcolor: '#152847',
-                boxShadow: '0 6px 16px rgba(11, 26, 51, 0.4)' 
+                bgcolor: '#059669',
+                boxShadow: '0 6px 16px rgba(16, 185, 129, 0.4)' 
               },
             }}
           >
-            Update Status
+            ✓ Update Status
           </Button>
         </DialogActions>
       </Dialog>

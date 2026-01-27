@@ -9,7 +9,7 @@ const isDev = process.env.NODE_ENV === 'development';
 // API Configuration
 // Set USE_LOCAL_BACKEND to true when running local backend, false to use production
 const USE_LOCAL_BACKEND = false;
-const DEV_API_URL = 'http://192.168.0.138:4000';
+const DEV_API_URL = 'http://localhost:4000';
 const PROD_API_URL = process.env.REACT_APP_API_URL || 'https://mani-me.onrender.com';
 
 // Export the appropriate URL based on environment

@@ -179,10 +179,16 @@ router.get('/orders', verifyAdmin, async (req, res) => {
       ];
     }
 
-    const [orders, total] = await Promise.all([
-      Shipment.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    const [ordersRaw, total] = await Promise.all([
+      Shipment.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Shipment.countDocuments(query)
     ]);
+
+    // Transform orders to include 'id' field for frontend compatibility
+    const orders = ordersRaw.map(order => ({
+      ...order,
+      id: order._id.toString()
+    }));
 
     res.json({
       orders,
