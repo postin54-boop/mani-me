@@ -8,11 +8,13 @@ import {
 	RefreshControl,
 	TouchableOpacity,
 	StatusBar,
+	Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '../constants/theme';
 import { API_BASE_URL } from '../utils/config';
+import AddToWalletButton from '../components/AddToWalletButton';
 
 // Tracking steps configuration with icons and labels
 const TRACKING_STEPS = [
@@ -333,6 +335,16 @@ export default function TrackingScreen({ route, navigation }) {
 					</View>
 					<Ionicons name="chevron-forward" size={20} color={colors.textLight} />
 				</TouchableOpacity>
+
+				{/* Apple Wallet Button - iOS Only */}
+				{Platform.OS === 'ios' && shipmentData._id && (
+					<View style={{ marginHorizontal: 16, marginTop: 16 }}>
+						<AddToWalletButton 
+							shipmentId={shipmentData._id}
+							trackingNumber={tracking_number}
+						/>
+					</View>
+				)}
 
 				<View style={{ height: 32 }} />
 			</ScrollView>
