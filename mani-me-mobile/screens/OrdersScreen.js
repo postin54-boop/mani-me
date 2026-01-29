@@ -29,7 +29,7 @@ export default function OrdersScreen({ navigation }) {
   const userId = user?.id;
 
   const fetchParcels = useCallback(async () => {
-    if (!userId) return; // Don't fetch if no user
+    if (!userId || !token) return; // Don't fetch if no user or token
     
     try {
       setError(null);
@@ -69,10 +69,10 @@ export default function OrdersScreen({ navigation }) {
         setError('Failed to load parcels');
       }
     }
-  }, [userId]);
+  }, [userId, token]);
 
   const fetchStats = useCallback(async () => {
-    if (!userId) return; // Don't fetch if no user
+    if (!userId || !token) return; // Don't fetch if no user or token
     
     try {
       const controller = new AbortController();
@@ -106,31 +106,39 @@ export default function OrdersScreen({ navigation }) {
       }
       // Don't show error to user for stats - gracefully fail with default values
     }
-  }, [userId]);
+  }, [userId, token]);
 
-  const loadData = useCallback(async () => {
-    if (!userId) return; // Don't load if no user
-    setLoading(true);
-    await Promise.all([fetchParcels(), fetchStats()]);
-    setLoading(false);
-  }, [fetchParcels, fetchStats, userId]);
-
+  // Initial data load - only runs when userId or token changes
   useEffect(() => {
-    if (userId) {
-      loadData();
-    }
-
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(() => {
-      if (userId) {
-        fetchParcels();
-        fetchStats();
+    let isMounted = true;
+    
+    const loadData = async () => {
+      if (!userId || !token) return;
+      setLoading(true);
+      await Promise.all([fetchParcels(), fetchStats()]);
+      if (isMounted) {
+        setLoading(false);
       }
+    };
+    
+    loadData();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [userId, token, fetchParcels, fetchStats]);
+
+  // Auto-refresh interval - separate effect to prevent re-creating interval on every render
+  useEffect(() => {
+    if (!userId || !token) return;
+
+    const interval = setInterval(() => {
+      fetchParcels();
+      fetchStats();
     }, 30000);
 
-    // Cleanup interval on unmount
     return () => clearInterval(interval);
-  }, [loadData, fetchParcels, fetchStats, userId]);
+  }, [userId, token, fetchParcels, fetchStats]);
 
   const onRefresh = async () => {
     setRefreshing(true);

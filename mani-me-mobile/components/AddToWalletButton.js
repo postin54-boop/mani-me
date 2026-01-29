@@ -15,16 +15,28 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addToWallet, isWalletAvailable } from '../services/walletService';
+import { useUser } from '../context/UserContext';
 
-const AddToWalletButton = ({ shipment, token, style }) => {
+const AddToWalletButton = ({ shipment, style }) => {
   const [loading, setLoading] = useState(false);
+  const { token } = useUser();
 
   // Only show on iOS
   if (!isWalletAvailable()) {
     return null;
   }
 
+  // Don't render if no shipment data
+  if (!shipment || !shipment._id) {
+    return null;
+  }
+
   const handleAddToWallet = async () => {
+    if (!token) {
+      console.error('No auth token available');
+      return;
+    }
+    
     setLoading(true);
     try {
       await addToWallet(shipment, token);

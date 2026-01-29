@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '../constants/theme';
 import { API_BASE_URL } from '../utils/config';
+import { useUser } from '../context/UserContext';
 import AddToWalletButton from '../components/AddToWalletButton';
 
 // Tracking steps configuration with icons and labels
@@ -340,8 +341,7 @@ export default function TrackingScreen({ route, navigation }) {
 				{Platform.OS === 'ios' && shipmentData._id && (
 					<View style={{ marginHorizontal: 16, marginTop: 16 }}>
 						<AddToWalletButton 
-							shipmentId={shipmentData._id}
-							trackingNumber={tracking_number}
+							shipment={shipmentData}
 						/>
 					</View>
 				)}
