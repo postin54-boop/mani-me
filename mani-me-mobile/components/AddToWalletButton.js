@@ -3,7 +3,7 @@
  * Renders an Apple Wallet button for iOS devices
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -20,6 +20,12 @@ import { useUser } from '../context/UserContext';
 const AddToWalletButton = ({ shipment, style }) => {
   const [loading, setLoading] = useState(false);
   const { token } = useUser();
+  
+  // Use ref to always have access to current shipment value
+  const shipmentRef = useRef(shipment);
+  useEffect(() => {
+    shipmentRef.current = shipment;
+  }, [shipment]);
 
   // Only show on iOS
   if (!isWalletAvailable()) {
@@ -27,11 +33,19 @@ const AddToWalletButton = ({ shipment, style }) => {
   }
 
   // Don't render if no shipment data
-  if (!shipment || !shipment._id) {
+  if (!shipment || (!shipment._id && !shipment.id)) {
+    console.log('AddToWalletButton: No valid shipment data');
     return null;
   }
 
-  const handleAddToWallet = async () => {
+  const handleAddToWallet = useCallback(async () => {
+    const currentShipment = shipmentRef.current;
+    
+    if (!currentShipment || (!currentShipment._id && !currentShipment.id)) {
+      console.error('No valid shipment data available');
+      return;
+    }
+    
     if (!token) {
       console.error('No auth token available');
       return;
@@ -39,13 +53,13 @@ const AddToWalletButton = ({ shipment, style }) => {
     
     setLoading(true);
     try {
-      await addToWallet(shipment, token);
+      await addToWallet(currentShipment, token);
     } catch (error) {
       console.error('Failed to add to wallet:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   return (
     <TouchableOpacity

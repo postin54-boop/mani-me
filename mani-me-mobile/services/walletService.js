@@ -60,6 +60,13 @@ export const addToWallet = async (shipment, token) => {
     return;
   }
 
+  // Validate shipment data
+  if (!shipment || (!shipment._id && !shipment.id)) {
+    console.error('addToWallet: Invalid shipment data', shipment);
+    Alert.alert('Error', 'Invalid shipment data. Please try again.');
+    return;
+  }
+
   try {
     // Download the pass file
     const passUri = await downloadWalletPass(shipment, token);
