@@ -41,6 +41,7 @@ router.get('/me', async (req, res) => {
     return res.json({
       user: {
         id: user._id,
+        name: user.fullName,
         fullName: user.fullName,
         email: user.email,
         phone: user.phone,
@@ -118,6 +119,7 @@ router.post('/register', registerLimiter, async (req, res) => {
       message: "User registered successfully", 
       user: {
         id: user._id,
+        name: user.fullName,
         fullName: user.fullName,
         email: user.email,
         phone: user.phone,
@@ -162,6 +164,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       token,
       user: {
         id: user._id,
+        name: user.fullName,
         fullName: user.fullName,
         email: user.email,
         phone: user.phone,
@@ -226,7 +229,7 @@ router.put('/update-profile', async (req, res) => {
     }
 
     // Update user fields
-    if (name) user.name = name;
+    if (name) user.fullName = name;
     if (email) user.email = email;
     if (phone) user.phone = phone;
     if (address !== undefined) user.address = address;
@@ -236,8 +239,9 @@ router.put('/update-profile', async (req, res) => {
     return res.json({
       message: "Profile updated successfully",
       user: {
-        id: user.id,
-        name: user.name,
+        id: user._id,
+        name: user.fullName,
+        fullName: user.fullName,
         email: user.email,
         phone: user.phone,
         address: user.address
