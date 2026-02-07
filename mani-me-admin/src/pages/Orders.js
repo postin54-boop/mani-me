@@ -58,11 +58,11 @@ function Orders() {
       setLabelImageUrl(null);
       try {
         // Use shipment id for label endpoint
-        const res = await api.get(`/labels/shipment/${order._id || order.id}`, { responseType: 'blob' });
+        const res = await api.get(`/api/labels/shipment/${order._id || order.id}`, { responseType: 'blob' });
         const url = URL.createObjectURL(res.data);
         setLabelImageUrl(url);
       } catch (err) {
-        setLabelError('Failed to load label.');
+        setLabelError(err.response?.data?.error || 'Failed to load label.');
       } finally {
         setLabelLoading(false);
       }
