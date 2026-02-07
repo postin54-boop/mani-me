@@ -17,8 +17,10 @@ const WarehouseInventory = () => {
       api.get("/api/parcels")
     ])
       .then(([summaryRes, parcelsRes]) => {
-        setSummary(summaryRes.data);
-        setParcels(parcelsRes.data);
+        setSummary(summaryRes.data || { UK: 0, Ghana: 0 });
+        // Backend returns { parcels: [...], pagination: {...} }
+        const parcelsData = parcelsRes.data?.parcels || parcelsRes.data;
+        setParcels(Array.isArray(parcelsData) ? parcelsData : []);
         setError("");
       })
       .catch((err) => {

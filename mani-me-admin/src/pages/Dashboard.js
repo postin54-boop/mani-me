@@ -321,7 +321,7 @@ function Dashboard() {
         <Grid item xs={12} sm={6} lg={3}>
           <StatCard
             title="Total Revenue"
-            value={loading ? <Skeleton width={80} /> : `£${stats.totalRevenue.toLocaleString()}`}
+            value={loading ? <Skeleton width={80} /> : `£${(stats.totalRevenue || 0).toLocaleString()}`}
             icon={<AttachMoneyIcon sx={{ fontSize: 28 }} />}
             change="8.2%"
             changeType="up"

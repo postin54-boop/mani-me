@@ -294,14 +294,14 @@ export default function CashReconciliation() {
                   </TableCell>
                   <TableCell>
                     <Typography fontWeight={700} color="primary">
-                      £{report.amount.toFixed(2)}
+                      £{(report.amount || 0).toFixed(2)}
                     </Typography>
                   </TableCell>
                   <TableCell>{formatDate(report.shiftDate)}</TableCell>
                   <TableCell>{formatDate(report.submittedAt)}</TableCell>
                   <TableCell>
                     <Chip
-                      label={report.status.toUpperCase()}
+                      label={(report.status || 'unknown').toUpperCase()}
                       color={getStatusColor(report.status)}
                       size="small"
                       sx={{ fontWeight: 600 }}
@@ -381,14 +381,14 @@ export default function CashReconciliation() {
                 <Grid item xs={6}>
                   <Typography variant="caption" color="textSecondary">Amount</Typography>
                   <Typography variant="h5" fontWeight={700} color="primary">
-                    £{selectedReport.amount.toFixed(2)}
+                    £{(selectedReport.amount || 0).toFixed(2)}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
                   <Typography variant="caption" color="textSecondary">Status</Typography>
                   <Box sx={{ mt: 0.5 }}>
                     <Chip
-                      label={selectedReport.status.toUpperCase()}
+                      label={(selectedReport.status || 'unknown').toUpperCase()}
                       color={getStatusColor(selectedReport.status)}
                       sx={{ fontWeight: 600 }}
                     />

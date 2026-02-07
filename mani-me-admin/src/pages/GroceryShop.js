@@ -284,7 +284,7 @@ export default function GroceryShop() {
                 <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {item.description}
                 </TableCell>
-                <TableCell>£{item.price.toFixed(2)}</TableCell>
+                <TableCell>£{(item.price || 0).toFixed(2)}</TableCell>
                 <TableCell>
                   <Chip
                     label={item.stock}

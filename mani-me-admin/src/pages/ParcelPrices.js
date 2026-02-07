@@ -32,7 +32,7 @@ export default function ParcelPrices() {
     setLoading(true);
     try {
       const res = await api.get('/api/parcel-prices');
-      setPrices(res.data);
+      setPrices(Array.isArray(res.data) ? res.data : (res.data?.prices || []));
       setEditedPrices({}); // Clear edited prices after fetch
     } catch (err) {
       logger.error('Error fetching prices:', err);

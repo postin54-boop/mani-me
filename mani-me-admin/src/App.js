@@ -23,6 +23,7 @@ import CashReconciliation from './pages/CashReconciliation';
 import theme from './theme';
 import api from './api';
 import { ENDPOINTS, APP_CONFIG } from './config';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -123,6 +124,7 @@ function App() {
   }
 
   return (
+    <ErrorBoundary>
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
@@ -278,6 +280,7 @@ function App() {
         </Routes>
       </Router>
     </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -89,10 +89,12 @@ const UKDrivers = () => {
         api.get('/api/parcels'),
       ]);
 
-      setDrivers(driversRes.data);
-      setPendingPickups(pendingRes.data);
-      setAssignedPickups(assignedRes.data);
-      setWarehouseInventory(warehouseRes.data);
+      setDrivers(Array.isArray(driversRes.data) ? driversRes.data : []);
+      setPendingPickups(Array.isArray(pendingRes.data) ? pendingRes.data : []);
+      setAssignedPickups(Array.isArray(assignedRes.data) ? assignedRes.data : []);
+      // /api/parcels returns { parcels: [...], pagination: {...} }
+      const warehouseData = warehouseRes.data?.parcels || warehouseRes.data;
+      setWarehouseInventory(Array.isArray(warehouseData) ? warehouseData : []);
     } catch (error) {
       logger.error('Failed to fetch data:', error);
       setError(getErrorMessage(error));

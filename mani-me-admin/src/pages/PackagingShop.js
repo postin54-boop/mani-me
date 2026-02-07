@@ -42,7 +42,7 @@ export default function PackagingShop() {
   // Fetch items from backend using the api instance (includes auth header)
   useEffect(() => {
     api.get('/api/shop/packaging')
-      .then(res => setItems(res.data))
+      .then(res => setItems(Array.isArray(res.data) ? res.data : (res.data?.items || [])))
       .catch(() => setItems([]));
   }, []);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -81,7 +81,7 @@ export default function PackagingShop() {
   // Inline price edit handlers
   const handleInlinePriceEdit = (item) => {
     setEditingPriceId(item.id);
-    setInlinePrice(item.price.toString());
+    setInlinePrice((item.price || 0).toString());
   };
   const handleInlinePriceCancel = () => {
     setEditingPriceId(null);
@@ -215,7 +215,7 @@ export default function PackagingShop() {
                     </Box>
                   ) : (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-end' }}>
-                      £{item.price.toFixed(2)}
+                      £{(item.price || 0).toFixed(2)}
                       <IconButton size="small" onClick={() => handleInlinePriceEdit(item)}>
                         <EditIcon fontSize="small" />
                       </IconButton>
@@ -229,7 +229,7 @@ export default function PackagingShop() {
                     color={item.stock < 50 ? 'error' : 'success'}
                   />
                 </TableCell>
-                <TableCell align="right">£{(item.price * item.stock).toFixed(2)}</TableCell>
+                <TableCell align="right">£{((item.price || 0) * (item.stock || 0)).toFixed(2)}</TableCell>
                 <TableCell align="right">
                   <IconButton size="small" onClick={() => handleEdit(item)}>
                     <EditIcon />

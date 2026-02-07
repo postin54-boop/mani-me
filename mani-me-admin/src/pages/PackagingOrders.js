@@ -179,12 +179,12 @@ export default function PackagingOrders() {
                 <TableCell>
                   <Accordion sx={{ boxShadow: 'none', '&:before': { display: 'none' } }}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Typography variant="body2">{order.items.length} items</Typography>
+                      <Typography variant="body2">{(order.items || []).length} items</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
-                      {order.items.map((item, idx) => (
+                      {(order.items || []).map((item, idx) => (
                         <Typography key={idx} variant="caption" display="block">
-                          {item.name} x{item.quantity} - £{(item.price * item.quantity).toFixed(2)}
+                          {item.name} x{item.quantity} - £{((item.price || 0) * (item.quantity || 0)).toFixed(2)}
                         </Typography>
                       ))}
                     </AccordionDetails>
@@ -192,7 +192,7 @@ export default function PackagingOrders() {
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                    £{order.total_amount.toFixed(2)}
+                    £{(order.total_amount || 0).toFixed(2)}
                   </Typography>
                 </TableCell>
                 <TableCell>

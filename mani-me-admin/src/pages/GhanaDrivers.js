@@ -83,8 +83,8 @@ const GhanaDrivers = () => {
         api.get('/api/admin/deliveries/pending', config),
       ]);
 
-      setDrivers(driversRes.data);
-      setPendingDeliveries(deliveriesRes.data);
+      setDrivers(Array.isArray(driversRes.data) ? driversRes.data : []);
+      setPendingDeliveries(Array.isArray(deliveriesRes.data) ? deliveriesRes.data : []);
     } catch (error) {
       logger.error('Failed to fetch data:', error);
       setError(getErrorMessage(error));
