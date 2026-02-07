@@ -6,19 +6,14 @@ import NetInfo from '@react-native-community/netinfo';
 import axiosRetry from 'axios-retry';
 import logger from '../utils/logger';
 
-// Production API URL
+// Production API URL (single source of truth)
 const PRODUCTION_URL = "https://mani-me.onrender.com";
-const LOCAL_URL = "http://192.168.0.138:4000";
 
-// Set to true to use local backend, false for production
-const USE_LOCAL_BACKEND = false;
-
-// Use local backend in dev when USE_LOCAL_BACKEND is true, otherwise production
-// Handle null/undefined apiUrl from config
+// Use config-defined URL or fall back to production
 const configApiUrl = Constants.expoConfig?.extra?.apiUrl;
-const API_BASE_URL = (USE_LOCAL_BACKEND && __DEV__) 
-  ? LOCAL_URL 
-  : (configApiUrl && typeof configApiUrl === 'string' ? configApiUrl : PRODUCTION_URL);
+const API_BASE_URL = (configApiUrl && typeof configApiUrl === 'string')
+  ? configApiUrl
+  : PRODUCTION_URL;
 
 const api = axios.create({
   baseURL: API_BASE_URL.endsWith('/api') ? API_BASE_URL : API_BASE_URL + '/api',
@@ -82,19 +77,55 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Handle 401 Unauthorized - Token expired or invalid
+    // Handle 401 Unauthorized - Attempt token refresh before logging out
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       
-      logger.warn('Received 401 - Token expired or invalid');
+      logger.warn('Received 401 - Attempting token refresh');
       
-      // Clear stored auth data
+      try {
+        // Get current token for refresh
+        let currentToken = await SecureStore.getItemAsync('authToken');
+        if (!currentToken) {
+          currentToken = await AsyncStorage.getItem('token');
+        }
+
+        if (currentToken) {
+          // Call refresh endpoint
+          const refreshResponse = await axios.post(
+            `${API_BASE_URL}/api/auth/refresh`,
+            {},
+            { headers: { Authorization: `Bearer ${currentToken}` }, timeout: 15000 }
+          );
+
+          if (refreshResponse.data?.token) {
+            const newToken = refreshResponse.data.token;
+            
+            // Store new token
+            await SecureStore.setItemAsync('authToken', newToken);
+            await AsyncStorage.setItem('token', newToken);
+            
+            // Update user data if returned
+            if (refreshResponse.data?.user) {
+              await AsyncStorage.setItem('user', JSON.stringify(refreshResponse.data.user));
+            }
+            
+            // Retry original request with new token
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            logger.log('Token refreshed successfully, retrying request');
+            return api(originalRequest);
+          }
+        }
+      } catch (refreshError) {
+        logger.error('Token refresh failed:', refreshError.message);
+      }
+      
+      // Refresh failed - clear auth and notify
       try {
         await SecureStore.deleteItemAsync('authToken');
         await AsyncStorage.removeItem('user');
         await AsyncStorage.removeItem('token');
         
-        // Emit event for auth state change (can be listened by UserContext)
         if (global.onAuthExpired) {
           global.onAuthExpired();
         }
@@ -102,7 +133,6 @@ api.interceptors.response.use(
         logger.error('Error clearing auth data:', clearError);
       }
       
-      // Add custom property to identify auth errors
       error.isAuthError = true;
       error.authErrorMessage = 'Your session has expired. Please login again.';
     }

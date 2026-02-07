@@ -17,4 +17,6 @@ packagingItemSchema.pre('save', function(next) {
   next();
 });
 
+packagingItemSchema.index({ category: 1, inStock: 1 });
+
 module.exports = mongoose.model('PackagingItem', packagingItemSchema);

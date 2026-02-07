@@ -5,8 +5,8 @@ import QRCode from 'react-native-qrcode-svg';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useAuth } from '../context/AuthContext';
-import { API_BASE_URL, ENDPOINTS } from '../utils/config';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ENDPOINTS } from '../utils/config';
+import apiClient from '../utils/api';
 import logger from '../utils/logger';
 
 export default function PrintLabelsScreen({ navigation }) {
@@ -196,7 +196,6 @@ export default function PrintLabelsScreen({ navigation }) {
   // Fetch assigned pickups from API
   const fetchAssignments = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
       const driverId = user?._id || user?.id;
       
       if (!driverId) {
@@ -206,18 +205,14 @@ export default function PrintLabelsScreen({ navigation }) {
       }
 
       const type = isUKDriver?.() ? 'pickup' : 'delivery';
-      const url = `${API_BASE_URL}${ENDPOINTS.DRIVER_ASSIGNMENTS(driverId)}?type=${type}&limit=20`;
       
-      logger.api('GET', url);
+      logger.api('GET', `/drivers/${driverId}/assignments?type=${type}&limit=20`);
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await apiClient.get(`/drivers/${driverId}/assignments`, {
+        params: { type, limit: 20 }
       });
 
-      const data = await response.json();
+      const data = response.data;
       logger.log('Print labels: fetched', data.data?.shipments?.length || 0, 'assignments');
 
       if (data.success && data.data?.shipments) {

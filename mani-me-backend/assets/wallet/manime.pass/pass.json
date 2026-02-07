@@ -1,0 +1,12 @@
+{
+	"formatVersion": 1,
+	"passTypeIdentifier": "pass.com.manime.shipment",
+	"teamIdentifier": "9669F2K8HP",
+	"organizationName": "Mani Me",
+	"description": "Shipment Tracking Pass",
+	"logoText": "Mani Me",
+	"foregroundColor": "rgb(255, 255, 255)",
+	"backgroundColor": "rgb(11, 26, 51)",
+	"labelColor": "rgb(131, 197, 250)",
+	"generic": {}
+}

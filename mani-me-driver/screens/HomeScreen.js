@@ -18,6 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { AuthContext } from "../context/AuthContext";
 import { useCashTracking } from "../context/CashTrackingContext";
 import { API_BASE_URL, ENDPOINTS } from "../utils/config";
+import apiClient from "../utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width } = Dimensions.get('window');
@@ -97,22 +98,17 @@ export default function HomeScreen({ navigation }) {
 
   const fetchDriverData = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
       const driverId = user?._id || user?.id;
       
       if (!driverId) return;
 
       const type = isUK ? 'pickup' : 'delivery';
-      const url = `${API_BASE_URL}${ENDPOINTS.DRIVER_ASSIGNMENTS(driverId)}?type=${type}&limit=10`;
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await apiClient.get(`/drivers/${driverId}/assignments`, {
+        params: { type, limit: 10 }
       });
 
-      const data = await response.json();
+      const data = response.data;
 
       if (data.success && data.data?.shipments) {
         const shipments = data.data.shipments;

@@ -110,7 +110,8 @@ router.get('/messages/:shipment_id', verifyToken, async (req, res) => {
 });
 
 // Mark messages as read
-router.put('/mark-read/:shipment_id', async (req, res) => {
+// Protected: requires authentication
+router.put('/mark-read/:shipment_id', verifyToken, async (req, res) => {
   try {
     const { shipment_id } = req.params;
     const { user_id } = req.body;

@@ -43,9 +43,9 @@ export default function ProfileScreen({ navigation }) {
 
   const menuItems = [
     { icon: 'person-outline', label: 'Personal Info', value: profile.name, editable: true },
-    { icon: 'call-outline', label: 'Phone', value: profile.phone },
-    { icon: 'mail-outline', label: 'Email', value: profile.email },
-    { icon: 'car-outline', label: 'Vehicle', value: profile.vehicle },
+    { icon: 'call-outline', label: 'Phone', value: profile.phone, editable: true },
+    { icon: 'mail-outline', label: 'Email', value: profile.email, editable: true },
+    { icon: 'car-outline', label: 'Vehicle', value: profile.vehicle, editable: true },
     { icon: 'briefcase-outline', label: 'Driver Type', value: profile.driverType },
   ];
 

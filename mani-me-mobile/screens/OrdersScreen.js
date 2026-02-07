@@ -347,6 +347,52 @@ export default function OrdersScreen({ navigation }) {
     return parcel?.status === 'pending_dropoff';
   };
   
+  // Check if parcel can be dismissed (removed from list)
+  const canDismiss = (parcel) => {
+    return ['cancelled', 'delivered'].includes(parcel?.status);
+  };
+  
+  // Handle dismiss (hide) cancelled/delivered order
+  const handleDismissOrder = (parcel) => {
+    const isCancelled = parcel.status === 'cancelled';
+    Alert.alert(
+      'Remove from List',
+      `Remove this ${isCancelled ? 'cancelled' : 'delivered'} order from your parcels list?\n\nTracking: ${parcel.tracking_number}`,
+      [
+        { text: 'Keep', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const parcelId = parcel._id || parcel.id;
+              console.log('Dismiss URL:', `${API_BASE_URL}/api/shipments/dismiss/${parcelId}`);
+              console.log('Token present:', !!token);
+              const response = await fetch(`${API_BASE_URL}/api/shipments/dismiss/${parcelId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              });
+              
+              console.log('Dismiss response status:', response.status);
+              
+              if (response.ok) {
+                // Remove from local state immediately for snappy UI
+                setParcels(prev => prev.filter(p => (p._id || p.id) !== parcelId));
+                fetchStats();
+              } else {
+                const errorData = await response.json();
+                Alert.alert('Error', errorData.error || 'Failed to remove order');
+              }
+            } catch (error) {
+              logger.error('Dismiss order error:', error);
+              Alert.alert('Error', 'Network error. Please try again.');
+            }
+          }
+        }
+      ]
+    );
+  };
+  
   // Handle cancel drop-off - revert back to regular pickup
   const handleCancelDropOff = () => {
     Alert.alert(
@@ -464,8 +510,20 @@ export default function OrdersScreen({ navigation }) {
             >
               {/* Status Strip at Top */}
               <View style={[styles.statusStrip, { backgroundColor: getStatusColor(parcel.status) }]}>
-                <Ionicons name={getStatusIcon(parcel.status)} size={20} color="#FFFFFF" />
-                <Text style={styles.statusStripText}>{getStatusLabel(parcel.status)}</Text>
+                <View style={styles.statusStripLeft}>
+                  <Ionicons name={getStatusIcon(parcel.status)} size={20} color="#FFFFFF" />
+                  <Text style={styles.statusStripText}>{getStatusLabel(parcel.status)}</Text>
+                </View>
+                {canDismiss(parcel) && (
+                  <TouchableOpacity
+                    style={styles.dismissIconBtn}
+                    onPress={() => handleDismissOrder(parcel)}
+                    activeOpacity={0.6}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="close-circle" size={22} color="#FFFFFFCC" />
+                  </TouchableOpacity>
+                )}
               </View>
               
               <TouchableOpacity
@@ -578,7 +636,7 @@ export default function OrdersScreen({ navigation }) {
               {/* Manage Pickup Button - Only for modifiable parcels */}
               {canModifyPickup(parcel) && (
                 <TouchableOpacity 
-                  style={[styles.managePickupBtn, { borderColor: themeColors.border, marginHorizontal: 16, marginBottom: 16 }]}
+                  style={[styles.managePickupBtn, { borderColor: themeColors.border, marginHorizontal: 12, marginBottom: 10 }]}
                   onPress={() => handleParcelActions(parcel)}
                   activeOpacity={0.8}
                 >
@@ -598,6 +656,8 @@ export default function OrdersScreen({ navigation }) {
                   <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
                 </TouchableOpacity>
               )}
+              
+
             </View>
           ))
         )}
@@ -880,9 +940,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   parcelId: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   trackingNumber: {
     fontSize: 14,
@@ -1092,59 +1152,68 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   // New parcel card styles
+  statusStripLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dismissIconBtn: {
+    padding: 4,
+  },
   statusStrip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    gap: 10,
+    gap: 6,
   },
   statusStripText: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     color: '#FFFFFF',
   },
   parcelCardContent: {
-    padding: 16,
+    padding: 12,
   },
   parcelIdContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   weightBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
   },
   weightText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
   },
   routeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
-    marginBottom: 16,
+    paddingVertical: 8,
+    marginBottom: 8,
   },
   routePoint: {
     alignItems: 'center',
     flex: 1,
   },
   routeDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginBottom: 10,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginBottom: 4,
   },
   routeLineWrapper: {
     flex: 2,
@@ -1161,33 +1230,33 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   routeCity: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '600',
     textAlign: 'center',
   },
   receiverCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 16,
-    gap: 12,
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 8,
+    gap: 8,
   },
   receiverInfo: {
     flex: 1,
   },
   receiverName: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 2,
   },
   receiverLocation: {
-    fontSize: 14,
+    fontSize: 12,
   },
   dateRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   dateItem: {
     flex: 1,
@@ -1209,52 +1278,69 @@ const styles = StyleSheet.create({
   },
   actionButtonsRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 12,
-    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 8,
+    paddingHorizontal: 12,
   },
   actionBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 4,
   },
   actionBtnText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   managePickupBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 12,
-    gap: 12,
+    padding: 10,
+    borderRadius: 10,
+    gap: 10,
     borderWidth: 1,
   },
   managePickupLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    gap: 12,
+    gap: 10,
   },
   manageIconBg: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   managePickupTitle: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
   },
   managePickupSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     opacity: 0.7,
-    marginTop: 2,
+    marginTop: 1,
+  },
+  dismissBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#F4433640',
+    backgroundColor: '#F4433610',
+    gap: 8,
+    minHeight: 48,
+  },
+  dismissBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 

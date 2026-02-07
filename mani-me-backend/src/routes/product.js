@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/product');
 const { escapeRegex } = require('../utils/sanitize');
+const { verifyAdmin } = require('../middleware/auth');
 
 // Get all products (with pagination)
 router.get('/', async (req, res) => {
@@ -42,7 +43,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create product (admin only)
-router.post('/', async (req, res) => {
+router.post('/', verifyAdmin, async (req, res) => {
   try {
     const { name, description, image, price, discount, inStock } = req.body;
     const product = new Product({ name, description, image, price, discount, inStock });
@@ -54,7 +55,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update product (admin only)
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyAdmin, async (req, res) => {
   try {
     const { name, description, image, price, discount, inStock } = req.body;
     const product = await Product.findByIdAndUpdate(
@@ -70,7 +71,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete product (admin only)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyAdmin, async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) return res.status(404).json({ error: 'Product not found' });

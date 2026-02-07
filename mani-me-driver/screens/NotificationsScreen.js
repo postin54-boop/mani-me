@@ -5,7 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthContext } from "../context/AuthContext";
-import { API_BASE_URL, ENDPOINTS } from "../utils/config";
+import { ENDPOINTS } from "../utils/config";
+import apiClient from "../utils/api";
 
 const COLORS = {
   deepNavy: '#0B1F33',
@@ -34,7 +35,6 @@ export default function NotificationsScreen() {
 
   const fetchNotifications = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
       const driverId = user?._id || user?.id;
       
       if (!driverId) {
@@ -43,16 +43,12 @@ export default function NotificationsScreen() {
       }
 
       const type = isUK ? 'pickup' : 'delivery';
-      const url = `${API_BASE_URL}${ENDPOINTS.DRIVER_ASSIGNMENTS(driverId)}?type=${type}&limit=20`;
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await apiClient.get(`/drivers/${driverId}/assignments`, {
+        params: { type, limit: 20 }
       });
 
-      const data = await response.json();
+      const data = response.data;
 
       if (data.success && data.data?.shipments) {
         // Convert shipments to notification format

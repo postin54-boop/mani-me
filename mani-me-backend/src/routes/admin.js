@@ -139,7 +139,7 @@ router.get('/dashboard', verifyAdmin, async (req, res) => {
     // Use aggregation for revenue calculation (efficient at scale)
     const revenueResult = await Shipment.aggregate([
       { $match: { payment_status: 'paid' } },
-      { $group: { _id: null, totalRevenue: { $sum: { $toDouble: '$price' } } } }
+      { $group: { _id: null, totalRevenue: { $sum: { $ifNull: ['$total_cost', 0] } } } }
     ]);
     const totalRevenue = revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
 

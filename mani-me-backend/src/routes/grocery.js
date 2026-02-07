@@ -91,18 +91,33 @@ router.post('/orders', verifyToken, async (req, res) => {
       return res.status(400).json({ message: 'Delivery address required' });
     }
     
-    // Verify stock availability
+    // Verify stock availability and atomically decrement
+    // Using findOneAndUpdate with $gte to prevent overselling under concurrency
+    const total_amount = subtotal + shipping_cost;
+    const stockResults = [];
+    
     for (const orderItem of items) {
-      const item = await GroceryItem.findById(orderItem.item_id);
-      if (!item) {
-        return res.status(404).json({ message: `Item ${orderItem.name} not found` });
-      }
-      if (item.stock < orderItem.quantity) {
+      const result = await GroceryItem.findOneAndUpdate(
+        { _id: orderItem.item_id, stock: { $gte: orderItem.quantity } },
+        { $inc: { stock: -orderItem.quantity } },
+        { new: true }
+      );
+      if (!result) {
+        // Rollback previously decremented stock
+        for (const prev of stockResults) {
+          await GroceryItem.findByIdAndUpdate(
+            prev.item_id,
+            { $inc: { stock: prev.quantity } }
+          );
+        }
+        const item = await GroceryItem.findById(orderItem.item_id);
+        if (!item) {
+          return res.status(404).json({ message: `Item ${orderItem.name} not found` });
+        }
         return res.status(400).json({ message: `Insufficient stock for ${item.name}` });
       }
+      stockResults.push({ item_id: orderItem.item_id, quantity: orderItem.quantity });
     }
-    
-    const total_amount = subtotal + shipping_cost;
     
     const order = new GroceryOrder({
       user_id: req.userId,
@@ -116,14 +131,6 @@ router.post('/orders', verifyToken, async (req, res) => {
     });
     
     await order.save();
-    
-    // Reduce stock
-    for (const orderItem of items) {
-      await GroceryItem.findByIdAndUpdate(
-        orderItem.item_id,
-        { $inc: { stock: -orderItem.quantity } }
-      );
-    }
     
     res.status(201).json(order);
   } catch (error) {

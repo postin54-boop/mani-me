@@ -98,4 +98,40 @@ module.exports = {
   withMeta,
   setFileHeaders,
   setCacheHeaders,
+  /**
+   * Error response helper
+   * @param {Object} res - Express response object
+   * @param {string} message - Error message
+   * @param {number} statusCode - HTTP status code (default 500)
+   * @param {Object} details - Optional error details
+   */
+  error: (res, message = 'Server error', statusCode = 500, details = null) => {
+    const response = {
+      success: false,
+      error: message,
+    };
+    if (details && process.env.NODE_ENV !== 'production') {
+      response.details = details;
+    }
+    return res.status(statusCode).json(response);
+  },
+  /**
+   * Validation error response (400)
+   */
+  validationError: (res, message = 'Validation failed', errors = []) => {
+    return res.status(400).json({
+      success: false,
+      error: message,
+      errors,
+    });
+  },
+  /**
+   * Not found response (404)
+   */
+  notFound: (res, resource = 'Resource') => {
+    return res.status(404).json({
+      success: false,
+      error: `${resource} not found`,
+    });
+  },
 };

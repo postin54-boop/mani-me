@@ -1,10 +1,10 @@
 /**
  * Apple Wallet Service
- * Handles adding shipment tracking passes to Apple Wallet
+ * Downloads signed .pkpass files and adds them to Apple Wallet via iOS sharing
  */
 
 import { Platform, Linking, Alert } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { API_BASE_URL } from '../utils/config';
 
@@ -17,29 +17,32 @@ export const isWalletAvailable = () => {
 };
 
 /**
- * Generate and download a wallet pass for a shipment
+ * Download a signed .pkpass file from the backend
  * @param {Object} shipment - The shipment object
  * @param {string} token - Auth token
- * @returns {Promise<string>} - Local file path of the pass
+ * @returns {Promise<string>} - Local file URI of the .pkpass
  */
 export const downloadWalletPass = async (shipment, token) => {
   try {
-    const passUrl = `${API_BASE_URL}/api/wallet/pass/${shipment._id || shipment.id}`;
-    
-    const fileUri = `${FileSystem.cacheDirectory}shipment-${shipment.tracking_number}.pkpass`;
-    
-    const downloadResult = await FileSystem.downloadAsync(
-      passUrl,
-      fileUri,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const shipmentId = shipment._id || shipment.id;
+    const passUrl = `${API_BASE_URL}/api/wallet/pass/${shipmentId}`;
+    const fileUri = `${FileSystem.cacheDirectory}shipment-${shipment.tracking_number || shipmentId}.pkpass`;
+
+    const downloadResult = await FileSystem.downloadAsync(passUrl, fileUri, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
     if (downloadResult.status !== 200) {
-      throw new Error('Failed to download wallet pass');
+      // Try to read the body as JSON for error details
+      try {
+        const errorBody = await FileSystem.readAsStringAsync(downloadResult.uri);
+        const errorJson = JSON.parse(errorBody);
+        throw new Error(errorJson.error || errorJson.setup || 'Failed to download wallet pass');
+      } catch (parseErr) {
+        throw new Error(`Failed to download wallet pass (HTTP ${downloadResult.status})`);
+      }
     }
 
     return downloadResult.uri;
@@ -51,6 +54,8 @@ export const downloadWalletPass = async (shipment, token) => {
 
 /**
  * Add a shipment to Apple Wallet
+ * Downloads the signed .pkpass and presents the iOS share sheet,
+ * which recognises the .pkpass MIME type and offers "Add to Wallet".
  * @param {Object} shipment - The shipment object
  * @param {string} token - Auth token
  */
@@ -60,7 +65,6 @@ export const addToWallet = async (shipment, token) => {
     return;
   }
 
-  // Validate shipment data
   if (!shipment || (!shipment._id && !shipment.id)) {
     console.error('addToWallet: Invalid shipment data', shipment);
     Alert.alert('Error', 'Invalid shipment data. Please try again.');
@@ -68,14 +72,11 @@ export const addToWallet = async (shipment, token) => {
   }
 
   try {
-    // Download the pass file
     const passUri = await downloadWalletPass(shipment, token);
-    
-    // Check if sharing is available
+
     const isAvailable = await Sharing.isAvailableAsync();
-    
+
     if (isAvailable) {
-      // Share the pass - iOS will recognize .pkpass and offer to add to Wallet
       await Sharing.shareAsync(passUri, {
         mimeType: 'application/vnd.apple.pkpass',
         dialogTitle: 'Add to Apple Wallet',
@@ -88,7 +89,7 @@ export const addToWallet = async (shipment, token) => {
     console.error('Error adding to wallet:', error);
     Alert.alert(
       'Error',
-      'Failed to add to Apple Wallet. Please try again later.'
+      error.message || 'Failed to add to Apple Wallet. Please try again later.'
     );
   }
 };

@@ -4,8 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../context/AuthContext";
-import { API_BASE_URL, ENDPOINTS } from "../utils/config";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ENDPOINTS } from "../utils/config";
+import apiClient from "../utils/api";
 import logger from "../utils/logger";
 
 export default function AssignedJobsScreen() {
@@ -20,7 +20,6 @@ export default function AssignedJobsScreen() {
   const fetchAssignedJobs = useCallback(async () => {
     try {
       setError(null);
-      const token = await AsyncStorage.getItem('token');
       const driverId = user?._id || user?.id;
       
       if (!driverId) {
@@ -31,18 +30,14 @@ export default function AssignedJobsScreen() {
 
       // Determine driver type for API call
       const type = isUKDriver() ? 'pickup' : 'delivery';
-      const url = `${API_BASE_URL}${ENDPOINTS.DRIVER_ASSIGNMENTS(driverId)}?type=${type}`;
       
-      logger.api('GET', url);
+      logger.api('GET', `/drivers/${driverId}/assignments?type=${type}`);
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await apiClient.get(`/drivers/${driverId}/assignments`, {
+        params: { type }
       });
 
-      const data = await response.json();
+      const data = response.data;
       logger.log('Jobs response:', data.success);
 
       if (data.success && data.data?.shipments) {

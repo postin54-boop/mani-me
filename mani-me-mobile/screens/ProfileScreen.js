@@ -5,9 +5,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useUser } from '../context/UserContext';
-import { updateProfile, updateEmail } from 'firebase/auth';
-import { auth, db } from '../firebaseConfig';
-import { updateDoc, doc } from 'firebase/firestore';
 import { useThemeColors, SIZES, FONTS, SHADOWS } from '../constants/theme';
 import { API_BASE_URL } from '../utils/config';
 

@@ -1,6 +1,6 @@
 /**
  * AddToWalletButton Component
- * Renders an Apple Wallet button for iOS devices
+ * Downloads a signed .pkpass and presents the iOS share sheet to add to Apple Wallet
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
@@ -11,7 +11,7 @@ import {
   View,
   ActivityIndicator,
   Platform,
-  Image,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addToWallet, isWalletAvailable } from '../services/walletService';

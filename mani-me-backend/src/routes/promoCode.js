@@ -3,6 +3,7 @@ const router = express.Router();
 const logger = require('../utils/logger');
 const PromoCode = require('../models/promoCode');
 const { verifyToken, verifyAdmin } = require('../middleware/auth');
+const { apiLimiter } = require('../middleware/rateLimiter');
 
 // Get all promo codes (admin only)
 // Protected: requires admin authentication
@@ -174,8 +175,8 @@ router.delete('/:id', verifyAdmin, async (req, res) => {
   }
 });
 
-// Validate promo code (public endpoint for customers)
-router.post('/validate', async (req, res) => {
+// Validate promo code (public endpoint for customers, rate limited)
+router.post('/validate', apiLimiter, async (req, res) => {
   try {
     const { code, orderValue, orderType } = req.body;
 
@@ -256,7 +257,8 @@ router.post('/validate', async (req, res) => {
 });
 
 // Apply promo code (increment usage count)
-router.post('/apply', async (req, res) => {
+// Protected: requires authentication
+router.post('/apply', verifyToken, async (req, res) => {
   try {
     const { code } = req.body;
 
@@ -284,8 +286,8 @@ router.post('/apply', async (req, res) => {
   }
 });
 
-// Get promo code stats (admin)
-router.get('/stats/overview', async (req, res) => {
+// Get promo code stats (admin only)
+router.get('/stats/overview', verifyAdmin, async (req, res) => {
   try {
     const [total, active, expired, totalUsage] = await Promise.all([
       PromoCode.countDocuments(),

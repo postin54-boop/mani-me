@@ -313,9 +313,9 @@ export default function UKPickupsScreen({ navigation }) {
       {/* Payment Info */}
       {pickup.payment_method && (
         <View style={styles.paymentRow}>
-          <View style={styles.detailRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
             <Ionicons name={pickup.payment_method === 'cash' ? 'cash-outline' : 'card-outline'} size={16} color={colors.secondary} />
-            <Text style={[styles.detailText, { color: colors.text }]}>
+            <Text style={{ fontSize: 14, color: colors.text }}>
               {pickup.payment_method === 'cash' ? 'Cash on Pickup' : 'Paid by Card'}
             </Text>
           </View>

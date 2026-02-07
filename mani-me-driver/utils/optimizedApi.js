@@ -1,8 +1,8 @@
 // utils/optimizedApi.js - Optimized API layer for high-load scenarios
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from './config';
 import logger from './logger';
+import secureStorage from './secureStorage';
 
 const API_BASE = `${API_BASE_URL}/api`;
 
@@ -15,10 +15,10 @@ const apiClient = axios.create({
   },
 });
 
-// Request interceptor - Add auth token
+// Request interceptor - Add auth token from secure storage
 apiClient.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem('token');
+    const token = await secureStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -32,9 +32,8 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      // Token expired - clear auth and redirect to login
-      await AsyncStorage.multiRemove(['token', 'user']);
-      // You can emit an event here to trigger logout
+      // Token expired - clear auth
+      await secureStorage.removeItem('token');
     }
     return Promise.reject(error);
   }

@@ -132,6 +132,9 @@ const shipmentSchema = new mongoose.Schema({
   // Special Instructions
   special_instructions: { type: String },
 
+  // User can hide cancelled/delivered orders from their list
+  hidden_by_user: { type: Boolean, default: false },
+
   // Additional fields as needed
 }, { timestamps: true });
 
