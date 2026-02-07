@@ -1,0 +1,20 @@
+# Dependencies are installed on EAS servers
+node_modules/
+
+# Build outputs
+build/
+dist/
+.expo/
+
+# Development files
+*.log
+.env.local
+.env.development
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

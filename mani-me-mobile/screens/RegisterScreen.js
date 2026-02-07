@@ -29,9 +29,11 @@ const validateEmail = (email) => {
 };
 
 const validatePhone = (phone) => {
-  const phoneRegex = /^(\+44|0)[1-9]\d{8,9}$/;
   const cleanPhone = phone.replace(/[\s-]/g, '');
-  return phoneRegex.test(cleanPhone);
+  // Accept UK (+44/0) and Ghana (+233/0) phone formats
+  const ukRegex = /^(\+44|0)[1-9]\d{8,9}$/;
+  const ghanaRegex = /^(\+233|0)[2-9]\d{7,8}$/;
+  return ukRegex.test(cleanPhone) || ghanaRegex.test(cleanPhone);
 };
 
 const RegisterScreen = ({ navigation }) => {
@@ -91,7 +93,7 @@ const RegisterScreen = ({ navigation }) => {
     if (!phone.trim()) {
       newErrors.phone = 'Phone number is required';
     } else if (!validatePhone(phone.trim())) {
-      newErrors.phone = 'Please enter a valid UK phone number';
+      newErrors.phone = 'Please enter a valid phone number';
     }
 
     if (!password) {
@@ -257,7 +259,7 @@ const RegisterScreen = ({ navigation }) => {
             })}
 
             {/* Phone Input */}
-            {renderInput('phone', 'call-outline', '07123456789', phone, setPhone, { 
+            {renderInput('phone', 'call-outline', 'e.g. 07123456789', phone, setPhone, { 
               label: 'Phone Number',
               keyboardType: 'phone-pad'
             })}
