@@ -62,7 +62,7 @@ exports.verifyAdmin = async (req, res, next) => {
       return res.status(401).json({ message: 'User not found' });
     }
     
-    if (user.role !== 'admin') {
+    if (user.role !== 'admin' && user.role !== 'ADMIN') {
       return res.status(403).json({ message: 'Admin access required' });
     }
     
