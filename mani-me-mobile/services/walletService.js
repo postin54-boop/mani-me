@@ -39,8 +39,14 @@ export const downloadWalletPass = async (shipment, token) => {
       try {
         const errorBody = await FileSystem.readAsStringAsync(downloadResult.uri);
         const errorJson = JSON.parse(errorBody);
-        throw new Error(errorJson.error || errorJson.setup || 'Failed to download wallet pass');
+        if (errorJson.code === 'WALLET_NOT_CONFIGURED') {
+          throw new Error('Apple Wallet passes are coming soon! This feature is not yet available.');
+        }
+        throw new Error(errorJson.error || 'Failed to download wallet pass');
       } catch (parseErr) {
+        if (parseErr.message.includes('coming soon') || parseErr.message.includes('not yet available')) {
+          throw parseErr;
+        }
         throw new Error(`Failed to download wallet pass (HTTP ${downloadResult.status})`);
       }
     }

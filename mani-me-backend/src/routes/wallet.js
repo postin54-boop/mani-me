@@ -86,7 +86,8 @@ router.get('/pass/:shipmentId', verifyToken, async (req, res) => {
     }
 
     // Check if user owns this shipment
-    if (shipment.userId !== req.user.user_id && shipment.userId !== req.user.id) {
+    const userIdFromToken = req.userId || req.user?.user_id || req.user?.id;
+    if (shipment.userId && shipment.userId !== 'guest' && shipment.userId !== userIdFromToken?.toString()) {
       return res.status(403).json({ error: 'Unauthorized access to shipment' });
     }
 
@@ -94,9 +95,9 @@ router.get('/pass/:shipmentId', verifyToken, async (req, res) => {
     const certs = loadCertificates();
     if (!certs) {
       console.error('Apple Wallet certificates not found in', CERTS_DIR);
-      return res.status(500).json({
-        error: 'Wallet pass signing not configured',
-        setup: 'Place wwdr.pem, signerCert.pem, and signerKey.pem in mani-me-backend/certs/',
+      return res.status(503).json({
+        error: 'Apple Wallet is not available yet. Coming soon!',
+        code: 'WALLET_NOT_CONFIGURED',
       });
     }
 
