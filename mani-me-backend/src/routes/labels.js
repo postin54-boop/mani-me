@@ -14,17 +14,19 @@ router.get('/shipment/:id', async (req, res) => {
 
     // For demo: Use tracking_number as QR/barcode data
     if (format === 'png') {
-      bwipjs.toBuffer({
-        bcid: 'qrcode',
-        text: shipment.tracking_number,
-        scale: 6,
-        includetext: true,
-        textxalign: 'center',
-      }, (err, png) => {
-        if (err) return res.status(500).json({ error: 'Label generation failed' });
+      try {
+        const png = await bwipjs.toBuffer({
+          bcid: 'qrcode',
+          text: shipment.tracking_number,
+          scale: 6,
+          includetext: true,
+          textxalign: 'center',
+        });
         res.set('Content-Type', 'image/png');
         res.send(png);
-      });
+      } catch (bwipErr) {
+        return res.status(500).json({ error: 'Label generation failed' });
+      }
     } else if (format === 'zpl') {
       // Simple ZPL for QR code (Zebra printers)
       const zpl = `^XA^FO50,50^BQN,2,10^FDLA,${shipment.tracking_number}^FS^XZ`;
@@ -47,17 +49,19 @@ router.get('/item/:id', async (req, res) => {
     const item = await Item.findById(id);
     if (!item) return res.status(404).json({ error: 'Item not found' });
     if (format === 'png') {
-      bwipjs.toBuffer({
-        bcid: 'qrcode',
-        text: item.item_id,
-        scale: 6,
-        includetext: true,
-        textxalign: 'center',
-      }, (err, png) => {
-        if (err) return res.status(500).json({ error: 'Label generation failed' });
+      try {
+        const png = await bwipjs.toBuffer({
+          bcid: 'qrcode',
+          text: item.item_id,
+          scale: 6,
+          includetext: true,
+          textxalign: 'center',
+        });
         res.set('Content-Type', 'image/png');
         res.send(png);
-      });
+      } catch (bwipErr) {
+        return res.status(500).json({ error: 'Label generation failed' });
+      }
     } else if (format === 'zpl') {
       const zpl = `^XA^FO50,50^BQN,2,10^FDLA,${item.item_id}^FS^XZ`;
       res.set('Content-Type', 'text/plain');
