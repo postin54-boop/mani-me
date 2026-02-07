@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Button, CircularProgress, Snackbar, Alert, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TextField, Button, CircularProgress, Snackbar, Alert, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import api from '../api';
 
 const PARCEL_TYPES = [
@@ -20,6 +20,9 @@ export default function ParcelItems() {
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [totalCount, setTotalCount] = useState(0);
   const [form, setForm] = useState({
     booking_id: '',
     item_type: '',
@@ -31,13 +34,23 @@ export default function ParcelItems() {
 
   useEffect(() => {
     fetchParcels();
-  }, []);
+  }, [page, rowsPerPage]);
 
   const fetchParcels = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/api/parcels');
-      setParcels(res.data);
+      const params = { page: page + 1, limit: rowsPerPage };
+      const res = await api.get('/api/parcels', { params });
+      const data = res.data;
+      if (data.parcels && data.pagination) {
+        setParcels(data.parcels);
+        setTotalCount(data.pagination.total);
+      } else {
+        // Fallback for old API format
+        const arr = Array.isArray(data) ? data : [];
+        setParcels(arr);
+        setTotalCount(arr.length);
+      }
     } catch (err) {
       setSnackbar({ open: true, message: 'Failed to load parcels', severity: 'error' });
     }
@@ -101,6 +114,15 @@ export default function ParcelItems() {
         </TableContainer>
         {loading && <CircularProgress sx={{ mt: 2 }} />}
       </Paper>
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={(e, newPage) => setPage(newPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+        rowsPerPageOptions={[25, 50, 100]}
+      />
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <DialogTitle>Add Parcel Item</DialogTitle>
         <DialogContent>

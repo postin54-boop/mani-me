@@ -59,14 +59,21 @@ exports.getWarehouseSummary = async (req, res) => {
  */
 exports.getWarehouseParcels = async (req, res) => {
   try {
-    // Fetch all shipments with warehouse status
-    const parcels = await Shipment.find({
-      warehouse_status: { $ne: 'not_arrived' }
-    })
-    .select('parcel_id tracking_number sender_name receiver_name warehouse_status status pickup_address delivery_city delivery_region parcel_size weight_kg createdAt')
-    .sort({ createdAt: -1 })
-    .limit(100)
-    .lean();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
+    const baseQuery = { warehouse_status: { $ne: 'not_arrived' } };
+
+    const [parcels, total] = await Promise.all([
+      Shipment.find(baseQuery)
+        .select('parcel_id tracking_number sender_name receiver_name warehouse_status status pickup_address delivery_city delivery_region parcel_size weight_kg createdAt')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Shipment.countDocuments(baseQuery)
+    ]);
     
     // Format for frontend
     const formatted = parcels.map(p => ({
@@ -84,7 +91,10 @@ exports.getWarehouseParcels = async (req, res) => {
       createdAt: p.createdAt
     }));
     
-    res.json(formatted);
+    res.json({
+      parcels: formatted,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+    });
   } catch (err) {
     logger.error('Warehouse parcels error', { error: err.message });
     res.status(500).json({ message: 'Error fetching warehouse parcels', error: err.message });

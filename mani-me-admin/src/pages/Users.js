@@ -18,8 +18,12 @@ import {
   TextField,
   Switch,
   FormControlLabel,
+  TablePagination,
+  Skeleton,
+  InputAdornment,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import SearchIcon from '@mui/icons-material/Search';
 import api from '../api';
 import logger from '../utils/logger';
 import { getErrorMessage } from '../utils/errorHandler';
@@ -29,21 +33,43 @@ function Users() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
 
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(0);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch users when pagination or search changes
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [page, rowsPerPage, debouncedSearch]);
 
   const fetchUsers = async () => {
     try {
-      const response = await api.get('/api/admin/users');
-      // Handle both old format (array) and new format ({ users, pagination })
+      setLoading(true);
+      const params = {
+        page: page + 1,
+        limit: rowsPerPage,
+      };
+      if (debouncedSearch) params.search = debouncedSearch;
+
+      const response = await api.get('/api/admin/users', { params });
       const usersData = response.data.users || response.data;
       setUsers(Array.isArray(usersData) ? usersData : []);
+      setTotalCount(response.data.pagination?.total || usersData.length || 0);
     } catch (error) {
       logger.error('Error fetching users:', error);
       setUsers([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -64,30 +90,41 @@ function Users() {
       await api.put(`/api/admin/users/${userId}/status`, {
         is_active: !currentStatus,
       });
-      fetchUsers();
+      // Update local state instead of re-fetching all users
+      setUsers(prev => prev.map(u => 
+        (u._id || u.id) === userId ? { ...u, is_active: !currentStatus } : u
+      ));
     } catch (error) {
       logger.error('Error updating user status:', error);
     }
   };
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone?.includes(searchTerm)
-  );
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Users Management</Typography>
         <TextField
-          label="Search users"
+          placeholder="Search users..."
           variant="outlined"
           size="small"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: '#666' }} />
+              </InputAdornment>
+            ),
+          }}
           sx={{ width: 300 }}
         />
       </Box>
@@ -106,7 +143,24 @@ function Users() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredUsers.map((user) => (
+            {loading ? (
+              [...Array(5)].map((_, index) => (
+                <TableRow key={index}>
+                  {[...Array(7)].map((_, cellIndex) => (
+                    <TableCell key={cellIndex}>
+                      <Skeleton variant="text" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : users.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} align="center">
+                  No users found
+                </TableCell>
+              </TableRow>
+            ) : (
+              users.map((user) => (
               <TableRow key={user._id || user.id}>
                 <TableCell>{user.fullName || user.name || 'N/A'}</TableCell>
                 <TableCell>{user.email || 'N/A'}</TableCell>
@@ -139,16 +193,18 @@ function Users() {
                   </Button>
                 </TableCell>
               </TableRow>
-            ))}
-            {filteredUsers.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  No users found
-                </TableCell>
-              </TableRow>
-            )}
+            )))}
           </TableBody>
         </Table>
+        <TablePagination
+          component="div"
+          count={totalCount}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          rowsPerPageOptions={[5, 10, 25, 50]}
+        />
       </TableContainer>
 
       {/* User Details Dialog */}

@@ -201,11 +201,28 @@ router.get('/orders/:id', verifyToken, async (req, res) => {
 
 // ============ ADMIN ROUTES ============
 
-// Get all items (including unavailable) - Admin only
+// Get all items (including unavailable) - Admin only, with pagination
 router.get('/admin/items', verifyToken, verifyAdmin, async (req, res) => {
   try {
-    const items = await GroceryItem.find().sort({ createdAt: -1 });
-    res.json(items);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    const search = req.query.search;
+
+    let query = {};
+    if (search) {
+      query.name = { $regex: search, $options: 'i' };
+    }
+
+    const [items, total] = await Promise.all([
+      GroceryItem.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      GroceryItem.countDocuments(query)
+    ]);
+
+    res.json({
+      items,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+    });
   } catch (error) {
     console.error('Error fetching items:', error);
     res.status(500).json({ message: 'Failed to fetch items' });

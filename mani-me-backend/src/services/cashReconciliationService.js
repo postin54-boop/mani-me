@@ -47,11 +47,26 @@ const getAllReports = async (filters = {}) => {
       $lte: new Date(filters.endDate),
     };
   }
-  
-  return await CashReconciliation.find(query)
-    .populate('driver', 'name email phone')
-    .populate('reviewedBy', 'name email')
-    .sort({ createdAt: -1 });
+
+  // Support pagination
+  const page = parseInt(filters.page) || 1;
+  const limit = parseInt(filters.limit) || 50;
+  const skip = (page - 1) * limit;
+
+  const [reports, total] = await Promise.all([
+    CashReconciliation.find(query)
+      .populate('driver', 'name email phone')
+      .populate('reviewedBy', 'name email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    CashReconciliation.countDocuments(query)
+  ]);
+
+  return {
+    reports,
+    pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+  };
 };
 
 /**

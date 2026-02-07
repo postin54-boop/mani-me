@@ -1,6 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { API_BASE_URL } from './config';
 import logger from './logger';
 
@@ -66,10 +68,21 @@ export async function registerForPushNotificationsAsync() {
  */
 export async function updatePushToken(userId, pushToken) {
   try {
+    // Try SecureStore first (new method), fallback to AsyncStorage (legacy)
+    let token = await SecureStore.getItemAsync('authToken');
+    if (!token) {
+      token = await AsyncStorage.getItem('token');
+    }
+    if (!token) {
+      logger.warn('No auth token found, skipping push token update');
+      return;
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/auth/update-push-token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({ userId, pushToken }),
     });

@@ -31,19 +31,18 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 import ImageUpload from '../components/ImageUpload';
+import api from '../api';
 
 // Packaging Materials
 const PACKAGING_CATEGORIES = ['Boxes', 'Tape', 'Protective', 'Labels', 'Drums'];
 
 export default function PackagingShop() {
   const [items, setItems] = useState([]);
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api/shop/packaging';
 
-  // Fetch items from backend
+  // Fetch items from backend using the api instance (includes auth header)
   useEffect(() => {
-    fetch(API_URL)
-      .then(res => res.json())
-      .then(setItems)
+    api.get('/api/shop/packaging')
+      .then(res => setItems(res.data))
       .catch(() => setItems([]));
   }, []);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -89,73 +88,43 @@ export default function PackagingShop() {
     setInlinePrice('');
   };
   const handleInlinePriceSave = async (item) => {
-    const token = localStorage.getItem('adminToken');
-    const res = await fetch(`${API_URL}/${item._id || item.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ ...item, price: parseFloat(inlinePrice) })
-    });
-    if (res.ok) {
-      const updated = await res.json();
-      setItems(items.map(i => (i._id === updated._id ? updated : i)));
-    }
+    try {
+      const res = await api.put(`/api/shop/packaging/${item._id || item.id}`, {
+        ...item, price: parseFloat(inlinePrice)
+      });
+      setItems(items.map(i => (i._id === res.data._id ? res.data : i)));
+    } catch (e) { /* ignore */ }
     setEditingPriceId(null);
     setInlinePrice('');
   };
 
   const handleSave = async () => {
-    const token = localStorage.getItem('adminToken');
-    if (editingItem) {
-      // Edit existing
-      const res = await fetch(`${API_URL}/${editingItem._id || editingItem.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
+    try {
+      if (editingItem) {
+        const res = await api.put(`/api/shop/packaging/${editingItem._id || editingItem.id}`, {
           ...formData,
           price: parseFloat(formData.price),
           stock: parseInt(formData.stock)
-        })
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        setItems(items.map(item => (item._id === updated._id ? updated : item)));
-      }
-    } else {
-      // Add new
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
+        });
+        setItems(items.map(item => (item._id === res.data._id ? res.data : item)));
+      } else {
+        const res = await api.post('/api/shop/packaging', {
           ...formData,
           price: parseFloat(formData.price),
           stock: parseInt(formData.stock)
-        })
-      });
-      if (res.ok) {
-        const newItem = await res.json();
-        setItems([...items, newItem]);
+        });
+        setItems([...items, res.data]);
       }
-    }
+    } catch (e) { /* ignore */ }
     setDialogOpen(false);
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this item?')) {
-      const token = localStorage.getItem('adminToken');
-      const res = await fetch(`${API_URL}/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) setItems(items.filter(item => (item._id || item.id) !== id));
+      try {
+        await api.delete(`/api/shop/packaging/${id}`);
+        setItems(items.filter(item => (item._id || item.id) !== id));
+      } catch (e) { /* ignore */ }
     }
   };
 

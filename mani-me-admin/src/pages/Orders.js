@@ -44,6 +44,7 @@ function Orders() {
   const [openDialog, setOpenDialog] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   // Label printing state
   const [labelDialogOpen, setLabelDialogOpen] = useState(false);
   const [labelImageUrl, setLabelImageUrl] = useState(null);
@@ -88,20 +89,40 @@ function Orders() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [totalCount, setTotalCount] = useState(0);
 
+  // Debounce search input for server-side search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(0); // Reset to first page on search
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch orders whenever pagination, filter, or search changes
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [page, rowsPerPage, statusFilter, debouncedSearch]);
 
   const fetchOrders = async () => {
     try {
-      const response = await api.get('/api/admin/orders');
-      // Handle both old format (array) and new format ({ orders, pagination })
+      setLoading(true);
+      const params = {
+        page: page + 1, // Backend uses 1-based pages
+        limit: rowsPerPage,
+      };
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (debouncedSearch) params.search = debouncedSearch;
+
+      const response = await api.get('/api/admin/orders', { params });
       const ordersData = response.data.orders || response.data;
       setOrders(Array.isArray(ordersData) ? ordersData : []);
+      setTotalCount(response.data.pagination?.total || ordersData.length || 0);
     } catch (error) {
       logger.error('Error fetching orders:', error);
       setOrders([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -127,7 +148,10 @@ function Orders() {
       });
       console.log('Update response:', response.data);
       alert('Order status updated successfully!');
-      fetchOrders();
+      // Update local state instead of re-fetching all orders
+      setOrders(prev => prev.map(o => 
+        (o._id || o.id) === orderId ? { ...o, status: newStatus } : o
+      ));
       handleCloseDialog();
     } catch (error) {
       logger.error('Error updating order status:', error);
@@ -146,7 +170,11 @@ function Orders() {
       console.log('Warehouse update response:', response.data);
       setSelectedOrder({ ...selectedOrder, warehouse_status: warehouseStatus });
       alert('Warehouse status updated successfully!');
-      fetchOrders();
+      // Update local state instead of re-fetching all orders
+      setOrders(prev => prev.map(o => 
+        (o._id || o.id) === (selectedOrder._id || selectedOrder.id) 
+          ? { ...o, warehouse_status: warehouseStatus } : o
+      ));
     } catch (error) {
       logger.error('Error updating warehouse status:', error);
       const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to update warehouse status';
@@ -161,6 +189,11 @@ function Orders() {
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
+  };
+
+  const handleStatusFilterChange = (e) => {
+    setStatusFilter(e.target.value);
+    setPage(0); // Reset to first page on filter change
   };
 
   const getStatusColor = (status) => {
@@ -189,25 +222,6 @@ function Orders() {
     };
     return statusStyles[status] || { bgcolor: alpha('#666', 0.1), color: '#666' };
   };
-
-  const filteredOrders = orders.filter(
-    (order) => {
-      const matchesSearch = 
-        order.tracking_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.sender_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.receiver_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.parcel_id_short?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-      
-      return matchesSearch && matchesStatus;
-    }
-  );
-
-  const paginatedOrders = filteredOrders.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  );
 
   return (
     <Box>
@@ -253,7 +267,7 @@ function Orders() {
           <Select
             value={statusFilter}
             label="Status Filter"
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => handleStatusFilterChange(e)}
             sx={{ borderRadius: 2 }}
           >
             <MenuItem value="all">All Statuses</MenuItem>
@@ -314,7 +328,7 @@ function Orders() {
                   ))}
                 </TableRow>
               ))
-            ) : paginatedOrders.length === 0 ? (
+            ) : orders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={11} align="center" sx={{ py: 8 }}>
                   <Typography variant="body1" sx={{ color: '#666', mb: 1 }}>
@@ -326,7 +340,7 @@ function Orders() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedOrders.map((order) => (
+              orders.map((order) => (
               <TableRow 
                 key={order._id || order.id}
                 sx={{
@@ -470,7 +484,7 @@ function Orders() {
         </Table>
         <TablePagination
           component="div"
-          count={filteredOrders.length}
+          count={totalCount}
           page={page}
           onPageChange={handleChangePage}
           rowsPerPage={rowsPerPage}

@@ -26,14 +26,16 @@ exports.submitCashReport = async (req, res) => {
 // GET /cash-reconciliation (admin)
 exports.getAllReports = async (req, res) => {
   try {
-    const { status, driverId, startDate, endDate } = req.query;
-    const reports = await cashReconciliationService.getAllReports({
+    const { status, driverId, startDate, endDate, page, limit } = req.query;
+    const result = await cashReconciliationService.getAllReports({
       status,
       driverId,
       startDate,
       endDate,
+      page,
+      limit,
     });
-    res.json(reports);
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

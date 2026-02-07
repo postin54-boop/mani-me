@@ -9,6 +9,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   Chip,
   Button,
   Dialog,
@@ -50,22 +51,47 @@ export default function CashReconciliation() {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState('pending'); // 'all', 'pending', 'approved', 'rejected'
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     fetchReports();
-  }, [filter]);
+  }, [filter, page, rowsPerPage]);
 
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const params = filter === 'all' ? {} : { status: filter };
+      const params = {
+        page: page + 1,
+        limit: rowsPerPage,
+        ...(filter !== 'all' && { status: filter }),
+      };
       const response = await api.get('/cash-reconciliation', { params });
-      setReports(response.data.reports || response.data || []);
+      const data = response.data;
+      if (data.reports && data.pagination) {
+        setReports(data.reports);
+        setTotalCount(data.pagination.total);
+      } else {
+        // Fallback for old API format
+        const arr = Array.isArray(data) ? data : [];
+        setReports(arr);
+        setTotalCount(arr.length);
+      }
     } catch (error) {
       logger.error('Error fetching reports:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleRowsPerPageChange = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const handleViewReport = (report) => {
@@ -122,7 +148,7 @@ export default function CashReconciliation() {
     });
   };
 
-  const pendingCount = reports.filter(r => r.status === 'pending').length;
+  const pendingCount = filter === 'pending' ? totalCount : reports.filter(r => r.status === 'pending').length;
   const totalPending = reports
     .filter(r => r.status === 'pending')
     .reduce((sum, r) => sum + r.amount, 0);
@@ -189,7 +215,7 @@ export default function CashReconciliation() {
                 </Avatar>
                 <Box>
                   <Typography variant="h4" fontWeight="700" color="#fff">
-                    {reports.length}
+                    {totalCount}
                   </Typography>
                   <Typography variant="body2" color="rgba(255,255,255,0.9)">
                     Total Reports
@@ -205,25 +231,25 @@ export default function CashReconciliation() {
       <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
         <Chip
           label="All"
-          onClick={() => setFilter('all')}
+          onClick={() => { setFilter('all'); setPage(0); }}
           color={filter === 'all' ? 'primary' : 'default'}
           sx={{ fontWeight: filter === 'all' ? 700 : 400 }}
         />
         <Chip
           label="Pending"
-          onClick={() => setFilter('pending')}
+          onClick={() => { setFilter('pending'); setPage(0); }}
           color={filter === 'pending' ? 'warning' : 'default'}
           sx={{ fontWeight: filter === 'pending' ? 700 : 400 }}
         />
         <Chip
           label="Approved"
-          onClick={() => setFilter('approved')}
+          onClick={() => { setFilter('approved'); setPage(0); }}
           color={filter === 'approved' ? 'success' : 'default'}
           sx={{ fontWeight: filter === 'approved' ? 700 : 400 }}
         />
         <Chip
           label="Rejected"
-          onClick={() => setFilter('rejected')}
+          onClick={() => { setFilter('rejected'); setPage(0); }}
           color={filter === 'rejected' ? 'error' : 'default'}
           sx={{ fontWeight: filter === 'rejected' ? 700 : 400 }}
         />
@@ -316,6 +342,15 @@ export default function CashReconciliation() {
           </TableBody>
         </Table>
       </TableContainer>
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={handlePageChange}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        rowsPerPageOptions={[10, 25, 50, 100]}
+      />
 
       {/* View Report Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>

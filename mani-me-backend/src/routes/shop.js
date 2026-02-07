@@ -158,14 +158,33 @@ router.get('/orders/user/:userId', verifyToken, async (req, res) => {
   }
 });
 
-// Get all packaging orders (admin only)
+// Get all packaging orders (admin only) - with pagination
 router.get('/orders', verifyAdmin, async (req, res) => {
   try {
-    const orders = await PackagingOrder.find()
-      .populate('user_id', 'name email phone')
-      .populate('items.item_id')
-      .sort({ createdAt: -1 });
-    res.json(orders);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    const status = req.query.status;
+
+    let query = {};
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    const [orders, total] = await Promise.all([
+      PackagingOrder.find(query)
+        .populate('user_id', 'name email phone')
+        .populate('items.item_id')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      PackagingOrder.countDocuments(query)
+    ]);
+
+    res.json({
+      orders,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+    });
   } catch (error) {
     console.error('Get all orders error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });

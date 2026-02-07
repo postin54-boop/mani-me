@@ -9,6 +9,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   Paper,
   IconButton,
   Dialog,
@@ -22,9 +23,10 @@ import {
   Grid,
   Card,
   CardContent,
-  Avatar
+  Avatar,
+  InputAdornment
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, ShoppingCart, Inventory, Image as ImageIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, ShoppingCart, Inventory, Image as ImageIcon, Search as SearchIcon } from '@mui/icons-material';
 import { API_BASE_URL } from '../api';
 import api from '../api';
 import ImageUpload from '../components/ImageUpload';
@@ -46,15 +48,43 @@ export default function GroceryShop() {
     image_url: ''
   });
   const [alert, setAlert] = useState({ show: false, message: '', severity: 'success' });
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(0);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     fetchItems();
-  }, []);
+  }, [page, rowsPerPage, debouncedSearch]);
 
   const fetchItems = async () => {
     try {
-      const response = await api.get('/grocery/admin/items');
-      setItems(response.data);
+      const params = {
+        page: page + 1,
+        limit: rowsPerPage,
+        ...(debouncedSearch && { search: debouncedSearch }),
+      };
+      const response = await api.get('/grocery/admin/items', { params });
+      const data = response.data;
+      if (data.items && data.pagination) {
+        setItems(data.items);
+        setTotalCount(data.pagination.total);
+      } else {
+        // Fallback for old API format
+        const arr = Array.isArray(data) ? data : [];
+        setItems(arr);
+        setTotalCount(arr.length);
+      }
     } catch (error) {
       logger.error('Error fetching items:', error);
     }
@@ -129,7 +159,7 @@ export default function GroceryShop() {
   };
 
   const getTotalItems = () => {
-    return items.length;
+    return totalCount;
   };
 
   const getOutOfStock = () => {
@@ -155,9 +185,25 @@ export default function GroceryShop() {
 
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h4">Grocery Shop Management</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}>
-          Add New Item
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <TextField
+            size="small"
+            placeholder="Search items..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ width: 250 }}
+          />
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}>
+            Add New Item
+          </Button>
+        </Box>
       </Box>
 
       {/* Summary Cards */}
@@ -267,6 +313,15 @@ export default function GroceryShop() {
           </TableBody>
         </Table>
       </TableContainer>
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={(e, newPage) => setPage(newPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+        rowsPerPageOptions={[10, 25, 50, 100]}
+      />
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>

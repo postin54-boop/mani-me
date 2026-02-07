@@ -21,6 +21,8 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  TablePagination,
+  Skeleton,
 } from '@mui/material';
 import {
   LocalShipping as DeliveryIcon,
@@ -46,17 +48,29 @@ export default function PackagingOrders() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [updateData, setUpdateData] = useState({ status: '', payment_status: '', notes: '' });
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [page, rowsPerPage]);
 
   const fetchOrders = async () => {
     try {
-      const res = await api.get('/shop/orders');
-      setOrders(res.data);
+      setLoading(true);
+      const params = { page: page + 1, limit: rowsPerPage };
+      const res = await api.get('/shop/orders', { params });
+      const ordersData = res.data.orders || res.data;
+      setOrders(Array.isArray(ordersData) ? ordersData : []);
+      setTotalCount(res.data.pagination?.total || ordersData.length || 0);
     } catch (error) {
       logger.error('Fetch orders error:', error);
+      setOrders([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -134,7 +148,22 @@ export default function PackagingOrders() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {orders.map((order) => (
+            {loading ? (
+              [...Array(5)].map((_, index) => (
+                <TableRow key={index}>
+                  {[...Array(9)].map((_, cellIndex) => (
+                    <TableCell key={cellIndex}>
+                      <Skeleton variant="text" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : orders.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={9} align="center">No orders found</TableCell>
+              </TableRow>
+            ) : (
+              orders.map((order) => (
               <TableRow key={order._id}>
                 <TableCell>
                   <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
@@ -216,9 +245,18 @@ export default function PackagingOrders() {
                   </Button>
                 </TableCell>
               </TableRow>
-            ))}
+            )))}
           </TableBody>
         </Table>
+        <TablePagination
+          component="div"
+          count={totalCount}
+          page={page}
+          onPageChange={(e, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+          rowsPerPageOptions={[5, 10, 25, 50]}
+        />
       </TableContainer>
 
       {/* Update Order Dialog */}
