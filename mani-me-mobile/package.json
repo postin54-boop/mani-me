@@ -19,7 +19,7 @@
     "@stripe/stripe-react-native": "0.50.3",
     "@tanstack/react-query": "^5.90.12",
     "@babel/runtime": "^7.26.0",
-    "axios": "^1.13.2",
+    "axios": "^1.7.9",
     "axios-retry": "^4.5.0",
     "expo": "~54.0.30",
     "expo-auth-session": "^7.0.9",
