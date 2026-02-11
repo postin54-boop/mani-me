@@ -6,8 +6,10 @@
 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { user: User } = require('../models');
 const { validatePassword, validateEmail, sanitizeInput } = require('../utils/validation');
+const { sendPasswordResetEmail } = require('../utils/email');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const TOKEN_EXPIRY = '7d';
@@ -212,6 +214,86 @@ const refreshToken = async (token) => {
   return { user: formatUser(user), token: newToken };
 };
 
+/**
+ * Forgot password - generate reset code and send email
+ */
+const forgotPassword = async (email) => {
+  if (!email) {
+    const err = new Error('Email is required');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  email = sanitizeInput(email).toLowerCase();
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    // Don't reveal whether email exists (security best practice)
+    // Still return success to prevent email enumeration
+    return { message: 'If an account with that email exists, a reset code has been sent.' };
+  }
+
+  // Generate a 6-digit numeric reset code
+  const resetCode = crypto.randomInt(100000, 999999).toString();
+
+  // Hash the code before storing (so it's not in plaintext in DB)
+  const hashedCode = crypto.createHash('sha256').update(resetCode).digest('hex');
+
+  // Store hashed code and expiry (15 minutes)
+  user.resetPasswordToken = hashedCode;
+  user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
+  await user.save();
+
+  // Send the plain code via email
+  await sendPasswordResetEmail(email, resetCode);
+
+  return { message: 'If an account with that email exists, a reset code has been sent.' };
+};
+
+/**
+ * Reset password using code
+ */
+const resetPassword = async (email, code, newPassword) => {
+  if (!email || !code || !newPassword) {
+    const err = new Error('Email, reset code, and new password are required');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  email = sanitizeInput(email).toLowerCase();
+
+  const passwordValidation = validatePassword(newPassword);
+  if (!passwordValidation.isValid) {
+    const err = new Error('Password does not meet requirements');
+    err.statusCode = 400;
+    err.errors = passwordValidation.errors;
+    throw err;
+  }
+
+  // Hash the submitted code to compare with stored hash
+  const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+
+  const user = await User.findOne({
+    email,
+    resetPasswordToken: hashedCode,
+    resetPasswordExpires: { $gt: new Date() }, // Not expired
+  });
+
+  if (!user) {
+    const err = new Error('Invalid or expired reset code');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Update password and clear reset fields
+  user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+  await user.save();
+
+  return { message: 'Password reset successfully. You can now log in.' };
+};
+
 module.exports = {
   getCurrentUser,
   register,
@@ -219,6 +301,8 @@ module.exports = {
   updatePushToken,
   updateProfile,
   refreshToken,
+  forgotPassword,
+  resetPassword,
   formatUser,
   generateToken,
 };

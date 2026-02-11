@@ -10,6 +10,8 @@ router.get('/me', authController.me);
 router.post('/register', registerLimiter, authController.register);
 router.post('/login', loginLimiter, authController.login);
 router.post('/refresh', authController.refresh);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
 
 // Protected endpoints
 router.post('/update-push-token', verifyToken, authController.updatePushToken);

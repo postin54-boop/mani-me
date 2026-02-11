@@ -71,6 +71,7 @@ import GroceryShopScreen from './screens/GroceryShopScreen';
 import GroceryPaymentScreen from './screens/GroceryPaymentScreen';
 import QRCodeScreen from './screens/QRCodeScreen';
 import ForgotPassword from './screens/ForgotPassword';
+import ResetPassword from './screens/ResetPassword';
 import SavedAddressesScreen from './screens/SavedAddressesScreen';
 import ConnectionTest from './screens/ConnectionTest';
 import HelpSupportScreen from './screens/HelpSupportScreen';
@@ -242,6 +243,7 @@ function AppNavigator() {
         <Stack.Screen name="PackagingPayment" component={PackagingPaymentScreen} />
         <Stack.Screen name="QRCode" component={QRCodeScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+        <Stack.Screen name="ResetPassword" component={ResetPassword} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="RecentParcelScreen" component={RecentParcelScreen} />
         <Stack.Screen name="SavedAddressesScreen" component={SavedAddressesScreen} options={{ title: 'Saved Addresses' }} />

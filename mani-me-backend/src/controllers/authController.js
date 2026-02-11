@@ -126,3 +126,31 @@ exports.refresh = async (req, res) => {
     res.status(error.statusCode || 500).json({ error: error.message || 'Server error' });
   }
 };
+
+/**
+ * POST /auth/forgot-password - Send password reset code
+ */
+exports.forgotPassword = async (req, res) => {
+  try {
+    const result = await authService.forgotPassword(req.body.email);
+    return res.json(result);
+  } catch (error) {
+    logger.error('Forgot password error:', { error: error.message });
+    // Always return 200 to prevent email enumeration
+    res.json({ message: 'If an account with that email exists, a reset code has been sent.' });
+  }
+};
+
+/**
+ * POST /auth/reset-password - Reset password with code
+ */
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, code, newPassword } = req.body;
+    const result = await authService.resetPassword(email, code, newPassword);
+    return res.json(result);
+  } catch (error) {
+    logger.error('Reset password error:', { error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message || 'Server error' });
+  }
+};

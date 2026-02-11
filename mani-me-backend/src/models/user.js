@@ -28,6 +28,10 @@ const userSchema = new mongoose.Schema({
 	driver_license: { type: String },
 	is_verified: { type: Boolean, default: false },
 	is_active: { type: Boolean, default: true },
+
+	// Password reset
+	resetPasswordToken: { type: String, index: true },
+	resetPasswordExpires: { type: Date },
 }, { timestamps: true });
 
 // ========================================

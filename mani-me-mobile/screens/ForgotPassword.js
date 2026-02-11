@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, StatusBar } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../utils/config';
 
@@ -11,54 +11,71 @@ export default function ForgotPassword({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const handleReset = async () => {
-    if (!email) {
-      Alert.alert('Enter your email');
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail) {
+      Alert.alert('Error', 'Please enter your email address.');
       return;
     }
     setLoading(true);
     try {
-      // You may need to adjust this endpoint to match your backend
       const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: trimmedEmail }),
       });
+      const data = await response.json();
       if (response.ok) {
-        Alert.alert('Check your email for reset instructions.');
-        navigation.goBack();
+        Alert.alert(
+          'Reset Code Sent',
+          'If an account with that email exists, a 6-digit reset code has been sent. Check your email (including spam folder).',
+          [
+            {
+              text: 'Enter Code',
+              onPress: () => navigation.navigate('ResetPassword', { email: trimmedEmail }),
+            },
+          ]
+        );
       } else {
-        const error = await response.text();
-        Alert.alert('Error', error || 'Failed to send reset email.');
+        Alert.alert('Error', data.error || data.message || 'Failed to send reset code.');
       }
     } catch (e) {
-      Alert.alert('Network error. Please try again.');
+      Alert.alert('Network Error', 'Please check your internet connection and try again.');
     }
     setLoading(false);
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <StatusBar barStyle="light-content" backgroundColor={DEEP_NAVY} />
-      <Ionicons name="lock-closed-outline" size={64} color="#2196F3" style={{ marginBottom: 24 }} />
+      <Ionicons name="lock-closed-outline" size={64} color="#83C5FA" style={{ marginBottom: 24 }} />
       <Text style={styles.title}>Forgot Password</Text>
-      <Text style={styles.subtitle}>Enter your email to receive password reset instructions.</Text>
+      <Text style={styles.subtitle}>Enter your email and we'll send you a 6-digit code to reset your password.</Text>
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder="Email address"
         placeholderTextColor="#b0b8c1"
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
         editable={!loading}
+        autoFocus
       />
-      <TouchableOpacity style={styles.button} onPress={handleReset} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? 'Sending...' : 'Send Reset Link'}</Text>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleReset} 
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>{loading ? 'Sending...' : 'Send Reset Code'}</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backLink}>
+        <Ionicons name="arrow-back" size={18} color="#83C5FA" />
         <Text style={styles.backText}>Back to Login</Text>
       </TouchableOpacity>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -106,16 +123,22 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
   buttonText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
   },
   backLink: {
-    marginTop: 8,
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   backText: {
-    color: '#2196F3',
+    color: '#83C5FA',
     fontSize: 15,
   },
 });
