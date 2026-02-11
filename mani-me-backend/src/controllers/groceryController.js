@@ -1,0 +1,202 @@
+/**
+ * Grocery Controller
+ * @module controllers/groceryController
+ */
+
+const GroceryItem = require('../models/groceryItem');
+const GroceryOrder = require('../models/groceryOrder');
+const logger = require('../utils/logger');
+
+// Public
+exports.getItems = async (req, res) => {
+  try {
+    const { category } = req.query;
+    const query = { is_available: true };
+    if (category && ['grocery', 'electronics', 'household'].includes(category)) {
+      query.category = category;
+    }
+    const items = await GroceryItem.find(query).sort({ createdAt: -1 });
+    res.json(items);
+  } catch (error) {
+    logger.error('Error fetching grocery items', { error: error.message });
+    res.status(500).json({ message: 'Failed to fetch items' });
+  }
+};
+
+exports.getItem = async (req, res) => {
+  try {
+    const item = await GroceryItem.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Item not found' });
+    res.json(item);
+  } catch (error) {
+    logger.error('Error fetching item', { error: error.message });
+    res.status(500).json({ message: 'Failed to fetch item' });
+  }
+};
+
+exports.calculateShipping = async (req, res) => {
+  try {
+    const { itemCount, boxSize } = req.body;
+    let shipping_cost = 0;
+    if (boxSize) {
+      const boxPricing = { small: 30, medium: 45, large: 50 };
+      shipping_cost = boxPricing[boxSize] || 30;
+    } else if (itemCount) {
+      if (itemCount <= 5) shipping_cost = 30;
+      else if (itemCount <= 10) shipping_cost = 45;
+      else shipping_cost = 50;
+    } else {
+      shipping_cost = 30;
+    }
+    res.json({ shipping_cost, box_size: shipping_cost === 30 ? 'small' : shipping_cost === 45 ? 'medium' : 'large' });
+  } catch (error) {
+    logger.error('Error calculating shipping', { error: error.message });
+    res.status(500).json({ message: 'Failed to calculate shipping' });
+  }
+};
+
+exports.createOrder = async (req, res) => {
+  try {
+    const { items, subtotal, shipping_cost, delivery_address } = req.body;
+    if (!items || items.length === 0) return res.status(400).json({ message: 'No items in order' });
+    if (!delivery_address || !delivery_address.country) return res.status(400).json({ message: 'Delivery address required' });
+
+    const total_amount = subtotal + shipping_cost;
+    const stockResults = [];
+    for (const orderItem of items) {
+      const result = await GroceryItem.findOneAndUpdate(
+        { _id: orderItem.item_id, stock: { $gte: orderItem.quantity } },
+        { $inc: { stock: -orderItem.quantity } },
+        { new: true }
+      );
+      if (!result) {
+        for (const prev of stockResults) {
+          await GroceryItem.findByIdAndUpdate(prev.item_id, { $inc: { stock: prev.quantity } });
+        }
+        const item = await GroceryItem.findById(orderItem.item_id);
+        if (!item) return res.status(404).json({ message: `Item ${orderItem.name} not found` });
+        return res.status(400).json({ message: `Insufficient stock for ${item.name}` });
+      }
+      stockResults.push({ item_id: orderItem.item_id, quantity: orderItem.quantity });
+    }
+
+    const order = new GroceryOrder({ user_id: req.userId, items, subtotal, shipping_cost, total_amount, delivery_address, order_status: 'pending', payment_status: 'pending' });
+    await order.save();
+    res.status(201).json(order);
+  } catch (error) {
+    logger.error('Error creating order', { error: error.message });
+    res.status(500).json({ message: 'Failed to create order' });
+  }
+};
+
+exports.updateOrderPayment = async (req, res) => {
+  try {
+    const { payment_intent_id } = req.body;
+    const order = await GroceryOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order.user_id.toString() !== req.userId) return res.status(403).json({ message: 'Unauthorized' });
+    order.payment_status = 'paid';
+    order.payment_intent_id = payment_intent_id;
+    order.order_status = 'confirmed';
+    await order.save();
+    res.json(order);
+  } catch (error) {
+    logger.error('Error updating payment', { error: error.message });
+    res.status(500).json({ message: 'Failed to update payment' });
+  }
+};
+
+exports.getUserOrders = async (req, res) => {
+  try {
+    const orders = await GroceryOrder.find({ user_id: req.userId }).sort({ createdAt: -1 }).populate('items.item_id', 'name image_url');
+    res.json(orders);
+  } catch (error) {
+    logger.error('Error fetching orders', { error: error.message });
+    res.status(500).json({ message: 'Failed to fetch orders' });
+  }
+};
+
+exports.getUserOrder = async (req, res) => {
+  try {
+    const order = await GroceryOrder.findById(req.params.id).populate('items.item_id', 'name image_url');
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order.user_id.toString() !== req.userId) return res.status(403).json({ message: 'Unauthorized' });
+    res.json(order);
+  } catch (error) {
+    logger.error('Error fetching order', { error: error.message });
+    res.status(500).json({ message: 'Failed to fetch order' });
+  }
+};
+
+// Admin
+exports.adminGetItems = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    let query = {};
+    if (req.query.search) query.name = { $regex: req.query.search, $options: 'i' };
+    const [items, total] = await Promise.all([
+      GroceryItem.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      GroceryItem.countDocuments(query)
+    ]);
+    res.json({ items, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+  } catch (error) {
+    logger.error('Error fetching items (admin)', { error: error.message });
+    res.status(500).json({ message: 'Failed to fetch items' });
+  }
+};
+
+exports.adminCreateItem = async (req, res) => {
+  try {
+    const item = new GroceryItem({ ...req.body, created_by: req.userId });
+    await item.save();
+    res.status(201).json(item);
+  } catch (error) {
+    logger.error('Error creating item', { error: error.message });
+    res.status(500).json({ message: 'Failed to create item' });
+  }
+};
+
+exports.adminUpdateItem = async (req, res) => {
+  try {
+    const item = await GroceryItem.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (!item) return res.status(404).json({ message: 'Item not found' });
+    res.json(item);
+  } catch (error) {
+    logger.error('Error updating item', { error: error.message });
+    res.status(500).json({ message: 'Failed to update item' });
+  }
+};
+
+exports.adminDeleteItem = async (req, res) => {
+  try {
+    const item = await GroceryItem.findByIdAndDelete(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Item not found' });
+    res.json({ message: 'Item deleted successfully' });
+  } catch (error) {
+    logger.error('Error deleting item', { error: error.message });
+    res.status(500).json({ message: 'Failed to delete item' });
+  }
+};
+
+exports.adminGetOrders = async (req, res) => {
+  try {
+    const orders = await GroceryOrder.find().sort({ createdAt: -1 }).populate('user_id', 'name email phone').populate('items.item_id', 'name image_url');
+    res.json(orders);
+  } catch (error) {
+    logger.error('Error fetching orders (admin)', { error: error.message });
+    res.status(500).json({ message: 'Failed to fetch orders' });
+  }
+};
+
+exports.adminUpdateOrder = async (req, res) => {
+  try {
+    const order = await GroceryOrder.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    res.json(order);
+  } catch (error) {
+    logger.error('Error updating order', { error: error.message });
+    res.status(500).json({ message: 'Failed to update order' });
+  }
+};

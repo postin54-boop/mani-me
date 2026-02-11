@@ -1,7 +1,7 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const notificationController = require('../controllers/notificationController');
-const { verifyToken, optionalAuth } = require('../middleware/auth');
+const { verifyToken, verifyAdmin, optionalAuth } = require('../middleware/auth');
 
 // Create a notification (admin)
 router.post('/', verifyToken, notificationController.createNotification);
@@ -9,104 +9,19 @@ router.post('/', verifyToken, notificationController.createNotification);
 // Get all notifications (admin) or user's notifications
 router.get('/', optionalAuth, notificationController.getNotifications);
 
-// Get notifications for the currently logged in user
-router.get('/user', verifyToken, async (req, res) => {
-  try {
-    const Notification = require('../models/notification');
-    const userId = req.userId || req.user?.user_id || req.user?._id || req.user?.id;
-    
-    if (!userId) {
-      return res.json({ success: true, notifications: [] });
-    }
-    
-    const notifications = await Notification.find({ userId })
-      .sort({ createdAt: -1 })
-      .limit(50);
-    
-    res.json({ success: true, notifications });
-  } catch (err) {
-    console.error('Error fetching user notifications:', err);
-    res.json({ success: true, notifications: [] });
-  }
-});
+// Get notifications for the currently logged-in user
+router.get('/user', verifyToken, notificationController.getUserNotifications);
 
-// Mark a notification as read
+// Mark a notification as read (via body)
 router.post('/read', verifyToken, notificationController.markAsRead);
 
-// Mark notification as read by ID
-router.post('/:notificationId/read', verifyToken, async (req, res) => {
-  try {
-    const Notification = require('../models/notification');
-    const { notificationId } = req.params;
-    await Notification.findByIdAndUpdate(notificationId, { read: true });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+// Mark notification as read by ID (via param)
+router.post('/:notificationId/read', verifyToken, notificationController.markAsReadById);
 
 // Get notifications for a specific driver
-// Used by driver app: GET /api/notifications/driver/:driverId
-router.get('/driver/:driverId', verifyToken, async (req, res) => {
-  try {
-    const Notification = require('../models/notification');
-    const { driverId } = req.params;
-    
-    // Find notifications for this driver
-    const notifications = await Notification.find({ 
-      $or: [
-        { userId: driverId },
-        { driverId: driverId },
-        { recipientId: driverId }
-      ]
-    })
-      .sort({ createdAt: -1 })
-      .limit(50);
-    
-    // Get unread count
-    const unreadCount = await Notification.countDocuments({
-      $or: [
-        { userId: driverId },
-        { driverId: driverId },
-        { recipientId: driverId }
-      ],
-      read: { $ne: true }
-    });
-    
-    res.json({ 
-      success: true, 
-      notifications,
-      unreadCount
-    });
-  } catch (err) {
-    console.error('Error fetching driver notifications:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+router.get('/driver/:driverId', verifyToken, notificationController.getDriverNotifications);
 
 // Mark all notifications as read for a driver
-router.post('/driver/:driverId/read-all', verifyToken, async (req, res) => {
-  try {
-    const Notification = require('../models/notification');
-    const { driverId } = req.params;
-    
-    await Notification.updateMany(
-      { 
-        $or: [
-          { userId: driverId },
-          { driverId: driverId },
-          { recipientId: driverId }
-        ],
-        read: { $ne: true }
-      },
-      { $set: { read: true } }
-    );
-    
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Error marking notifications as read:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+router.post('/driver/:driverId/read-all', verifyToken, notificationController.markAllDriverRead);
 
 module.exports = router;

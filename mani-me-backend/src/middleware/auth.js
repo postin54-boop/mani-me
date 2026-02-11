@@ -12,10 +12,18 @@ if (!JWT_SECRET) {
   throw new Error('FATAL: JWT_SECRET environment variable not set');
 }
 
-// Auth middleware for Firebase and role-based access
+// Auth middleware - verifies JWT token and sets req.userId/req.user
 exports.requireAuth = (req, res, next) => {
-  // ...verify Firebase token, set req.user
-  next();
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'No token provided' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.userId = decoded.user_id || decoded.id;
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
 };
 
 exports.requireRole = (role) => (req, res, next) => {

@@ -94,3 +94,81 @@ exports.markAsRead = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
+// Get notifications for the currently logged-in user
+exports.getUserNotifications = async (req, res) => {
+  try {
+    const userId = req.userId || req.user?.user_id || req.user?._id || req.user?.id;
+    if (!userId) {
+      return res.json({ success: true, notifications: [] });
+    }
+    const notifications = await Notification.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json({ success: true, notifications });
+  } catch (err) {
+    console.error('Error fetching user notifications:', err);
+    res.json({ success: true, notifications: [] });
+  }
+};
+
+// Mark notification as read by ID (from URL param)
+exports.markAsReadById = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    await Notification.findByIdAndUpdate(notificationId, { read: true });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Get notifications for a specific driver
+exports.getDriverNotifications = async (req, res) => {
+  try {
+    const { driverId } = req.params;
+    const notifications = await Notification.find({
+      $or: [
+        { userId: driverId },
+        { driverId: driverId },
+        { recipientId: driverId },
+      ],
+    })
+      .sort({ createdAt: -1 })
+      .limit(50);
+    const unreadCount = await Notification.countDocuments({
+      $or: [
+        { userId: driverId },
+        { driverId: driverId },
+        { recipientId: driverId },
+      ],
+      read: { $ne: true },
+    });
+    res.json({ success: true, notifications, unreadCount });
+  } catch (err) {
+    console.error('Error fetching driver notifications:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Mark all notifications as read for a driver
+exports.markAllDriverRead = async (req, res) => {
+  try {
+    const { driverId } = req.params;
+    await Notification.updateMany(
+      {
+        $or: [
+          { userId: driverId },
+          { driverId: driverId },
+          { recipientId: driverId },
+        ],
+        read: { $ne: true },
+      },
+      { $set: { read: true } }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error marking notifications as read:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
