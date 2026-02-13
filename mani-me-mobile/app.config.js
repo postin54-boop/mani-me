@@ -5,7 +5,7 @@ export default {
     scheme: "manime",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    icon: "./assets/adaptive-icon.png",
     userInterfaceStyle: "automatic",
     splash: {
       image: "./assets/logo.png",
@@ -20,7 +20,8 @@ export default {
     ],
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.manime.app"
+      bundleIdentifier: "com.manime.app",
+      icon: "./assets/adaptive-icon.png"
     },
     android: {
       compileSdkVersion: 34,
