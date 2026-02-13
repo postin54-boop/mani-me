@@ -26,22 +26,35 @@ export default function ProfileScreen({ navigation }) {
   });
 
   const pickProfileImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please allow access to your photo library');
-      return;
-    }
+    console.log('pickProfileImage called');
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('Media library permission status:', status);
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission needed', 
+          'Please allow access to your photo library in Settings > Expo Go > Photos',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['image'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
+      console.log('Launching image library...');
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['image'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      console.log('Image picker result:', result);
 
-    if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
+      if (!result.canceled) {
+        setProfileImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to open photo library');
     }
   };
 
@@ -65,6 +78,7 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const showImageOptions = () => {
+    console.log('showImageOptions called');
     Alert.alert(
       'Profile Picture',
       'Choose an option',

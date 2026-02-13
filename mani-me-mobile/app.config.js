@@ -21,7 +21,11 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.manime.app",
-      icon: "./assets/adaptive-icon.png"
+      icon: "./assets/adaptive-icon.png",
+      infoPlist: {
+        NSPhotoLibraryUsageDescription: "Allow Mani Me to access your photos to set a profile picture.",
+        NSCameraUsageDescription: "Allow Mani Me to use your camera to take a profile picture."
+      }
     },
     android: {
       compileSdkVersion: 34,
@@ -43,6 +47,13 @@ export default {
     },
     plugins: [
       "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Mani Me to access your photos to set a profile picture.",
+          "cameraPermission": "Allow Mani Me to use your camera to take a profile picture."
+        }
+      ],
       [
         "@stripe/stripe-react-native",
         {
