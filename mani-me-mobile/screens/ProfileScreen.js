@@ -42,7 +42,6 @@ export default function ProfileScreen({ navigation }) {
 
       console.log('Launching image library...');
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['image'],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,

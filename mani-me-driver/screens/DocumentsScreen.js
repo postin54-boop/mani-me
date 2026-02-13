@@ -125,7 +125,6 @@ export default function DocumentsScreen({ navigation }) {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['image'],
         allowsEditing: true,
         quality: 0.8,
       });

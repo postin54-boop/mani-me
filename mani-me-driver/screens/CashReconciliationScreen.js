@@ -25,7 +25,6 @@ export default function CashReconciliationScreen({ navigation }) {
 
   const pickImage = async () => {
     let result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['image'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
