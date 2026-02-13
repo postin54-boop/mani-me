@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../firebaseConfig';
 import { useUser } from '../context/UserContext';
 import { useThemeColors, SIZES, FONTS, SHADOWS } from '../constants/theme';
 import { API_BASE_URL } from '../utils/config';
@@ -82,6 +84,23 @@ export default function ProfileScreen({ navigation }) {
 
     setIsSaving(true);
     try {
+      let imageUrl = user?.profileImage || null;
+
+      // Upload new profile image to Firebase Storage if changed
+      if (profileImage && profileImage !== user?.profileImage && !profileImage.startsWith('http')) {
+        try {
+          const response = await fetch(profileImage);
+          const blob = await response.blob();
+          const filename = `profile_images/${user?.id}_${Date.now()}.jpg`;
+          const storageRef = ref(storage, filename);
+          await uploadBytes(storageRef, blob);
+          imageUrl = await getDownloadURL(storageRef);
+        } catch (uploadError) {
+          console.error('Image upload error:', uploadError);
+          Alert.alert('Warning', 'Could not upload profile picture, but other changes will be saved');
+        }
+      }
+
       // Update backend MongoDB profile
       const response = await fetch(`${API_BASE_URL}/api/auth/update-profile`, {
         method: 'PUT',
@@ -95,6 +114,7 @@ export default function ProfileScreen({ navigation }) {
           email: editedUser.email,
           phone: editedUser.phone,
           address: editedUser.address,
+          profileImage: imageUrl,
         }),
       });
 
@@ -105,8 +125,9 @@ export default function ProfileScreen({ navigation }) {
 
       const data = await response.json();
       
-      // Update local user context with response data
-      updateUser({ ...user, ...data.user, profileImage });
+      // Update local user context with response data including new image URL
+      updateUser({ ...user, ...data.user, profileImage: imageUrl });
+      setProfileImage(imageUrl);
       setIsEditing(false);
       Alert.alert('Success', 'Profile updated successfully');
     } catch (error) {

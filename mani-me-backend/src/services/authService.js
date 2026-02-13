@@ -28,6 +28,8 @@ const formatUser = (user) => ({
   driver_type: user.driver_type,
   country: user.country,
   vehicle_number: user.vehicle_number,
+  profileImage: user.profileImage,
+  address: user.address,
 });
 
 /**
@@ -147,7 +149,7 @@ const updatePushToken = async ({ userId, pushToken }) => {
 /**
  * Update user profile
  */
-const updateProfile = async ({ userId, name, email, phone, address, vehicle_number }) => {
+const updateProfile = async ({ userId, name, email, phone, address, vehicle_number, profileImage }) => {
   if (!userId) {
     const err = new Error('Missing userId');
     err.statusCode = 400;
@@ -175,6 +177,7 @@ const updateProfile = async ({ userId, name, email, phone, address, vehicle_numb
   if (phone) user.phone = phone;
   if (address !== undefined) user.address = address;
   if (vehicle_number !== undefined) user.vehicle_number = vehicle_number;
+  if (profileImage !== undefined) user.profileImage = profileImage;
 
   await user.save();
   return formatUser(user);

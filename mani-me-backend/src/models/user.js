@@ -29,6 +29,10 @@ const userSchema = new mongoose.Schema({
 	is_verified: { type: Boolean, default: false },
 	is_active: { type: Boolean, default: true },
 
+	// Profile
+	profileImage: { type: String }, // Firebase Storage URL
+	address: { type: String },
+
 	// Password reset
 	resetPasswordToken: { type: String, index: true },
 	resetPasswordExpires: { type: Date },
