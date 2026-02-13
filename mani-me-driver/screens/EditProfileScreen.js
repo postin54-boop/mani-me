@@ -80,12 +80,21 @@ export default function EditProfileScreen({ navigation, route }) {
       // Upload new profile image to Firebase Storage if changed
       if (profileImage && profileImage !== user?.profileImage && !profileImage.startsWith('http')) {
         try {
-          const response = await fetch(profileImage);
-          const blob = await response.blob();
+          // Convert local file URI to blob using XMLHttpRequest (more reliable in React Native)
+          const blob = await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.onload = () => resolve(xhr.response);
+            xhr.onerror = () => reject(new Error('Failed to load image'));
+            xhr.responseType = 'blob';
+            xhr.open('GET', profileImage, true);
+            xhr.send(null);
+          });
+          
           const filename = `profile_images/driver_${user?.id || user?._id}_${Date.now()}.jpg`;
           const storageRef = ref(storage, filename);
           await uploadBytes(storageRef, blob);
           imageUrl = await getDownloadURL(storageRef);
+          console.log('Profile image uploaded:', imageUrl);
         } catch (uploadError) {
           console.error('Image upload error:', uploadError);
           Alert.alert('Warning', 'Could not upload profile picture, but other changes will be saved');
