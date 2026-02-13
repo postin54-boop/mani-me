@@ -7,6 +7,7 @@ import {
   StyleSheet,
   StatusBar,
   Switch,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -90,11 +91,15 @@ export default function ProfileScreen({ navigation }) {
         style={styles.header}
       >
         <View style={[styles.profileCard, { borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.04)', padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 5 }]}> 
-          <View style={[styles.avatar, { backgroundColor: colors.secondary, borderRadius: 24, width: 88, height: 88 }]}> 
-            <Text style={[styles.avatarText, { color: colors.primary, fontSize: 36, fontWeight: '800' }]}>
-              {getInitials(profile.name)}
-            </Text>
-          </View>
+          {user?.profileImage ? (
+            <Image source={{ uri: user.profileImage }} style={[styles.avatar, { borderRadius: 24, width: 88, height: 88 }]} />
+          ) : (
+            <View style={[styles.avatar, { backgroundColor: colors.secondary, borderRadius: 24, width: 88, height: 88 }]}> 
+              <Text style={[styles.avatarText, { color: colors.primary, fontSize: 36, fontWeight: '800' }]}>
+                {getInitials(profile.name)}
+              </Text>
+            </View>
+          )}
           <View style={styles.profileInfo}>
             <Text style={{ color: colors.accent, fontSize: 28, fontWeight: '800', letterSpacing: -1 }}>
               {profile.name}
