@@ -8,6 +8,7 @@ import React, { Component } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import logger from '../utils/logger';
+import { captureException, addBreadcrumb } from '../utils/sentry';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -32,20 +33,14 @@ class ErrorBoundary extends Component {
     this.setState({ errorInfo });
     
     // Send to crash reporting service (Sentry)
-    if (!__DEV__) {
-      try {
-        // Import Sentry dynamically to avoid issues if not installed
-        const Sentry = require('@sentry/react-native');
-        Sentry.captureException(error, {
-          extra: {
-            componentStack: errorInfo?.componentStack,
-          },
-        });
-      } catch (e) {
-        // Sentry not available, just log
-        logger.error('Could not report to Sentry:', e);
-      }
-    }
+    captureException(error, {
+      componentStack: errorInfo?.componentStack,
+      errorBoundary: true,
+    });
+    
+    addBreadcrumb('error', 'ErrorBoundary caught error', {
+      errorMessage: error?.message,
+    });
   }
 
   handleRetry = () => {

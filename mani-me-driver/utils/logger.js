@@ -4,43 +4,9 @@
  * In production, errors are sent to Sentry for crash reporting
  */
 
+import { captureException, captureMessage, addBreadcrumb } from './sentry';
+
 const isDev = __DEV__;
-
-// Lazy-load Sentry to avoid import errors if not installed
-let Sentry = null;
-const getSentry = () => {
-  if (Sentry === null && !isDev) {
-    try {
-      Sentry = require('@sentry/react-native');
-    } catch {
-      Sentry = false; // Mark as unavailable
-    }
-  }
-  return Sentry || null;
-};
-
-/**
- * Report error to Sentry in production
- */
-const reportToSentry = (error, context = {}) => {
-  if (isDev) return;
-  
-  const sentry = getSentry();
-  if (sentry) {
-    try {
-      if (error instanceof Error) {
-        sentry.captureException(error, { extra: context });
-      } else {
-        sentry.captureMessage(String(error), { 
-          level: 'error',
-          extra: context,
-        });
-      }
-    } catch (e) {
-      // Sentry reporting failed silently
-    }
-  }
-};
 
 /**
  * Development-safe logger
@@ -54,6 +20,7 @@ const logger = {
     if (isDev) {
       console.log('[Driver]', ...args);
     }
+    addBreadcrumb('console', args[0]?.toString() || 'log', { args });
   },
 
   /**
@@ -63,6 +30,7 @@ const logger = {
     if (isDev) {
       console.info('[Driver INFO]', ...args);
     }
+    addBreadcrumb('info', args[0]?.toString() || 'info', { args });
   },
 
   /**
@@ -72,6 +40,7 @@ const logger = {
     if (isDev) {
       console.warn('[Driver WARN]', ...args);
     }
+    captureMessage(args[0]?.toString() || 'warning', 'warning', { args });
   },
 
   /**
@@ -81,11 +50,12 @@ const logger = {
   error: (...args) => {
     if (isDev) {
       console.error('[Driver ERROR]', ...args);
+    }
+    // Report to Sentry
+    if (args[0] instanceof Error) {
+      captureException(args[0], { additionalArgs: args.slice(1) });
     } else {
-      // Report to Sentry in production
-      const error = args[0];
-      const context = args.length > 1 ? { additionalInfo: args.slice(1) } : {};
-      reportToSentry(error, context);
+      captureException(new Error(args[0]?.toString() || 'Unknown error'), { args });
     }
   },
 
@@ -105,6 +75,7 @@ const logger = {
     if (isDev) {
       console.log(`[Driver API] ${method} ${url}`, data ? data : '');
     }
+    addBreadcrumb('api', `${method} ${url}`, { data });
   },
 
   /**
@@ -114,23 +85,14 @@ const logger = {
     if (isDev) {
       console.log(`[Driver NAV] → ${screen}`, params ? params : '');
     }
+    addBreadcrumb('navigation', `Navigate to ${screen}`, { params });
   },
   
   /**
    * Track a breadcrumb for crash context
    */
   breadcrumb: (message, category = 'user', data = {}) => {
-    if (!isDev) {
-      const sentry = getSentry();
-      if (sentry) {
-        sentry.addBreadcrumb({
-          message,
-          category,
-          data,
-          level: 'info',
-        });
-      }
-    }
+    addBreadcrumb(category, message, data);
   },
 };
 

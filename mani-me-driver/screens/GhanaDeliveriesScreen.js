@@ -15,6 +15,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useThemeColors } from '../constants/theme';
 import { fetchDriverAssignmentsPaginated, updateDeliveryStatus } from '../utils/optimizedApi';
 import { useAuth } from '../context/AuthContext';
@@ -32,6 +33,7 @@ export default function GhanaDeliveriesScreen({ navigation }) {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [proofPhoto, setProofPhoto] = useState(null);
 
   useEffect(() => {
     fetchDeliveries(1);
@@ -121,7 +123,34 @@ export default function GhanaDeliveriesScreen({ navigation }) {
 
   const handleDeliveryProof = (delivery) => {
     setSelectedDelivery(delivery);
+    setProofPhoto(null); // Reset photo when opening modal
     setShowProofModal(true);
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      // Request camera permissions
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Camera permission is needed to take delivery proof photos.');
+        return;
+      }
+
+      // Launch camera
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7, // Reduce quality for faster uploads
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setProofPhoto(result.assets[0].uri);
+      }
+    } catch (error) {
+      logger.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to open camera. Please try again.');
+    }
   };
 
   const handleFailedDelivery = (delivery) => {
@@ -130,13 +159,19 @@ export default function GhanaDeliveriesScreen({ navigation }) {
   };
 
   const confirmDelivery = async () => {
+    if (!proofPhoto) {
+      Alert.alert('Photo Required', 'Please take a photo of the parcel as proof of delivery.');
+      return;
+    }
     try {
       await updateDeliveryStatus(selectedDelivery.id, 'delivered', {
-        proofType: 'signature',
+        proofType: 'photo',
+        proofPhotoUri: proofPhoto,
         deliveredAt: new Date().toISOString(),
       });
       Alert.alert('Success', 'Delivery marked as completed');
       setShowProofModal(false);
+      setProofPhoto(null);
       onRefresh();
     } catch (error) {
       Alert.alert('Error', 'Failed to update delivery status');
@@ -391,27 +426,40 @@ export default function GhanaDeliveriesScreen({ navigation }) {
               {selectedDelivery?.id} - {selectedDelivery?.receiverName}
             </Text>
 
-            <TouchableOpacity style={[styles.photoBtn, { backgroundColor: colors.secondary }]}>
-              <Ionicons name="camera" size={48} color={colors.primary} />
-              <Text style={[styles.photoBtnText, { color: colors.primary }]}>
-                Take Photo of Parcel
-              </Text>
-            </TouchableOpacity>
-
-            <View style={[styles.signatureBox, { borderColor: colors.border }]}>
-              <Text style={[styles.signatureLabel, { color: colors.textSecondary }]}>
-                Receiver Signature
-              </Text>
-              <Text style={[styles.signaturePlaceholder, { color: colors.textSecondary }]}>
-                (Tap to collect signature)
-              </Text>
-            </View>
+            {proofPhoto ? (
+              <View style={styles.photoPreviewContainer}>
+                <Image source={{ uri: proofPhoto }} style={styles.photoPreview} />
+                <TouchableOpacity 
+                  style={[styles.retakeBtn, { backgroundColor: colors.secondary }]}
+                  onPress={handleTakePhoto}
+                >
+                  <Ionicons name="camera-reverse" size={20} color={colors.primary} />
+                  <Text style={[styles.retakeBtnText, { color: colors.primary }]}>Retake</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity 
+                style={[styles.photoBtn, { backgroundColor: colors.secondary }]}
+                onPress={handleTakePhoto}
+              >
+                <Ionicons name="camera" size={48} color={colors.primary} />
+                <Text style={[styles.photoBtnText, { color: colors.primary }]}>
+                  Take Photo of Parcel
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
-              style={[styles.confirmBtn, { backgroundColor: colors.success }]}
+              style={[
+                styles.confirmBtn, 
+                { backgroundColor: proofPhoto ? colors.success : colors.border }
+              ]}
               onPress={confirmDelivery}
+              disabled={!proofPhoto}
             >
-              <Text style={styles.confirmBtnText}>Confirm Delivery</Text>
+              <Text style={[styles.confirmBtnText, { opacity: proofPhoto ? 1 : 0.5 }]}>
+                Confirm Delivery
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -660,6 +708,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginTop: 8,
+  },
+  photoPreviewContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  photoPreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  retakeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+  },
+  retakeBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   signatureBox: {
     height: 150,

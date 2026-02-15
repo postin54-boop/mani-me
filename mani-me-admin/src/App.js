@@ -20,6 +20,7 @@ import Layout from './components/Layout';
 import ParcelPrices from './pages/ParcelPrices';
 import ParcelItems from './pages/ParcelItems';
 import CashReconciliation from './pages/CashReconciliation';
+import SupportChat from './pages/SupportChat';
 import theme from './theme';
 import api from './api';
 import { ENDPOINTS, APP_CONFIG } from './config';
@@ -268,11 +269,11 @@ function App() {
             }
           />
           <Route
-            path="/grocery-shop"
+            path="/support-chat"
             element={
               isAuthenticated ?
               <Layout onLogout={handleLogout}>
-                <GroceryShop />
+                <SupportChat />
               </Layout> :
               <Navigate to="/login" replace />
             }

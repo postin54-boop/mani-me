@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { captureException, addBreadcrumb } from '../utils/sentry';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -14,7 +15,7 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log error to console
+    // Log error to console in dev
     console.error('ErrorBoundary caught an error:', error, errorInfo);
     
     // Store error details
@@ -23,8 +24,15 @@ class ErrorBoundary extends React.Component {
       errorInfo
     });
     
-    // TODO: Log to error reporting service (Sentry, Bugsnag, etc.)
-    // Example: Sentry.captureException(error, { extra: errorInfo });
+    // Send to Sentry in production
+    captureException(error, {
+      componentStack: errorInfo?.componentStack,
+      errorBoundary: true,
+    });
+    
+    addBreadcrumb('error', 'ErrorBoundary caught error', {
+      errorMessage: error?.message,
+    });
   }
 
   handleReset = () => {

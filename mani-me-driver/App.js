@@ -12,6 +12,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
 import { addNotificationReceivedListener, addNotificationResponseReceivedListener } from './utils/notifications';
 import logger from './utils/logger';
+import { initSentry, setUserContext } from './utils/sentry';
+
+// Initialize Sentry as early as possible
+initSentry();
 
 
 import AnimatedSplash from './screens/AnimatedSplash';

@@ -1,0 +1,73 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "info": {
+      "en-GB": {
+        "title": "Mani Me Driver",
+        "subtitle": "Pickup & Delivery App",
+        "description": "Mani Me Driver is the official app for Mani Me delivery partners. Handle parcel pickups in the UK and deliveries in Ghana efficiently with our easy-to-use driver app.\n\nFOR UK DRIVERS - PICKUPS:\n\n🚗 Manage Pickups\n• View assigned pickup jobs with full details\n• Get optimized routes to customer locations\n• Navigate with one-tap Google Maps integration\n\n📱 Scan & Verify\n• Scan parcel QR codes for quick verification\n• Record parcel details and weights\n• Handle cash collection with digital tracking\n\n📦 Warehouse Operations\n• Return collected parcels to warehouse\n• Print shipping labels on the go\n• Track your daily collections\n\nFOR GHANA DRIVERS - DELIVERIES:\n\n🚚 Manage Deliveries\n• View assigned delivery routes\n• Get directions to recipient addresses\n• Update delivery status in real-time\n\n📸 Proof of Delivery\n• Capture photo proof of delivered parcels\n• Record recipient signatures\n• Handle failed delivery attempts\n\n📊 Track Performance\n• View your earning summary\n• Track completed jobs\n• Monitor your delivery rating\n\nOTHER FEATURES:\n\n💬 Support Chat\n• Direct communication with dispatch\n• Report issues instantly\n• Get help when needed\n\n🔔 Push Notifications\n• Get notified of new job assignments\n• Receive schedule updates\n• Stay informed in real-time\n\nJoin the Mani Me driver network and help connect families between the UK and Ghana. Download now!",
+        "keywords": "driver app,delivery,courier,pickup,Ghana,UK,parcel,shipping,logistics,driver",
+        "promotionalText": "The official driver app for Mani Me UK-Ghana parcel delivery service.",
+        "marketingUrl": "https://manime.co.uk/drivers",
+        "supportUrl": "https://manime.co.uk/driver-support",
+        "privacyPolicyUrl": "https://manime.co.uk/privacy"
+      }
+    },
+    "categories": {
+      "primary": "BUSINESS",
+      "secondary": "NAVIGATION"
+    },
+    "copyright": "© 2026 Mani Me Ltd",
+    "ageRating": {
+      "gamblingSimulated": false,
+      "horrorOrFearThemes": false,
+      "matureOrSuggestiveThemes": false,
+      "medicalOrTreatmentInfo": false,
+      "profanityOrCrudeHumor": false,
+      "violenceCartoonOrFantasy": false,
+      "violenceRealistic": false,
+      "violenceRealisticProlonged": false,
+      "gambling": false,
+      "unrestrictedWebAccess": false,
+      "alcoholTobaccoOrDrugUseOrReferences": false,
+      "sexualContentOrNudity": false,
+      "sexualContentGraphicAndNudity": false,
+      "contestsOrSweepstakes": false
+    },
+    "reviewDetails": {
+      "contact": {
+        "email": "drivers@manime.co.uk",
+        "firstName": "Mani Me",
+        "lastName": "Driver Support",
+        "phone": "+44 7XXX XXXXXX"
+      },
+      "notes": "This app is for Mani Me delivery drivers only. Please use test credentials:\n\nEmail: testdriver@manime.co.uk\nPassword: TestDriver2026!\n\nThe driver must be pre-registered as a UK or Ghana driver in our system to access the main functionality."
+    }
+  },
+  "android": {
+    "info": {
+      "en-GB": {
+        "title": "Mani Me Driver",
+        "shortDescription": "The official driver app for Mani Me UK-Ghana parcel delivery partners.",
+        "fullDescription": "Mani Me Driver is the official app for Mani Me delivery partners. Handle parcel pickups in the UK and deliveries in Ghana efficiently with our easy-to-use driver app.\n\nFOR UK DRIVERS - PICKUPS:\n\n🚗 Manage Pickups\n• View assigned pickup jobs with full details\n• Get optimized routes to customer locations\n• Navigate with one-tap Google Maps integration\n\n📱 Scan & Verify\n• Scan parcel QR codes for quick verification\n• Record parcel details and weights\n• Handle cash collection with digital tracking\n\n📦 Warehouse Operations\n• Return collected parcels to warehouse\n• Print shipping labels on the go\n• Track your daily collections\n\nFOR GHANA DRIVERS - DELIVERIES:\n\n🚚 Manage Deliveries\n• View assigned delivery routes\n• Get directions to recipient addresses\n• Update delivery status in real-time\n\n📸 Proof of Delivery\n• Capture photo proof of delivered parcels\n• Handle failed delivery attempts\n\n📊 Track Performance\n• View your earning summary\n• Track completed jobs\n\nOTHER FEATURES:\n\n💬 Support Chat\n• Direct communication with dispatch\n• Report issues instantly\n\n🔔 Push Notifications\n• Get notified of new job assignments\n• Receive schedule updates\n\nJoin the Mani Me driver network and help connect families between the UK and Ghana!"
+      }
+    },
+    "categories": {
+      "category": "BUSINESS"
+    },
+    "contentRating": {
+      "rating": "EVERYONE"
+    },
+    "targetAudience": {
+      "minAge": 18
+    },
+    "pricing": {
+      "free": true
+    },
+    "contactDetails": {
+      "email": "drivers@manime.co.uk",
+      "website": "https://manime.co.uk/drivers",
+      "privacyPolicy": "https://manime.co.uk/privacy"
+    }
+  }
+}

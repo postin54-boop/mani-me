@@ -16,6 +16,10 @@ import { UnifiedCartProvider } from './context/UnifiedCartContext';
 import { registerForPushNotificationsAsync, updatePushToken } from './utils/notifications';
 import { getColors } from './constants/theme';
 import logger from './utils/logger';
+import { initSentry, setUserContext } from './utils/sentry';
+
+// Initialize Sentry as early as possible
+initSentry();
 
 // Keep splash screen visible while we load
 SplashScreen.preventAutoHideAsync();

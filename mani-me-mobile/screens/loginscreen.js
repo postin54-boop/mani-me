@@ -77,11 +77,11 @@ export default function LoginScreen({ navigation }) {
     }
   }, [sessionExpired, setSessionExpired]);
 
-  // Google Auth
+  // Google Auth - iOS only until Android client ID is configured
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: "508869526140-uc5k1lo5o20vkcr6jnnlqf0q4f8t5m0s.apps.googleusercontent.com",
-    androidClientId: "YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com",
-    expoClientId: "YOUR_EXPO_CLIENT_ID.apps.googleusercontent.com",
+    // TODO: Add Android client ID from Google Cloud Console
+    // androidClientId: "YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com",
   });
 
   useEffect(() => {

@@ -69,15 +69,16 @@ export default function PromoCodes() {
   const fetchPromoCodes = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get('/promo-codes', {
+      const response = await api.get('/api/promo-codes', {
         params: { page: page + 1, limit: rowsPerPage }
       });
       setPromoCodes(response.data.promoCodes || []);
-      setTotalCount(response.data.total || 0);
+      setTotalCount(response.data.pagination?.total || response.data.total || 0);
       setError(null);
     } catch (err) {
       console.error('Error fetching promo codes:', err);
-      setError('Failed to load promo codes');
+      const errMsg = err.response?.data?.message || err.response?.data?.error || err.message || 'Unknown error';
+      setError(`Failed to load promo codes: ${errMsg}`);
     } finally {
       setLoading(false);
     }
@@ -86,7 +87,7 @@ export default function PromoCodes() {
   // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
-      const response = await api.get('/promo-codes/stats/overview');
+      const response = await api.get('/api/promo-codes/stats/overview');
       setStats(response.data);
     } catch (err) {
       console.error('Error fetching stats:', err);
@@ -156,10 +157,10 @@ export default function PromoCodes() {
       };
 
       if (editingPromo) {
-        await api.put(`/promo-codes/${editingPromo._id}`, payload);
+        await api.put(`/api/promo-codes/${editingPromo._id}`, payload);
         setSnackbar({ open: true, message: 'Promo code updated successfully', severity: 'success' });
       } else {
-        await api.post('/promo-codes', payload);
+        await api.post('/api/promo-codes', payload);
         setSnackbar({ open: true, message: 'Promo code created successfully', severity: 'success' });
       }
       handleCloseDialog();
@@ -180,7 +181,7 @@ export default function PromoCodes() {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this promo code?')) {
       try {
-        await api.delete(`/promo-codes/${id}`);
+        await api.delete(`/api/promo-codes/${id}`);
         setSnackbar({ open: true, message: 'Promo code deleted', severity: 'success' });
         fetchPromoCodes();
         fetchStats();
@@ -194,7 +195,7 @@ export default function PromoCodes() {
   const handleToggleStatus = async (promo) => {
     try {
       const newStatus = promo.status === 'active' ? 'inactive' : 'active';
-      await api.put(`/promo-codes/${promo._id}`, { status: newStatus });
+      await api.put(`/api/promo-codes/${promo._id}`, { status: newStatus });
       setSnackbar({ open: true, message: `Promo code ${newStatus}`, severity: 'success' });
       fetchPromoCodes();
       fetchStats();

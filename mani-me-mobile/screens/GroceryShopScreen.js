@@ -10,9 +10,9 @@ import {
   Alert,
   RefreshControl,
   ActivityIndicator,
-  SafeAreaView,
   StatusBar
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors, SIZES, FONTS, SHADOWS } from '../constants/theme';
 import { useUser } from '../context/UserContext';

@@ -15,11 +15,11 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.manime.customer",
+      "bundleIdentifier": "com.manime.app",
       "icon": "./assets/adaptive-icon.png"
     },
     "android": {
-      "package": "com.manime.customer",
+      "package": "com.manime.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#0B1A33"

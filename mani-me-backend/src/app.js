@@ -82,9 +82,9 @@ app.use(cors({
       return callback(null, true);
     }
     
-    // Log blocked origins for debugging
+    // Block unknown origins in production
     console.warn(`CORS blocked origin: ${origin}`);
-    return callback(null, true); // Allow anyway for now - tighten later
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

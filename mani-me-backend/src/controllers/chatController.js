@@ -9,12 +9,13 @@ const logger = require('../utils/logger');
 
 exports.sendMessage = async (req, res) => {
   try {
-    const { shipment_id, sender_id, sender_role, message, sender_name, chat_type } = req.body;
+    const { shipment_id, sender_id, sender_role, message, sender_name, chat_type, conversation_id: providedConversationId } = req.body;
     if (!sender_id || !sender_role || !message) {
       return res.status(400).json({ error: 'Missing required fields: sender_id, sender_role, message' });
     }
     const isSupport = chat_type === 'support' || !shipment_id;
-    const conversation_id = isSupport ? `support_${sender_id}` : shipment_id;
+    // Use provided conversation_id (for admin replies) or generate from sender_id
+    const conversation_id = providedConversationId || (isSupport ? `support_${sender_id}` : shipment_id);
     const messageData = {
       conversation_id, shipment_id: shipment_id || null,
       chat_type: isSupport ? 'support' : 'shipment',

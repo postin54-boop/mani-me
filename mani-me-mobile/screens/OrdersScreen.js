@@ -126,7 +126,8 @@ export default function OrdersScreen({ navigation }) {
     return () => {
       isMounted = false;
     };
-  }, [userId, token, fetchParcels, fetchStats]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, token]);
 
   // Auto-refresh interval - separate effect to prevent re-creating interval on every render
   useEffect(() => {
@@ -138,7 +139,8 @@ export default function OrdersScreen({ navigation }) {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [userId, token, fetchParcels, fetchStats]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, token]);
 
   const onRefresh = async () => {
     setRefreshing(true);
