@@ -56,6 +56,16 @@ const loadCertificates = () => {
   const signerCertBase64 = process.env.APPLE_SIGNER_CERT_BASE64;
   const signerKeyBase64 = process.env.APPLE_SIGNER_KEY_BASE64;
 
+  // Debug: log what we're getting from env vars
+  logger.info('Checking Apple Wallet env vars', {
+    wwdrExists: !!wwdrBase64,
+    wwdrLength: wwdrBase64?.length || 0,
+    signerCertExists: !!signerCertBase64,
+    signerCertLength: signerCertBase64?.length || 0,
+    signerKeyExists: !!signerKeyBase64,
+    signerKeyLength: signerKeyBase64?.length || 0,
+  });
+
   if (wwdrBase64 && signerCertBase64 && signerKeyBase64) {
     logger.info('Loading Apple Wallet certificates from environment variables');
     return {
