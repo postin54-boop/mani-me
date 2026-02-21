@@ -278,7 +278,32 @@ const getPassStatus = async (req, res) => {
   }
 };
 
+/**
+ * Health check endpoint to verify certificate loading.
+ * @param {express.Request} req
+ * @param {express.Response} res
+ */
+const healthCheck = async (req, res) => {
+  const certs = loadCertificates();
+  
+  if (certs) {
+    res.json({
+      status: 'ok',
+      certificates: 'loaded',
+      teamId: TEAM_ID,
+      passTypeId: PASS_TYPE_ID,
+    });
+  } else {
+    res.status(503).json({
+      status: 'error',
+      certificates: 'not found',
+      message: 'Apple Wallet certificates not configured',
+    });
+  }
+};
+
 module.exports = {
   generatePass,
   getPassStatus,
+  healthCheck,
 };
