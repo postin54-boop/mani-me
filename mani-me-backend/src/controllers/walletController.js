@@ -21,10 +21,18 @@ const MODEL_DIR = path.join(__dirname, '..', '..', 'assets', 'wallet', 'manime.p
 
 /**
  * Load certificates for pass signing.
- * Expected files in mani-me-backend/certs/:
- *   - wwdr.pem   (Apple WWDR intermediate certificate)
- *   - signerCert.pem  (your Pass Type ID certificate)
- *   - signerKey.pem   (private key for the certificate)
+ * Tries to load from files first, then falls back to environment variables (base64 encoded).
+ * 
+ * File paths (local dev):
+ *   - mani-me-backend/certs/wwdr.pem
+ *   - mani-me-backend/certs/signerCert.pem
+ *   - mani-me-backend/certs/signerKey.pem
+ * 
+ * Environment variables (production/Render):
+ *   - APPLE_WWDR_CERT_BASE64
+ *   - APPLE_SIGNER_CERT_BASE64
+ *   - APPLE_SIGNER_KEY_BASE64
+ * 
  * @returns {object|null} Certificate buffers or null if missing
  */
 const loadCertificates = () => {
@@ -32,16 +40,34 @@ const loadCertificates = () => {
   const signerCertPath = path.join(CERTS_DIR, 'signerCert.pem');
   const signerKeyPath = path.join(CERTS_DIR, 'signerKey.pem');
 
-  if (!fs.existsSync(wwdrPath) || !fs.existsSync(signerCertPath) || !fs.existsSync(signerKeyPath)) {
-    return null;
+  // Try loading from files first (local development)
+  if (fs.existsSync(wwdrPath) && fs.existsSync(signerCertPath) && fs.existsSync(signerKeyPath)) {
+    logger.info('Loading Apple Wallet certificates from files');
+    return {
+      wwdr: fs.readFileSync(wwdrPath),
+      signerCert: fs.readFileSync(signerCertPath),
+      signerKey: fs.readFileSync(signerKeyPath),
+      signerKeyPassphrase: process.env.APPLE_PASS_CERTIFICATE_PASSWORD || '',
+    };
   }
 
-  return {
-    wwdr: fs.readFileSync(wwdrPath),
-    signerCert: fs.readFileSync(signerCertPath),
-    signerKey: fs.readFileSync(signerKeyPath),
-    signerKeyPassphrase: process.env.APPLE_PASS_CERTIFICATE_PASSWORD || '',
-  };
+  // Try loading from environment variables (production/Render)
+  const wwdrBase64 = process.env.APPLE_WWDR_CERT_BASE64;
+  const signerCertBase64 = process.env.APPLE_SIGNER_CERT_BASE64;
+  const signerKeyBase64 = process.env.APPLE_SIGNER_KEY_BASE64;
+
+  if (wwdrBase64 && signerCertBase64 && signerKeyBase64) {
+    logger.info('Loading Apple Wallet certificates from environment variables');
+    return {
+      wwdr: Buffer.from(wwdrBase64, 'base64'),
+      signerCert: Buffer.from(signerCertBase64, 'base64'),
+      signerKey: Buffer.from(signerKeyBase64, 'base64'),
+      signerKeyPassphrase: process.env.APPLE_PASS_CERTIFICATE_PASSWORD || '',
+    };
+  }
+
+  logger.warn('Apple Wallet certificates not found (neither files nor env vars)');
+  return null;
 };
 
 /**
