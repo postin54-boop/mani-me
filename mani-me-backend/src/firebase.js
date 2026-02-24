@@ -21,9 +21,6 @@ const initializeFirebase = () => {
   }
   
   // Method 2: Load service account from environment variable (Render deployment)
-  console.log(`🔍 FIREBASE_SERVICE_ACCOUNT env var exists: ${!!process.env.FIREBASE_SERVICE_ACCOUNT}`);
-  console.log(`🔍 FIREBASE_SERVICE_ACCOUNT length: ${process.env.FIREBASE_SERVICE_ACCOUNT?.length || 0}`);
-  
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     try {
       const serviceAccount = JSON.parse(
