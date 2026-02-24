@@ -250,8 +250,12 @@ const generatePass = async (req, res) => {
     });
     res.send(buffer);
   } catch (error) {
-    logger.error('Error generating wallet pass: %o', error);
-    res.status(500).json({ error: 'Failed to generate wallet pass' });
+    logger.error('Error generating wallet pass: %s', error.message);
+    logger.error('Stack trace: %s', error.stack);
+    res.status(500).json({ 
+      error: 'Failed to generate wallet pass',
+      details: error.message,
+    });
   }
 };
 
