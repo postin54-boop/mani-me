@@ -21,10 +21,15 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.manime.app",
+      buildNumber: "2",
       icon: "./assets/adaptive-icon.png",
       infoPlist: {
         NSPhotoLibraryUsageDescription: "Allow Mani Me to access your photos to set a profile picture.",
-        NSCameraUsageDescription: "Allow Mani Me to use your camera to take a profile picture."
+        NSCameraUsageDescription: "Allow Mani Me to use your camera to take a profile picture.",
+        ITSAppUsesNonExemptEncryption: false
+      },
+      entitlements: {
+        "com.apple.developer.in-app-payments": ["merchant.manime.delivery"]
       }
     },
     android: {
@@ -57,7 +62,7 @@ export default {
       [
         "@stripe/stripe-react-native",
         {
-          merchantIdentifier: "merchant.com.manime.app",
+          merchantIdentifier: "merchant.manime.delivery",
           enableGooglePay: true
         }
       ]

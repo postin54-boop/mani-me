@@ -582,7 +582,7 @@ export default function OrdersScreen({ navigation }) {
                     <Ionicons name="calendar-outline" size={16} color="#83C5FA" />
                     <Text style={[styles.dateLabel, { color: '#83C5FA' }]}>Booked:</Text>
                     <Text style={[styles.dateValue, { color: themeColors.text }]}>
-                      {new Date(parcel.booked_at || parcel.createdAt).toLocaleDateString()}
+                      {(parcel.booked_at || parcel.createdAt) && !isNaN(new Date(parcel.booked_at || parcel.createdAt).getTime()) ? new Date(parcel.booked_at || parcel.createdAt).toLocaleDateString() : '—'}
                     </Text>
                   </View>
                   {parcel.pickup_date && (
@@ -590,7 +590,7 @@ export default function OrdersScreen({ navigation }) {
                       <Ionicons name="time-outline" size={16} color="#10B981" />
                       <Text style={[styles.dateLabel, { color: '#10B981' }]}>Pickup:</Text>
                       <Text style={[styles.dateValue, { color: '#10B981' }]}>
-                        {new Date(parcel.pickup_date).toLocaleDateString()}
+                        {parcel.pickup_date && !isNaN(new Date(parcel.pickup_date).getTime()) ? new Date(parcel.pickup_date).toLocaleDateString() : '—'}
                       </Text>
                     </View>
                   )}

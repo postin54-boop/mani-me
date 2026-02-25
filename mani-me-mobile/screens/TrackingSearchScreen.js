@@ -174,7 +174,7 @@ export default function TrackingSearchScreen({ navigation }) {
                 <View style={styles.parcelFooter}>
                   <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
                   <Text style={[styles.dateText, { color: colors.textSecondary }]}>
-                    {new Date(parcel.created_at).toLocaleDateString()}
+                    {parcel.created_at && !isNaN(new Date(parcel.created_at).getTime()) ? new Date(parcel.created_at).toLocaleDateString() : '—'}
                   </Text>
                   <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} style={styles.chevron} />
                 </View>

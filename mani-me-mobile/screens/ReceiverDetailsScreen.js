@@ -5,7 +5,7 @@ import { useUser } from '../context/UserContext';
 import { useThemeColors } from '../constants/theme';
 
 export default function ReceiverDetailsScreen({ route, navigation }) {
-  const { senderData } = route.params;
+  const { senderData } = route?.params || {};
   const { user } = useUser();
   const { colors, isDark } = useThemeColors();
 

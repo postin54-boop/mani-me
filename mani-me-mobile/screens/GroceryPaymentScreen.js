@@ -19,7 +19,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../utils/config';
 
 export default function GroceryPaymentScreen({ route, navigation }) {
-  const { cart, subtotal } = route.params;
+  const { cart = [], subtotal = 0 } = route?.params || {};
   const { user, token } = useUser();
   const [loading, setLoading] = useState(false);
   const [cardComplete, setCardComplete] = useState(false);

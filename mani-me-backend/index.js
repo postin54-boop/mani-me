@@ -1,3 +1,4 @@
+// © 2025-2026 ManiMe Ltd. All rights reserved.
 // Server entry point
 require('dotenv').config();
 const app = require('./src/app');

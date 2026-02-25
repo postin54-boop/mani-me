@@ -1,25 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import logger from '../utils/logger';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView, StatusBar, TextInput, Platform } from 'react-native';
-import { useStripe } from '@stripe/stripe-react-native';
+import { useStripe, useApplePay, ApplePayButton } from '@stripe/stripe-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants';
 import { useThemeColors, SIZES, FONTS, SHADOWS } from '../constants/theme';
 import { API_BASE_URL } from '../utils/config';
+import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Check if running in Expo Go (development) vs production build
+const isExpoGo = Constants.appOwnership === 'expo';
 
 export default function PaymentScreen({ route, navigation }) {
-  const { bookingData } = route.params;
+  // Safely extract bookingData with fallback
+  const bookingData = route?.params?.bookingData || {};
   const [loading, setLoading] = useState(false);
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState(null);
   const [promoLoading, setPromoLoading] = useState(false);
-  const { confirmPayment } = useStripe();
-  // Apple Pay not available in Expo Go - disabled for now
+  
+  // Stripe hooks - these must be called unconditionally
+  const { confirmPayment, createPaymentMethod } = useStripe();
+  const { isApplePaySupported, presentApplePay, confirmApplePayPayment } = useApplePay();
   const [applePayAvailable, setApplePayAvailable] = useState(false);
   const { colors, isDark } = useThemeColors();
+  
+  // Validate bookingData on mount
+  useEffect(() => {
+    if (!route?.params?.bookingData) {
+      logger.warn('PaymentScreen: No bookingData provided');
+    }
+  }, [route?.params?.bookingData]);
 
-  // Apple Pay is not supported in Expo Go development builds
-  // To enable Apple Pay, you need a custom dev client or production build
+  // Check Apple Pay availability on mount (only works in production builds)
+  useEffect(() => {
+    const checkApplePay = async () => {
+      // Only check Apple Pay on iOS in production builds (not Expo Go)
+      if (Platform.OS === 'ios' && !isExpoGo) {
+        try {
+          // isApplePaySupported can be a boolean or a function returning a Promise
+          const supported = typeof isApplePaySupported === 'function' 
+            ? await isApplePaySupported()
+            : isApplePaySupported;
+          
+          if (supported) {
+            setApplePayAvailable(true);
+            logger.log('Apple Pay is available');
+          } else {
+            logger.log('Apple Pay is not supported on this device');
+          }
+        } catch (err) {
+          logger.warn('Apple Pay check failed:', err);
+        }
+      }
+    };
+    checkApplePay();
+  }, [isApplePaySupported]);
 
   const calculateTotal = () => {
     let total = bookingData?.total_estimated_price || 0;
@@ -81,13 +118,105 @@ export default function PaymentScreen({ route, navigation }) {
   };
 
   const handlePayment = async () => {
-    // Apple Pay is not available in Expo Go development builds
-    // This function will only work in production builds with proper Apple Pay configuration
-    Alert.alert(
-      'Apple Pay Not Available',
-      'Apple Pay is not available in development builds. Please use the "Pay with Cash" option below, or build the app for production to enable Apple Pay.',
-      [{ text: 'OK' }]
-    );
+    // Check if Apple Pay is available (production build only)
+    if (!applePayAvailable || isExpoGo) {
+      Alert.alert(
+        'Apple Pay Not Available',
+        'Apple Pay is not available in development builds. Please use the "Pay with Card" or "Pay with Cash" option below.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const totalAmount = calculateTotal();
+      const token = await AsyncStorage.getItem('token');
+      
+      // 1. Create payment intent on backend
+      const intentResponse = await fetch(`${API_BASE_URL}/api/payments/create-intent`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          amount: Math.round(totalAmount * 100), // Convert to pence
+          currency: 'gbp',
+        }),
+      });
+      
+      if (!intentResponse.ok) {
+        throw new Error('Failed to create payment intent');
+      }
+      
+      const { clientSecret } = await intentResponse.json();
+      
+      // 2. Present Apple Pay sheet
+      const { error: presentError } = await presentApplePay({
+        cartItems: [
+          {
+            label: 'Mani Me Parcel Delivery',
+            amount: totalAmount.toFixed(2),
+            paymentType: 'Final',
+          },
+        ],
+        country: 'GB',
+        currency: 'GBP',
+        requiredShippingAddressFields: [],
+        requiredBillingContactFields: ['name'],
+      });
+      
+      if (presentError) {
+        throw new Error(presentError.message || 'Apple Pay presentation failed');
+      }
+      
+      // 3. Confirm the payment
+      const { error: confirmError } = await confirmApplePayPayment(clientSecret);
+      
+      if (confirmError) {
+        throw new Error(confirmError.message || 'Payment confirmation failed');
+      }
+      
+      // 4. Create shipment after successful payment
+      const shipmentResponse = await fetch(`${API_BASE_URL}/api/shipments/create`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...bookingData,
+          payment_method: 'apple_pay',
+          payment_status: 'paid',
+          payment_amount: totalAmount,
+          promo_code: appliedPromo?.code || null,
+          promo_discount: appliedPromo ? (appliedPromo.type === 'percentage' 
+            ? ((bookingData?.total_estimated_price || 0) * appliedPromo.value / 100) 
+            : appliedPromo.value) : 0,
+        }),
+      });
+      
+      if (!shipmentResponse.ok) {
+        throw new Error('Failed to create shipment');
+      }
+      
+      const data = await shipmentResponse.json();
+      
+      navigation.replace('PaymentConfirmation', {
+        trackingNumber: data.tracking_number,
+        bookingDate: new Date().toISOString(),
+        total: totalAmount,
+        paymentMethod: 'Apple Pay',
+        shipmentId: data.shipment?._id || data._id,
+      });
+      
+    } catch (error) {
+      logger.error('Apple Pay error:', error);
+      Alert.alert('Payment Failed', error.message || 'Could not process Apple Pay. Please try another payment method.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Card payment - book now, charge later (after driver verifies parcel)
@@ -102,7 +231,7 @@ export default function PaymentScreen({ route, navigation }) {
         payment_amount: calculateTotal(),
         promo_code: appliedPromo?.code || null,
         promo_discount: appliedPromo ? (appliedPromo.type === 'percentage' 
-          ? (bookingData.total_estimated_price * appliedPromo.value / 100) 
+          ? ((bookingData?.total_estimated_price || 0) * appliedPromo.value / 100) 
           : appliedPromo.value) : 0,
       };
       
@@ -138,7 +267,7 @@ export default function PaymentScreen({ route, navigation }) {
           deliveryCity: bookingData?.delivery_city,
           subtotal: bookingData?.total_estimated_price,
           discount: appliedPromo ? (appliedPromo.type === 'percentage' 
-            ? (bookingData.total_estimated_price * appliedPromo.value / 100) 
+            ? ((bookingData?.total_estimated_price || 0) * appliedPromo.value / 100) 
             : appliedPromo.value) : 0,
           promoCode: appliedPromo?.code || null,
           total: calculateTotal(),
@@ -173,7 +302,7 @@ export default function PaymentScreen({ route, navigation }) {
         payment_amount: calculateTotal(),
         promo_code: appliedPromo?.code || null,
         promo_discount: appliedPromo ? (appliedPromo.type === 'percentage' 
-          ? (bookingData.total_estimated_price * appliedPromo.value / 100) 
+          ? ((bookingData?.total_estimated_price || 0) * appliedPromo.value / 100) 
           : appliedPromo.value) : 0,
       };
       
@@ -212,7 +341,7 @@ export default function PaymentScreen({ route, navigation }) {
           deliveryCity: bookingData?.delivery_city,
           subtotal: bookingData?.total_estimated_price,
           discount: appliedPromo ? (appliedPromo.type === 'percentage' 
-            ? (bookingData.total_estimated_price * appliedPromo.value / 100) 
+            ? ((bookingData?.total_estimated_price || 0) * appliedPromo.value / 100) 
             : appliedPromo.value) : 0,
           promoCode: appliedPromo?.code || null,
           total: calculateTotal(),
@@ -273,7 +402,7 @@ export default function PaymentScreen({ route, navigation }) {
           <View style={[styles.summaryRow, { borderBottomColor: colors.border }]}>
             <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Boxes:</Text>
             <Text style={[styles.summaryValue, { color: colors.text }]}>
-              {bookingData.boxes.reduce((sum, b) => sum + b.quantity, 0)} box(es)
+              {(bookingData?.boxes || []).reduce((sum, b) => sum + (b?.quantity || 0), 0)} box(es)
             </Text>
           </View>
         )}
@@ -282,7 +411,7 @@ export default function PaymentScreen({ route, navigation }) {
           <View style={[styles.summaryRow, { borderBottomColor: colors.border }]}>
             <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Items:</Text>
             <Text style={[styles.summaryValue, { color: colors.text }]}>
-              {bookingData.items.reduce((sum, i) => sum + i.quantity, 0)} item(s)
+              {(bookingData?.items || []).reduce((sum, i) => sum + (i?.quantity || 0), 0)} item(s)
             </Text>
           </View>
         )}
@@ -315,8 +444,8 @@ export default function PaymentScreen({ route, navigation }) {
                 : `£${appliedPromo.value}`}
               {' (£'}
               {appliedPromo.type === 'percentage'
-                ? (bookingData.total_estimated_price * appliedPromo.value / 100).toFixed(2)
-                : appliedPromo.value.toFixed(2)}
+                ? ((bookingData?.total_estimated_price || 0) * appliedPromo.value / 100).toFixed(2)
+                : (appliedPromo.value || 0).toFixed(2)}
               {')'}
             </Text>
           </View>

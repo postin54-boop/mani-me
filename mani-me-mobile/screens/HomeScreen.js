@@ -203,7 +203,9 @@ export default function HomeScreen({ navigation }) {
           styles.greetingRow,
           { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
         ]}>
-          <Text style={styles.greetingText}>Hello 👋</Text>
+          <Text style={styles.greetingText}>
+            Hello{user?.name ? `, ${user.name.split(' ')[0]}` : ''} 👋
+          </Text>
           <Text style={styles.greetingSub}>What would you like to do today?</Text>
         </Animated.View>
 

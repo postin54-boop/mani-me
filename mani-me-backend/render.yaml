@@ -16,5 +16,7 @@ services:
         sync: false
       - key: FIREBASE_PROJECT_ID
         sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false  # Base64-encoded Firebase service account JSON (required for chat)
     healthCheckPath: /health
     autoDeploy: true

@@ -105,12 +105,27 @@ export default function ChatScreen({ route, navigation }) {
       
       logger.log('Sending message payload:', payload);
 
-      await api.post('/chat/send', payload);
+      const response = await api.post('/chat/send', payload);
+      logger.log('Message sent successfully:', response.data);
       setNewMessage('');
       // Real-time listener will automatically update messages
     } catch (error) {
       logger.error('Error sending message:', error?.response?.data || error.message);
-      Alert.alert('Send failed', 'Could not send your message. Please try again.');
+      
+      // Provide specific error messages based on error type
+      let errorMessage = 'Could not send your message. Please try again.';
+      
+      if (error?.response?.status === 401) {
+        errorMessage = 'Your session has expired. Please log in again.';
+      } else if (error?.response?.status === 400) {
+        errorMessage = error?.response?.data?.error || 'Invalid message data.';
+      } else if (error?.isOffline || error?.message?.includes('Network')) {
+        errorMessage = 'No internet connection. Please check your network.';
+      } else if (error?.response?.status >= 500) {
+        errorMessage = 'Server error. Please try again later.';
+      }
+      
+      Alert.alert('Send failed', errorMessage);
     } finally {
       setLoading(false);
     }

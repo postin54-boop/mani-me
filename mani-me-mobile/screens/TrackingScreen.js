@@ -112,6 +112,8 @@ export default function TrackingScreen({ route, navigation }) {
 	const formatDate = (dateString) => {
 		if (!dateString) return null;
 		const date = new Date(dateString);
+		// Check if date is valid
+		if (isNaN(date.getTime())) return null;
 		return date.toLocaleDateString('en-GB', { 
 			day: 'numeric', 
 			month: 'short', 

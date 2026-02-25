@@ -1,3 +1,4 @@
+// © 2025-2026 ManiMe Ltd. All rights reserved.
 import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';

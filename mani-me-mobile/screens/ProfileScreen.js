@@ -248,8 +248,16 @@ export default function ProfileScreen({ navigation }) {
               </View>
             )}
             <View style={[styles.editOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.6)' }]}>
-              <Ionicons name="camera" size={18} color="#FFFFFF" />
+              <Ionicons name="camera" size={16} color="#FFFFFF" />
+              <Text style={styles.editOverlayText}>Edit</Text>
             </View>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.changePhotoButton}
+            onPress={showImageOptions}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.changePhotoText, { color: colors.primary }]}>Change Photo</Text>
           </TouchableOpacity>
         </View>
 
@@ -466,10 +474,25 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 40,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+    gap: 4,
+  },
+  editOverlayText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    ...FONTS.medium,
+  },
+  changePhotoButton: {
+    marginTop: SIZES.md,
+    paddingVertical: SIZES.sm,
+    paddingHorizontal: SIZES.lg,
+  },
+  changePhotoText: {
+    fontSize: 15,
+    ...FONTS.semiBold,
   },
   fieldsContainer: {
     marginHorizontal: SIZES.lg,

@@ -7,7 +7,7 @@ import { useThemeColors, SIZES, SHADOWS, FONTS } from '../constants/theme';
 import { API_BASE_URL } from '../utils/config';
 
 export default function ShopCheckoutScreen({ route, navigation }) {
-  const { cart, subtotal, deliveryFee, total } = route.params;
+  const { cart = [], subtotal = 0, deliveryFee = 0, total = 0 } = route?.params || {};
   const { colors, isDark } = useThemeColors();
   const { user } = useUser();
   const { confirmPayment } = useStripe();

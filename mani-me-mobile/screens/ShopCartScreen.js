@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors, SIZES, SHADOWS, FONTS } from '../constants/theme';
 
 export default function ShopCartScreen({ route, navigation }) {
-  const { cart, setCart } = route.params;
+  const { cart = [], setCart = () => {} } = route?.params || {};
   const { colors, isDark } = useThemeColors();
 
   const updateQuantity = (itemId, change) => {

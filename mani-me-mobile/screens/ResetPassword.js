@@ -10,7 +10,7 @@ const DEEP_NAVY = "#071528";
 const SKY_BLUE = "#84C3EA";
 
 export default function ResetPassword({ route, navigation }) {
-  const { email } = route.params;
+  const { email = '' } = route?.params || {};
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

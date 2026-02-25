@@ -61,8 +61,9 @@ exports.createIntent = async (req, res) => {
     const { amount, currency = 'gbp', shipmentId } = req.body;
     if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
 
+    // Amount is already in smallest currency unit (pence) from mobile app
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100),
+      amount: Math.round(amount), // Already in pence, just ensure it's an integer
       currency,
       automatic_payment_methods: { enabled: true },
       metadata: { shipmentId: shipmentId || '' }, // Store shipment ID for webhook

@@ -127,7 +127,7 @@ export default function TermsScreen({ navigation }) {
           {/* Section 5 */}
           <Text style={[styles.sectionTitle, { color: colors.text }]}>5. Delivery Timeframes</Text>
           <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
-            • Standard delivery: 3-4 weeks from UK to Ghana
+            • Standard delivery: 4-5 weeks from UK to Ghana
           </Text>
           <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
             • Timeframes are estimates and may vary due to customs, weather, or other factors

@@ -123,7 +123,7 @@ export default function HelpSupportScreen({ navigation }) {
           
           <FAQItem
             question="How long does delivery take?"
-            answer="Delivery from the UK to Ghana typically takes 3-4 weeks. You'll receive tracking updates throughout the journey."
+            answer="Delivery from the UK to Ghana typically takes 4-5 weeks. You'll receive tracking updates throughout the journey."
           />
           
           <FAQItem

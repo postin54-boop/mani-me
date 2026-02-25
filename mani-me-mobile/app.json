@@ -16,7 +16,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.manime.app",
-      "icon": "./assets/adaptive-icon.png"
+      "icon": "./assets/adaptive-icon.png",
+      "entitlements": {
+        "com.apple.developer.in-app-payments": ["merchant.manime.delivery"]
+      }
     },
     "android": {
       "package": "com.manime.app",
@@ -28,6 +31,15 @@
     "web": {
       "favicon": "./assets/logo.png"
     },
+    "plugins": [
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.manime.delivery",
+          "enableGooglePay": true
+        }
+      ]
+    ],
     "owner": "postin54"
   }
 }

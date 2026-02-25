@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors, SIZES, SHADOWS, FONTS } from '../constants/theme';
 
 export default function QRCodeScreen({ route, navigation }) {
-  const { parcel } = route.params;
+  const { parcel } = route?.params || {};
   const { colors, isDark } = useThemeColors();
   const [qrCodeData, setQrCodeData] = useState(null);
 

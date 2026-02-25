@@ -25,7 +25,7 @@ export default function PaymentConfirmationScreen({ route, navigation }) {
     paymentMethod = 'Card',
     paymentStatus = 'Paid',
     bookingDate
-  } = route.params;
+  } = route?.params || {};
   const { colors, isDark } = useThemeColors();
 
   const shareReceipt = async () => {

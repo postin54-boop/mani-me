@@ -8,7 +8,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../utils/config';
 
 export default function PackagingPaymentScreen({ route, navigation }) {
-  const { orderData } = route.params;
+  const { orderData } = route?.params || {};
   const { user, token } = useUser();
   const [loading, setLoading] = useState(false);
   const [cardComplete, setCardComplete] = useState(false);

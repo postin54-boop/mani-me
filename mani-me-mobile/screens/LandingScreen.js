@@ -125,7 +125,7 @@ export default function LandingScreen({ navigation }) {
             <View style={[styles.statIcon, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
               <Ionicons name="flash" size={18} color="#F59E0B" />
             </View>
-            <Text style={styles.statValue}>3-4</Text>
+            <Text style={styles.statValue}>4-5</Text>
             <Text style={styles.statLabel}>Weeks Delivery</Text>
           </View>
           <View style={styles.statDivider} />
