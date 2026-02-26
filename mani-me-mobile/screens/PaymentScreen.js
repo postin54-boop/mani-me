@@ -6,8 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants';
 import { useThemeColors, SIZES, FONTS, SHADOWS } from '../constants/theme';
 import { API_BASE_URL } from '../utils/config';
+import { useUser } from '../context/UserContext';
 import Constants from 'expo-constants';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Check if running in Expo Go (development) vs production build
 const isExpoGo = Constants.appOwnership === 'expo';
@@ -19,6 +19,9 @@ export default function PaymentScreen({ route, navigation }) {
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState(null);
   const [promoLoading, setPromoLoading] = useState(false);
+  
+  // Get authentication token from context
+  const { token } = useUser();
   
   // Stripe hooks - these must be called unconditionally
   const { confirmPayment, createPaymentMethod } = useStripe();
@@ -131,7 +134,13 @@ export default function PaymentScreen({ route, navigation }) {
     setLoading(true);
     try {
       const totalAmount = calculateTotal();
-      const token = await AsyncStorage.getItem('token');
+      
+      // Check if user is authenticated
+      if (!token) {
+        Alert.alert('Authentication Required', 'Please log in to use Apple Pay');
+        setLoading(false);
+        return;
+      }
       
       // 1. Create payment intent on backend
       const intentResponse = await fetch(`${API_BASE_URL}/api/payments/create-intent`, {
