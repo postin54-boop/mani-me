@@ -21,7 +21,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.manime.app",
-      buildNumber: "2",
+      buildNumber: "4",
       icon: "./assets/adaptive-icon.png",
       infoPlist: {
         NSPhotoLibraryUsageDescription: "Allow Mani Me to access your photos to set a profile picture.",
