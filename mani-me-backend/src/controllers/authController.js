@@ -154,3 +154,31 @@ exports.resetPassword = async (req, res) => {
     res.status(error.statusCode || 500).json({ error: error.message || 'Server error' });
   }
 };
+
+/**
+ * POST /auth/verify-email - Verify email with code
+ */
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    const result = await authService.verifyEmail({ email, code });
+    return res.json(result);
+  } catch (error) {
+    logger.error('Email verification error:', { error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message || 'Server error' });
+  }
+};
+
+/**
+ * POST /auth/resend-verification - Resend verification code
+ */
+exports.resendVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.resendVerificationCode({ email });
+    return res.json(result);
+  } catch (error) {
+    logger.error('Resend verification error:', { error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message || 'Server error' });
+  }
+};

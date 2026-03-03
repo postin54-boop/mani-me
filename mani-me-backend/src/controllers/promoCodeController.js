@@ -259,6 +259,7 @@ exports.validate = async (req, res) => {
 
 /**
  * Apply a promo code – increments usage count (authenticated).
+ * Uses atomic $inc to prevent race conditions.
  */
 exports.apply = async (req, res) => {
   try {
@@ -268,17 +269,32 @@ exports.apply = async (req, res) => {
       return res.status(400).json({ error: 'Promo code is required' });
     }
 
-    const promo = await PromoCode.findOne({
-      code: code.toUpperCase(),
-      status: 'active'
-    });
+    // Use atomic findOneAndUpdate with $inc to prevent race conditions
+    // Only increment if usedCount < usageLimit (enforces limit atomically)
+    const promo = await PromoCode.findOneAndUpdate(
+      {
+        code: code.toUpperCase(),
+        status: 'active',
+        $expr: { $lt: ['$usedCount', '$usageLimit'] }
+      },
+      { $inc: { usedCount: 1 } },
+      { new: true }
+    );
 
     if (!promo) {
+      // Check if code exists but is at limit
+      const existingCode = await PromoCode.findOne({ code: code.toUpperCase() });
+      if (!existingCode) {
+        return res.status(404).json({ error: 'Invalid promo code' });
+      }
+      if (existingCode.status !== 'active') {
+        return res.status(400).json({ error: 'Promo code is no longer active' });
+      }
+      if (existingCode.usedCount >= existingCode.usageLimit) {
+        return res.status(400).json({ error: 'Promo code usage limit reached' });
+      }
       return res.status(404).json({ error: 'Invalid promo code' });
     }
-
-    promo.usedCount += 1;
-    await promo.save();
 
     res.json({ message: 'Promo code applied successfully', usedCount: promo.usedCount });
   } catch (error) {

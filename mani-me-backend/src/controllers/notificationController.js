@@ -127,6 +127,11 @@ exports.markAsReadById = async (req, res) => {
 exports.getDriverNotifications = async (req, res) => {
   try {
     const { driverId } = req.params;
+    // IDOR Protection: Ensure driver can only access their own notifications
+    const requestingUserId = req.userId || req.user?.user_id || req.user?._id || req.user?.id;
+    if (driverId !== requestingUserId && driverId !== String(requestingUserId)) {
+      return res.status(403).json({ success: false, error: 'You can only view your own notifications' });
+    }
     const notifications = await Notification.find({
       $or: [
         { userId: driverId },
@@ -155,6 +160,11 @@ exports.getDriverNotifications = async (req, res) => {
 exports.markAllDriverRead = async (req, res) => {
   try {
     const { driverId } = req.params;
+    // IDOR Protection: Ensure driver can only mark their own notifications
+    const requestingUserId = req.userId || req.user?.user_id || req.user?._id || req.user?.id;
+    if (driverId !== requestingUserId && driverId !== String(requestingUserId)) {
+      return res.status(403).json({ success: false, error: 'You can only modify your own notifications' });
+    }
     await Notification.updateMany(
       {
         $or: [

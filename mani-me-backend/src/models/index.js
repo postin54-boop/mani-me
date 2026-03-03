@@ -34,6 +34,7 @@ const PromoCode = require('./promoCode');
 module.exports = {
   // Core
   User,
+  Driver: User, // Alias: Drivers are Users with role='driver'
   Shipment,
   Item,
   Address,

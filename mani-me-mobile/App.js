@@ -57,6 +57,7 @@ import RecentParcelScreen from './screens/RecentParcelScreen';
 import LandingScreen from './screens/LandingScreen';
 import LoginScreen from './screens/loginscreen';
 import RegisterScreen from './screens/RegisterScreen';
+import EmailVerificationScreen from './screens/EmailVerificationScreen';
 import HomeScreen from './screens/HomeScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import OrdersScreen from './screens/OrdersScreen';
@@ -229,6 +230,7 @@ function AppNavigator() {
         <Stack.Screen name="Landing" component={LandingScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} />
         <Stack.Screen name="ConnectionTest" component={ConnectionTest} />
         <Stack.Screen name="Home" component={TabNavigator} />
         <Stack.Screen name="Profile" component={ProfileScreen} />

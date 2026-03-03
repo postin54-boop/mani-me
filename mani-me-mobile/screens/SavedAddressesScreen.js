@@ -15,10 +15,14 @@ export default function SavedAddressesScreen({ navigation }) {
   const [editingId, setEditingId] = useState(null);
 
   const fetchAddresses = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await getAddresses(user.id);
-      setAddresses(res.data);
+      setAddresses(res?.data || []);
     } catch (e) {
       Alert.alert('Error', 'Failed to fetch addresses');
     } finally {
@@ -38,7 +42,7 @@ export default function SavedAddressesScreen({ navigation }) {
       if (editingId) {
         await updateAddress(editingId, form);
       } else {
-        await createAddress({ ...form, userId: user.id });
+        await createAddress({ ...form, userId: user?.id });
       }
       setForm({ houseNumber: '', postCode: '', city: '', phone: '' });
       setEditingId(null);

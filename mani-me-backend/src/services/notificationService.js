@@ -83,6 +83,25 @@ async function sendPickupAssignedNotification(pushToken, shipment, driver = {}) 
 }
 
 /**
+ * Send notification to driver when a delivery is assigned (Ghana drivers)
+ * @param {string} pushToken - Driver's Expo push token
+ * @param {object} shipment - Shipment object (with address, tracking number, etc)
+ * @param {object} [driver] - Optional driver object (for name, etc)
+ */
+async function sendDeliveryAssignedNotification(pushToken, shipment, driver = {}) {
+  const title = 'New Delivery Assigned';
+  const body = `You have been assigned a delivery: ${shipment.tracking_number} to ${shipment.delivery_address}`;
+  return sendPushNotification(pushToken, title, body, {
+    trackingNumber: shipment.tracking_number,
+    deliveryAddress: shipment.delivery_address,
+    deliveryCity: shipment.delivery_city,
+    type: 'driver_delivery_assigned',
+    role: 'driver',
+    driverId: driver.id || undefined,
+  });
+}
+
+/**
  * Send shipment status update notification
  * @param {string} pushToken - User's Expo push token
  * @param {string} trackingNumber - Shipment tracking number
@@ -349,5 +368,6 @@ module.exports = {
   sendPickupCancellationNotifications,
   sendPickupRescheduleNotifications,
   sendPickupAssignedNotification,
+  sendDeliveryAssignedNotification,
   sendDropoffCancelledNotifications,
 };

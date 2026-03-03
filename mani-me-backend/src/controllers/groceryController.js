@@ -3,6 +3,7 @@
  * @module controllers/groceryController
  */
 
+const mongoose = require('mongoose');
 const GroceryItem = require('../models/groceryItem');
 const GroceryOrder = require('../models/groceryOrder');
 const logger = require('../utils/logger');
@@ -56,34 +57,60 @@ exports.calculateShipping = async (req, res) => {
 };
 
 exports.createOrder = async (req, res) => {
+  // Use MongoDB transaction to prevent race conditions with stock deduction
+  const session = await mongoose.startSession();
+  
   try {
     const { items, subtotal, shipping_cost, delivery_address } = req.body;
     if (!items || items.length === 0) return res.status(400).json({ message: 'No items in order' });
     if (!delivery_address || !delivery_address.country) return res.status(400).json({ message: 'Delivery address required' });
 
     const total_amount = subtotal + shipping_cost;
-    const stockResults = [];
-    for (const orderItem of items) {
-      const result = await GroceryItem.findOneAndUpdate(
-        { _id: orderItem.item_id, stock: { $gte: orderItem.quantity } },
-        { $inc: { stock: -orderItem.quantity } },
-        { new: true }
-      );
-      if (!result) {
-        for (const prev of stockResults) {
-          await GroceryItem.findByIdAndUpdate(prev.item_id, { $inc: { stock: prev.quantity } });
+    let order;
+    
+    await session.withTransaction(async () => {
+      // Deduct stock atomically within transaction
+      for (const orderItem of items) {
+        const result = await GroceryItem.findOneAndUpdate(
+          { _id: orderItem.item_id, stock: { $gte: orderItem.quantity } },
+          { $inc: { stock: -orderItem.quantity } },
+          { new: true, session }
+        );
+        if (!result) {
+          const item = await GroceryItem.findById(orderItem.item_id).session(session);
+          if (!item) {
+            throw new Error(`Item ${orderItem.name || orderItem.item_id} not found`);
+          }
+          throw new Error(`Insufficient stock for ${item.name}`);
         }
-        const item = await GroceryItem.findById(orderItem.item_id);
-        if (!item) return res.status(404).json({ message: `Item ${orderItem.name} not found` });
-        return res.status(400).json({ message: `Insufficient stock for ${item.name}` });
       }
-      stockResults.push({ item_id: orderItem.item_id, quantity: orderItem.quantity });
-    }
 
-    const order = new GroceryOrder({ user_id: req.userId, items, subtotal, shipping_cost, total_amount, delivery_address, order_status: 'pending', payment_status: 'pending' });
-    await order.save();
+      // Create order within same transaction
+      const newOrder = new GroceryOrder({ 
+        user_id: req.userId, 
+        items, 
+        subtotal, 
+        shipping_cost, 
+        total_amount, 
+        delivery_address, 
+        order_status: 'pending', 
+        payment_status: 'pending' 
+      });
+      await newOrder.save({ session });
+      order = newOrder;
+    });
+
+    await session.endSession();
     res.status(201).json(order);
   } catch (error) {
+    await session.endSession();
+    // Handle specific error types
+    if (error.message.includes('Insufficient stock')) {
+      return res.status(400).json({ message: error.message });
+    }
+    if (error.message.includes('not found')) {
+      return res.status(404).json({ message: error.message });
+    }
     logger.error('Error creating order', { error: error.message });
     res.status(500).json({ message: 'Failed to create order' });
   }

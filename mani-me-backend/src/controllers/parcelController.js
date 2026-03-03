@@ -112,12 +112,19 @@ exports.getWarehouseParcels = async (req, res) => {
  * @returns {Promise<void>}
  */
 exports.createParcelItem = async (req, res) => {
-  // ...validate input, get booking, etc.
-  const { bookingId, itemType, itemLetter } = req.body;
-  const id = generateParcelId(bookingId, itemLetter);
-  const parcel = new ParcelItem({ ...req.body, id, booking_id: bookingId, item_type: itemType });
-  await parcel.save();
-  res.status(201).json(parcel);
+  try {
+    const { bookingId, itemType, itemLetter } = req.body;
+    if (!bookingId || !itemType) {
+      return res.status(400).json({ error: 'bookingId and itemType are required' });
+    }
+    const id = generateParcelId(bookingId, itemLetter);
+    const parcel = new ParcelItem({ ...req.body, id, booking_id: bookingId, item_type: itemType });
+    await parcel.save();
+    res.status(201).json(parcel);
+  } catch (error) {
+    logger.error('Error creating parcel item:', { error: error.message });
+    res.status(500).json({ error: 'Failed to create parcel item' });
+  }
 };
 
 // ...other parcel controller methods

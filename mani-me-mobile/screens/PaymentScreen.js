@@ -247,10 +247,18 @@ export default function PaymentScreen({ route, navigation }) {
       logger.log('📦 Sending card booking request to:', `${API_BASE_URL}/api/shipments/create`);
       logger.log('📦 Request body:', JSON.stringify(requestBody, null, 2));
 
+      // Check if user is authenticated
+      if (!token) {
+        Alert.alert('Authentication Required', 'Please log in to complete your booking');
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/shipments/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(requestBody),
       });
@@ -319,10 +327,18 @@ export default function PaymentScreen({ route, navigation }) {
       logger.log('📦 Sending booking request to:', `${API_BASE_URL}/api/shipments/create`);
       logger.log('📦 Request body:', JSON.stringify(requestBody, null, 2));
 
+      // Check if user is authenticated
+      if (!token) {
+        Alert.alert('Authentication Required', 'Please log in to complete your booking');
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/shipments/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(requestBody),
       });

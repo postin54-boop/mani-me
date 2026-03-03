@@ -150,13 +150,13 @@ export default function ShopCheckoutScreen({ route, navigation }) {
           
           <View style={styles.orderItem}>
             <Text style={[styles.itemName, { color: colors.textSecondary }]}>Subtotal</Text>
-            <Text style={[styles.itemPrice, { color: colors.text }]}>£{subtotal.toFixed(2)}</Text>
+            <Text style={[styles.itemPrice, { color: colors.text }]}>£{(subtotal || 0).toFixed(2)}</Text>
           </View>
           
           <View style={styles.orderItem}>
             <Text style={[styles.itemName, { color: colors.textSecondary }]}>Delivery</Text>
             <Text style={[styles.itemPrice, { color: colors.text }]}>
-              {deliveryFee === 0 ? 'FREE' : `£${deliveryFee.toFixed(2)}`}
+              {deliveryFee === 0 ? 'FREE' : `£${(deliveryFee || 0).toFixed(2)}`}
             </Text>
           </View>
           

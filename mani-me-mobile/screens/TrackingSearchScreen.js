@@ -32,7 +32,8 @@ export default function TrackingSearchScreen({ navigation }) {
       }
       const data = await response.json();
       // Get only active parcels (not delivered)
-      const active = data.shipments.filter(p => p.status !== 'delivered' && p.status !== 'cancelled');
+      const shipments = data?.shipments || [];
+      const active = shipments.filter(p => p.status !== 'delivered' && p.status !== 'cancelled');
       setRecentParcels(active.slice(0, 5));
     } catch (error) {
       logger.error('Error fetching parcels:', error);

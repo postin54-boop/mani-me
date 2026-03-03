@@ -60,11 +60,11 @@ ${receiverPhone}
 ━━━━━━━━━━━━━━━━━━━━
 PAYMENT
 ━━━━━━━━━━━━━━━━━━━━
-Subtotal: £${subtotal?.toFixed(2)}
-${discount > 0 ? `Discount: -£${discount.toFixed(2)} (${promoCode})` : ''}
-Total: £${total?.toFixed(2)}
-Payment Method: ${paymentMethod}
-Status: ${paymentStatus}
+Subtotal: £${(subtotal || 0).toFixed(2)}
+${discount > 0 ? `Discount: -£${(discount || 0).toFixed(2)} (${promoCode || ''})` : ''}
+Total: £${(total || 0).toFixed(2)}
+Payment Method: ${paymentMethod || 'N/A'}
+Status: ${paymentStatus || 'N/A'}
 ━━━━━━━━━━━━━━━━━━━━
 
 Thank you for choosing Mani Me! 🚚

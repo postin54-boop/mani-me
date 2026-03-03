@@ -89,6 +89,11 @@ exports.createPackagingOrder = async (req, res) => {
 exports.getUserOrders = async (req, res) => {
   try {
     const userId = req.params.userId;
+    // IDOR Protection: Ensure user can only access their own orders
+    const requestingUserId = req.user?.user_id || req.user?.id || req.user?._id;
+    if (userId !== requestingUserId && userId !== String(requestingUserId)) {
+      return res.status(403).json({ message: 'You can only view your own orders' });
+    }
     const orders = await PackagingOrder.find({ user_id: userId }).sort({ createdAt: -1 }).populate('items.item_id', 'name image_url price');
     res.json(orders);
   } catch (error) {

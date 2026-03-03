@@ -4,12 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors, SIZES, SHADOWS, FONTS } from '../constants/theme';
 
 export default function QRCodeScreen({ route, navigation }) {
-  const { parcel } = route?.params || {};
+  const { parcel = {} } = route?.params || {};
   const { colors, isDark } = useThemeColors();
   const [qrCodeData, setQrCodeData] = useState(null);
 
   useEffect(() => {
-    if (parcel.qr_code_data) {
+    if (parcel?.qr_code_data) {
       try {
         setQrCodeData(JSON.parse(parcel.qr_code_data));
       } catch (e) {
@@ -21,7 +21,7 @@ export default function QRCodeScreen({ route, navigation }) {
   const shareQRCode = async () => {
     try {
       await Share.share({
-        message: `Parcel ID: ${parcel.parcel_id_short || parcel.parcel_id}\nTracking: ${parcel.tracking_number}`,
+        message: `Parcel ID: ${parcel?.parcel_id_short || parcel?.parcel_id || 'N/A'}\nTracking: ${parcel?.tracking_number || 'N/A'}`,
         title: 'Share Parcel QR Code'
       });
     } catch (error) {
@@ -49,16 +49,16 @@ export default function QRCodeScreen({ route, navigation }) {
         <View style={[styles.idCard, { backgroundColor: colors.surface }]}>
           <Text style={[styles.idLabel, { color: colors.textSecondary }]}>Parcel ID</Text>
           <Text style={[styles.parcelId, { color: colors.primary }]}>
-            {parcel.parcel_id_short || parcel.parcel_id || 'N/A'}
+            {parcel?.parcel_id_short || parcel?.parcel_id || 'N/A'}
           </Text>
           <Text style={[styles.fullParcelId, { color: colors.textSecondary }]}>
-            {parcel.parcel_id}
+            {parcel?.parcel_id || ''}
           </Text>
         </View>
 
         {/* QR Code Display */}
         <View style={[styles.qrContainer, { backgroundColor: '#FFFFFF' }]}>
-          {parcel.qr_code_url ? (
+          {parcel?.qr_code_url ? (
             <Image 
               source={{ uri: parcel.qr_code_url }} 
               style={styles.qrCode}

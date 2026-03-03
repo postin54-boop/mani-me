@@ -137,10 +137,22 @@ export default function ChatScreen({ route, navigation }) {
 
   const renderMessage = ({ item }) => {
     const isMyMessage = item.sender_id === userId;
-    const messageTime = new Date(item.timestamp).toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit' 
-    });
+    // Safe date parsing with fallback
+    let messageTime = '';
+    try {
+      const timestamp = item?.timestamp;
+      if (timestamp) {
+        const date = new Date(timestamp);
+        if (!isNaN(date.getTime())) {
+          messageTime = date.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit' 
+          });
+        }
+      }
+    } catch (e) {
+      messageTime = '';
+    }
 
     return (
       <View style={[ 

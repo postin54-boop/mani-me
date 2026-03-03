@@ -118,7 +118,7 @@ export default function TermsScreen({ navigation }) {
             • Payment must be completed before parcel collection
           </Text>
           <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
-            • Additional customs duties and taxes may apply
+            • All customs duties and taxes are included in your shipping fee
           </Text>
           <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
             • We accept major credit cards, debit cards, and mobile money
@@ -175,10 +175,13 @@ export default function TermsScreen({ navigation }) {
           {/* Section 8 */}
           <Text style={[styles.sectionTitle, { color: colors.text }]}>8. Customs and Duties</Text>
           <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
-            • Recipients are responsible for all customs duties and taxes
+            • All customs duties and taxes are covered by Mani Me and included in your shipping fee
           </Text>
           <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
-            • We provide customs documentation assistance
+            • Recipients will not be required to pay any additional customs charges upon delivery
+          </Text>
+          <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
+            • We handle all customs documentation and clearance on your behalf
           </Text>
           <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
             • Parcels may be inspected by customs authorities

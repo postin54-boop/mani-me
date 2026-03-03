@@ -3,6 +3,10 @@ const router = express.Router();
 const addressController = require('../controllers/addressController');
 const validate = require('../middleware/validate');
 const { address: addressValidation } = require('../validations');
+const { verifyToken } = require('../middleware/auth');
+
+// All address routes require authentication
+router.use(verifyToken);
 
 // Create address
 router.post('/', validate(addressValidation.createAddress), addressController.createAddress);

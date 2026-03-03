@@ -8,7 +8,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../utils/config';
 
 export default function PackagingPaymentScreen({ route, navigation }) {
-  const { orderData } = route?.params || {};
+  const { orderData = {} } = route?.params || {};
   const { user, token } = useUser();
   const [loading, setLoading] = useState(false);
   const [cardComplete, setCardComplete] = useState(false);
@@ -28,7 +28,7 @@ export default function PackagingPaymentScreen({ route, navigation }) {
   }, []);
 
   const calculateTotal = () => {
-    return orderData.total_amount;
+    return orderData?.total_amount || 0;
   };
 
   // Handle success after payment
@@ -205,10 +205,10 @@ export default function PackagingPaymentScreen({ route, navigation }) {
           <View style={[styles.totalDisplay, { backgroundColor: isDark ? colors.surface : '#FFFFFF' }]}>
             <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>Total Amount</Text>
             <Text style={[styles.totalAmount, { color: colors.primary }]}>
-              £{calculateTotal().toFixed(2)}
+              £{(calculateTotal() || 0).toFixed(2)}
             </Text>
             <Text style={[styles.itemCount, { color: colors.textSecondary }]}>
-              {orderData.items.reduce((sum, item) => sum + item.quantity, 0)} items • {orderData.fulfillment_method === 'delivery' ? 'Home Delivery' : 'Warehouse Pickup'}
+              {(orderData?.items || []).reduce((sum, item) => sum + (item?.quantity || 0), 0)} items • {orderData?.fulfillment_method === 'delivery' ? 'Home Delivery' : 'Warehouse Pickup'}
             </Text>
           </View>
         </View>
@@ -220,8 +220,8 @@ export default function PackagingPaymentScreen({ route, navigation }) {
             <Text style={[styles.cardTitle, { color: colors.text }]}>Items Breakdown</Text>
           </View>
           
-          {orderData.items.map((item, index) => (
-            <View key={index} style={[styles.itemRow, index < orderData.items.length - 1 && { 
+          {(orderData?.items || []).map((item, index) => (
+            <View key={index} style={[styles.itemRow, index < (orderData?.items || []).length - 1 && { 
               borderBottomWidth: 1, 
               borderBottomColor: colors.border + '30',
               paddingBottom: 12,
@@ -229,21 +229,21 @@ export default function PackagingPaymentScreen({ route, navigation }) {
             }]}>
               <View style={styles.itemInfo}>
                 <Text style={[styles.itemName, { color: colors.text }]} numberOfLines={1}>
-                  {item.name}
+                  {item?.name || 'Item'}
                 </Text>
                 <Text style={[styles.itemQuantity, { color: colors.textSecondary }]}>
-                  Qty: {item.quantity}
+                  Qty: {item?.quantity || 0}
                 </Text>
               </View>
               <Text style={[styles.itemPrice, { color: colors.text }]}>
-                £{(item.price * item.quantity).toFixed(2)}
+                £{((item?.price || 0) * (item?.quantity || 0)).toFixed(2)}
               </Text>
             </View>
           ))}
         </View>
 
         {/* Delivery/Pickup Details */}
-        {orderData.fulfillment_method === 'delivery' && orderData.delivery_address ? (
+        {orderData?.fulfillment_method === 'delivery' && orderData?.delivery_address ? (
           <View style={[styles.card, { backgroundColor: colors.surface }]}>
             <View style={styles.cardHeader}>
               <Ionicons name="location" size={20} color={colors.textSecondary} />
@@ -251,10 +251,10 @@ export default function PackagingPaymentScreen({ route, navigation }) {
             </View>
             <View style={[styles.addressContainer, { backgroundColor: colors.background }]}>
               <Text style={[styles.addressText, { color: colors.text }]}>
-                {orderData.delivery_address.street}
+                {orderData?.delivery_address?.street || ''}
               </Text>
               <Text style={[styles.addressText, { color: colors.text }]}>
-                {orderData.delivery_address.city}, {orderData.delivery_address.postcode}
+                {orderData?.delivery_address?.city || ''}{orderData?.delivery_address?.postcode ? `, ${orderData.delivery_address.postcode}` : ''}
               </Text>
             </View>
           </View>
@@ -270,7 +270,7 @@ export default function PackagingPaymentScreen({ route, navigation }) {
               borderLeftColor: colors.primary
             }]}>
               <Text style={[styles.addressText, { color: colors.text, fontWeight: '600' }]}>
-                {orderData.warehouse_address || 'London Warehouse, E1 6AN'}
+                {orderData?.warehouse_address || 'London Warehouse, E1 6AN'}
               </Text>
               <Text style={[styles.pickupNote, { color: colors.textSecondary }]}>
                 📅 Pickup available Mon-Fri, 9am-5pm

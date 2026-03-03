@@ -53,12 +53,35 @@ export default function EditProfileScreen({ navigation, route }) {
     }
   };
 
+  const deleteProfileImage = () => {
+    Alert.alert(
+      'Delete Photo',
+      'Are you sure you want to remove your profile picture?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: () => setProfileImage(null)
+        },
+      ]
+    );
+  };
+
   const showImageOptions = () => {
-    Alert.alert('Profile Picture', 'Choose an option', [
+    const options = [
       { text: 'Take Photo', onPress: takeProfilePhoto },
       { text: 'Choose from Gallery', onPress: pickProfileImage },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    ];
+    
+    // Add delete option if there's an existing image
+    if (profileImage) {
+      options.push({ text: 'Delete Photo', onPress: deleteProfileImage, style: 'destructive' });
+    }
+    
+    options.push({ text: 'Cancel', style: 'cancel' });
+    
+    Alert.alert('Profile Picture', 'Choose an option', options);
   };
 
   const getInitials = (name) => {

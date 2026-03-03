@@ -210,7 +210,7 @@ const PackagingShopScreen = ({ navigation }) => {
               <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
               <Text style={styles.itemDescription} numberOfLines={2}>{item.description}</Text>
               <View style={styles.priceRow}>
-                <Text style={styles.itemPrice}>£{item.price.toFixed(2)}</Text>
+                <Text style={styles.itemPrice}>£{(item?.price || 0).toFixed(2)}</Text>
                 {item.stock > 0 ? (
                   <Text style={styles.stockText}>{item.stock} in stock</Text>
                 ) : (

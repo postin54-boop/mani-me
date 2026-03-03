@@ -130,7 +130,11 @@ const RegisterScreen = ({ navigation }) => {
       
       if (res.data.token && res.data.user) {
         await login(res.data.user, res.data.token);
-        navigation.replace('Home');
+        // Navigate to email verification screen
+        navigation.replace('EmailVerification', {
+          email: email.trim().toLowerCase(),
+          token: res.data.token,
+        });
       } else {
         Alert.alert('Success', res.data.message || 'Registration successful!');
         navigation.replace('Login');

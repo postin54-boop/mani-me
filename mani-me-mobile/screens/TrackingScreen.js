@@ -8,14 +8,12 @@ import {
 	RefreshControl,
 	TouchableOpacity,
 	StatusBar,
-	Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '../constants/theme';
 import { API_BASE_URL } from '../utils/config';
 import { useUser } from '../context/UserContext';
-import AddToWalletButton from '../components/AddToWalletButton';
 
 // Tracking steps configuration with icons and labels
 const TRACKING_STEPS = [
@@ -60,19 +58,56 @@ const getStatusColor = (status) => {
 };
 
 export default function TrackingScreen({ route, navigation }) {
-	const { tracking_number: directTrackingNumber, parcel } = route.params || {};
+	const { tracking_number: directTrackingNumber, parcel } = route?.params || {};
 	const tracking_number = directTrackingNumber || parcel?.tracking_number;
 	const { colors, isDark } = useThemeColors();
 	const [shipmentData, setShipmentData] = useState(parcel || null);
 	const [refreshing, setRefreshing] = useState(false);
 	const [error, setError] = useState(null);
 
-	const fetchTracking = async () => {
+	useEffect(() => {
+		let isMounted = true;
+		
+		const fetchTracking = async () => {
+			if (!tracking_number) {
+				if (isMounted) setError('No tracking number provided');
+				return;
+			}
+			if (isMounted) setError(null);
+			try {
+				const response = await fetch(
+					`${API_BASE_URL}/api/shipments/track/${tracking_number}`
+				);
+				const json = await response.json();
+				if (!isMounted) return;
+				if (json?.shipment) {
+					setShipmentData(json.shipment);
+				} else if (json?.error) {
+					setError(json.error);
+				} else {
+					setError('Shipment not found');
+				}
+			} catch (err) {
+				logger.error('Tracking fetch error:', err);
+				if (isMounted) {
+					setError('Failed to load tracking data. Please check your connection.');
+				}
+			}
+		};
+		
+		fetchTracking();
+		
+		return () => {
+			isMounted = false;
+		};
+	}, [tracking_number]);
+
+	const onRefresh = async () => {
+		setRefreshing(true);
 		if (!tracking_number) {
-			setError('No tracking number provided');
+			setRefreshing(false);
 			return;
 		}
-		setError(null);
 		try {
 			const response = await fetch(
 				`${API_BASE_URL}/api/shipments/track/${tracking_number}`
@@ -80,24 +115,10 @@ export default function TrackingScreen({ route, navigation }) {
 			const json = await response.json();
 			if (json?.shipment) {
 				setShipmentData(json.shipment);
-			} else if (json?.error) {
-				setError(json.error);
-			} else {
-				setError('Shipment not found');
 			}
 		} catch (err) {
-			logger.error('Tracking fetch error:', err);
-			setError('Failed to load tracking data. Please check your connection.');
+			logger.error('Tracking refresh error:', err);
 		}
-	};
-
-	useEffect(() => {
-		fetchTracking();
-	}, [tracking_number]);
-
-	const onRefresh = async () => {
-		setRefreshing(true);
-		await fetchTracking();
 		setRefreshing(false);
 	};
 
@@ -338,15 +359,6 @@ export default function TrackingScreen({ route, navigation }) {
 					</View>
 					<Ionicons name="chevron-forward" size={20} color={colors.textLight} />
 				</TouchableOpacity>
-
-				{/* Apple Wallet Button - iOS Only */}
-				{Platform.OS === 'ios' && shipmentData._id && (
-					<View style={{ marginHorizontal: 16, marginTop: 16 }}>
-						<AddToWalletButton 
-							shipment={shipmentData}
-						/>
-					</View>
-				)}
 
 				<View style={{ height: 32 }} />
 			</ScrollView>

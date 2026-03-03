@@ -183,7 +183,7 @@ export default function GroceryShopScreen({ navigation }) {
         
         <View style={styles.priceRow}>
           <Text style={[styles.itemPrice, { color: colors.primary }]}>
-            £{item.price.toFixed(2)}
+            £{(item?.price || 0).toFixed(2)}
           </Text>
           {item.stock > 0 ? (
             <Text style={[styles.stockText, { color: colors.textSecondary }]}>

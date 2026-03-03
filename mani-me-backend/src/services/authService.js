@@ -9,7 +9,8 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { user: User } = require('../models');
 const { validatePassword, validateEmail, sanitizeInput } = require('../utils/validation');
-const { sendPasswordResetEmail } = require('../utils/email');
+const { sendPasswordResetEmail, sendWelcomeEmail, sendVerificationSuccessEmail } = require('../utils/email');
+const logger = require('../utils/logger');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const TOKEN_EXPIRY = '7d';
@@ -30,6 +31,7 @@ const formatUser = (user) => ({
   vehicle_number: user.vehicle_number,
   profileImage: user.profileImage,
   address: user.address,
+  email_verified: user.email_verified || false,
 });
 
 /**
@@ -87,6 +89,10 @@ const register = async ({ fullName, name, email, phone, password, role, driver_t
     throw err;
   }
 
+  // Generate 6-digit verification code
+  const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedVerificationCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
   const user = new User({
     fullName,
@@ -96,11 +102,23 @@ const register = async ({ fullName, name, email, phone, password, role, driver_t
     role: role || 'CUSTOMER',
     driver_type: driver_type || null,
     country: country || null,
+    email_verified: false,
+    verification_token: hashedVerificationCode,
+    verification_token_expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
   });
   await user.save();
 
+  // Send welcome email with verification code (non-blocking)
+  sendWelcomeEmail(email, fullName, verificationCode)
+    .then(() => logger.info('Welcome email sent', { email }))
+    .catch((err) => logger.error('Failed to send welcome email', { email, error: err.message }));
+
   const token = generateToken(user._id);
-  return { user: formatUser(user), token };
+  return { 
+    user: formatUser(user), 
+    token,
+    message: 'Registration successful! Please check your email to verify your account.',
+  };
 };
 
 /**
@@ -297,6 +315,85 @@ const resetPassword = async (email, code, newPassword) => {
   return { message: 'Password reset successfully. You can now log in.' };
 };
 
+/**
+ * Verify email with code
+ */
+const verifyEmail = async ({ email, code }) => {
+  if (!email || !code) {
+    const err = new Error('Email and verification code are required');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+  
+  const user = await User.findOne({
+    email: email.toLowerCase(),
+    verification_token: hashedCode,
+    verification_token_expires: { $gt: new Date() },
+  });
+
+  if (!user) {
+    const err = new Error('Invalid or expired verification code');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Mark email as verified
+  user.email_verified = true;
+  user.verification_token = undefined;
+  user.verification_token_expires = undefined;
+  await user.save();
+
+  // Send verification success email (non-blocking)
+  sendVerificationSuccessEmail(email, user.fullName)
+    .then(() => logger.info('Verification success email sent', { email }))
+    .catch((err) => logger.error('Failed to send verification success email', { email, error: err.message }));
+
+  return { 
+    message: 'Email verified successfully!',
+    user: formatUser(user),
+  };
+};
+
+/**
+ * Resend verification code
+ */
+const resendVerificationCode = async ({ email }) => {
+  if (!email) {
+    const err = new Error('Email is required');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+  
+  if (!user) {
+    const err = new Error('User not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (user.email_verified) {
+    const err = new Error('Email is already verified');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Generate new verification code
+  const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+
+  user.verification_token = hashedCode;
+  user.verification_token_expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  await user.save();
+
+  // Send verification email
+  await sendWelcomeEmail(email, user.fullName, verificationCode);
+
+  return { message: 'Verification code sent to your email' };
+};
+
 module.exports = {
   getCurrentUser,
   register,
@@ -306,6 +403,8 @@ module.exports = {
   refreshToken,
   forgotPassword,
   resetPassword,
+  verifyEmail,
+  resendVerificationCode,
   formatUser,
   generateToken,
 };

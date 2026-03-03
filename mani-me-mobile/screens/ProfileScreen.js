@@ -78,17 +78,39 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  const showImageOptions = () => {
-    console.log('showImageOptions called');
+  const deleteProfileImage = () => {
     Alert.alert(
-      'Profile Picture',
-      'Choose an option',
+      'Delete Photo',
+      'Are you sure you want to remove your profile picture?',
       [
-        { text: 'Take Photo', onPress: takeProfilePhoto },
-        { text: 'Choose from Gallery', onPress: pickProfileImage },
         { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: () => {
+            setProfileImage(null);
+            setIsEditing(true); // Enter edit mode to show Save button
+          }
+        },
       ]
     );
+  };
+
+  const showImageOptions = () => {
+    console.log('showImageOptions called');
+    const options = [
+      { text: 'Take Photo', onPress: takeProfilePhoto },
+      { text: 'Choose from Gallery', onPress: pickProfileImage },
+    ];
+    
+    // Add delete option if there's an existing image
+    if (profileImage) {
+      options.push({ text: 'Delete Photo', onPress: deleteProfileImage, style: 'destructive' });
+    }
+    
+    options.push({ text: 'Cancel', style: 'cancel' });
+    
+    Alert.alert('Profile Picture', 'Choose an option', options);
   };
 
   const handleSave = async () => {
