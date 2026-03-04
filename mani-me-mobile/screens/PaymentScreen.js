@@ -21,26 +21,78 @@ export default function PaymentScreen({ route, navigation }) {
   const [promoLoading, setPromoLoading] = useState(false);
   
   // Get authentication token from context
-  const { token } = useUser();
+  const { token, user, loading: userLoading } = useUser();
+  const isAuthenticated = Boolean(token);
+  const authReady = isAuthenticated && !userLoading;
   
-  // Stripe hooks - these must be called unconditionally
+  // Stripe hooks
   const { confirmPayment, createPaymentMethod } = useStripe();
-  const { isApplePaySupported, presentApplePay, confirmApplePayPayment } = useApplePay();
+  
+  // Apple Pay hook - safely handle when not available (Expo Go)
+  let applePayResult = { isApplePaySupported: false, presentApplePay: null, confirmApplePayPayment: null };
+  try {
+    if (typeof useApplePay === 'function') {
+      applePayResult = useApplePay() || applePayResult;
+    }
+  } catch (e) {
+    logger.warn('Apple Pay hook unavailable:', e.message);
+  }
+  const { isApplePaySupported, presentApplePay, confirmApplePayPayment } = applePayResult;
   const [applePayAvailable, setApplePayAvailable] = useState(false);
   const { colors, isDark } = useThemeColors();
   
-  // Validate bookingData on mount
+  const requiredBookingFields = [
+    'sender_name',
+    'sender_phone',
+    'sender_email',
+    'pickup_address',
+    'pickup_city',
+    'pickup_postcode',
+    'receiver_name',
+    'receiver_phone',
+    'delivery_address',
+    'delivery_city',
+  ];
+
+  const validateBookingData = (data, shouldNavigateBack = false) => {
+    const missing = requiredBookingFields.filter((field) => !data?.[field]);
+    if (missing.length > 0) {
+      Alert.alert(
+        'Booking Details Missing',
+        `Please go back and complete: ${missing.join(', ')}`,
+        shouldNavigateBack ? [{ text: 'OK', onPress: () => navigation.goBack() }] : [{ text: 'OK' }]
+      );
+      return false;
+    }
+    return true;
+  };
+
+  const buildPayload = (overrides = {}) => {
+    const payload = {
+      ...bookingData,
+      user_id: bookingData?.user_id || user?.id,
+      ...overrides,
+    };
+
+    return validateBookingData(payload, true) ? payload : null;
+  };
+
+  // Validate bookingData on mount - only warn, don't auto-navigate
   useEffect(() => {
     if (!route?.params?.bookingData) {
       logger.warn('PaymentScreen: No bookingData provided');
+      return;
     }
+    // Validate but don't auto-navigate on mount to avoid crashes
+    validateBookingData(bookingData, false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route?.params?.bookingData]);
 
   // Check Apple Pay availability on mount (only works in production builds)
   useEffect(() => {
     const checkApplePay = async () => {
       // Only check Apple Pay on iOS in production builds (not Expo Go)
-      if (Platform.OS === 'ios' && !isExpoGo) {
+      if (Platform.OS === 'ios' && !isExpoGo && typeof isApplePaySupported === 'function') {
         try {
           // isApplePaySupported can be a boolean or a function returning a Promise
           const supported = typeof isApplePaySupported === 'function' 
@@ -131,13 +183,29 @@ export default function PaymentScreen({ route, navigation }) {
       return;
     }
 
+    if (!authReady) {
+      Alert.alert('Authentication Required', 'Please log in to use Apple Pay');
+      navigation.navigate('Login');
+      return;
+    }
+
     setLoading(true);
     try {
       const totalAmount = calculateTotal();
-      
-      // Check if user is authenticated
-      if (!token) {
-        Alert.alert('Authentication Required', 'Please log in to use Apple Pay');
+
+      const payload = buildPayload({
+        payment_method: 'apple_pay',
+        payment_status: 'paid',
+        payment_amount: totalAmount,
+        promo_code: appliedPromo?.code || null,
+        promo_discount: appliedPromo
+          ? (appliedPromo.type === 'percentage'
+            ? ((bookingData?.total_estimated_price || 0) * appliedPromo.value / 100)
+            : appliedPromo.value)
+          : 0,
+      });
+
+      if (!payload) {
         setLoading(false);
         return;
       }
@@ -194,23 +262,17 @@ export default function PaymentScreen({ route, navigation }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ...bookingData,
-          payment_method: 'apple_pay',
-          payment_status: 'paid',
-          payment_amount: totalAmount,
-          promo_code: appliedPromo?.code || null,
-          promo_discount: appliedPromo ? (appliedPromo.type === 'percentage' 
-            ? ((bookingData?.total_estimated_price || 0) * appliedPromo.value / 100) 
-            : appliedPromo.value) : 0,
-        }),
+        body: JSON.stringify(payload),
       });
-      
+
+      const rawResponse = await shipmentResponse.text();
+      const data = (() => {
+        try { return JSON.parse(rawResponse); } catch { return { error: rawResponse }; }
+      })();
+
       if (!shipmentResponse.ok) {
-        throw new Error('Failed to create shipment');
+        throw new Error(data?.error || 'Failed to create shipment');
       }
-      
-      const data = await shipmentResponse.json();
       
       navigation.replace('PaymentConfirmation', {
         trackingNumber: data.tracking_number,
@@ -233,8 +295,14 @@ export default function PaymentScreen({ route, navigation }) {
     setLoading(true);
 
     try {
-      const requestBody = {
-        ...bookingData,
+      if (!authReady) {
+        Alert.alert('Authentication Required', 'Please log in to complete your booking');
+        setLoading(false);
+        navigation.navigate('Login');
+        return;
+      }
+
+      const requestBody = buildPayload({
         payment_method: 'card',
         payment_status: 'pending', // Will be charged after driver confirms
         payment_amount: calculateTotal(),
@@ -242,17 +310,14 @@ export default function PaymentScreen({ route, navigation }) {
         promo_discount: appliedPromo ? (appliedPromo.type === 'percentage' 
           ? ((bookingData?.total_estimated_price || 0) * appliedPromo.value / 100) 
           : appliedPromo.value) : 0,
-      };
-      
-      logger.log('📦 Sending card booking request to:', `${API_BASE_URL}/api/shipments/create`);
-      logger.log('📦 Request body:', JSON.stringify(requestBody, null, 2));
-
-      // Check if user is authenticated
-      if (!token) {
-        Alert.alert('Authentication Required', 'Please log in to complete your booking');
+      });
+      if (!requestBody) {
         setLoading(false);
         return;
       }
+      
+      logger.log('📦 Sending card booking request to:', `${API_BASE_URL}/api/shipments/create`);
+      logger.log('📦 Request body:', JSON.stringify(requestBody, null, 2));
 
       const response = await fetch(`${API_BASE_URL}/api/shipments/create`, {
         method: 'POST',
@@ -263,7 +328,10 @@ export default function PaymentScreen({ route, navigation }) {
         body: JSON.stringify(requestBody),
       });
 
-      const data = await response.json();
+      const rawResponse = await response.text();
+      const data = (() => {
+        try { return JSON.parse(rawResponse); } catch { return { error: rawResponse }; }
+      })();
       
       logger.log('📦 Response status:', response.status);
       logger.log('📦 Response data:', JSON.stringify(data, null, 2));
@@ -298,7 +366,7 @@ export default function PaymentScreen({ route, navigation }) {
           amount: calculateTotal(),
         });
       } else {
-        Alert.alert('Error', data.error || 'Booking failed');
+        Alert.alert('Error', data.error || `Booking failed (${response.status})`);
       }
     } catch (error) {
       logger.error('Booking error:', error);
@@ -312,8 +380,14 @@ export default function PaymentScreen({ route, navigation }) {
     setLoading(true);
 
     try {
-      const requestBody = {
-        ...bookingData,
+      if (!authReady) {
+        Alert.alert('Authentication Required', 'Please log in to complete your booking');
+        setLoading(false);
+        navigation.navigate('Login');
+        return;
+      }
+
+      const requestBody = buildPayload({
         payment_method: 'cash',
         payment_status: 'pending',
         payment_amount: calculateTotal(),
@@ -321,7 +395,11 @@ export default function PaymentScreen({ route, navigation }) {
         promo_discount: appliedPromo ? (appliedPromo.type === 'percentage' 
           ? ((bookingData?.total_estimated_price || 0) * appliedPromo.value / 100) 
           : appliedPromo.value) : 0,
-      };
+      });
+      if (!requestBody) {
+        setLoading(false);
+        return;
+      }
       
       // Debug logging
       logger.log('📦 Sending booking request to:', `${API_BASE_URL}/api/shipments/create`);
@@ -343,7 +421,10 @@ export default function PaymentScreen({ route, navigation }) {
         body: JSON.stringify(requestBody),
       });
 
-      const data = await response.json();
+      const rawResponse = await response.text();
+      const data = (() => {
+        try { return JSON.parse(rawResponse); } catch { return { error: rawResponse }; }
+      })();
       
       // Debug logging
       logger.log('📦 Response status:', response.status);
@@ -380,7 +461,7 @@ export default function PaymentScreen({ route, navigation }) {
           amount: calculateTotal(),
         });
       } else {
-        Alert.alert('Error', data.error || 'Booking failed');
+        Alert.alert('Error', data.error || `Booking failed (${response.status})`);
       }
     } catch (error) {
       logger.error('Booking error:', error);
@@ -554,9 +635,9 @@ export default function PaymentScreen({ route, navigation }) {
           </View>
 
           <TouchableOpacity
-            style={[styles.applePayButton, { backgroundColor: '#000' }, loading && styles.buttonDisabled]}
+            style={[styles.applePayButton, { backgroundColor: '#000' }, (loading || !authReady) && styles.buttonDisabled]}
             onPress={handlePayment}
-            disabled={loading}
+            disabled={loading || !authReady}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
@@ -567,6 +648,9 @@ export default function PaymentScreen({ route, navigation }) {
               </View>
             )}
           </TouchableOpacity>
+          {!authReady && (
+            <Text style={[styles.paymentNote, { color: colors.textSecondary }]}>Log in to use Apple Pay</Text>
+          )}
           <Text style={[styles.paymentNote, { color: colors.textSecondary }]}>
             Payment will be processed securely through Apple Pay
           </Text>

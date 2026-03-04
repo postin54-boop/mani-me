@@ -38,6 +38,7 @@ export default function ReceiverDetailsScreen({ route, navigation }) {
       delivery_address: deliveryAddress,
       delivery_city: deliveryCity,
       delivery_region: deliveryRegion,
+      payment_method: paymentMethod,
       user_id: user?.id
     };
 

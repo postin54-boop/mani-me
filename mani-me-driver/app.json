@@ -21,7 +21,8 @@
         "NSCameraUsageDescription": "Allow Mani Me Driver to access your camera for scanning parcels and proof of delivery.",
         "NSLocationWhenInUseUsageDescription": "Allow Mani Me Driver to access your location for navigation and delivery tracking.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow Mani Me Driver to track your location in the background during deliveries.",
-        "NSPhotoLibraryUsageDescription": "Allow Mani Me Driver to save delivery proof photos."
+        "NSPhotoLibraryUsageDescription": "Allow Mani Me Driver to save delivery proof photos.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -34,7 +35,8 @@
         "android.permission.CAMERA",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_BACKGROUND_LOCATION"
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {

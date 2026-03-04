@@ -90,7 +90,8 @@ export async function updatePushToken(userId, pushToken) {
     if (response.ok) {
       logger.log('Push token updated on backend');
     } else {
-      logger.error('Failed to update push token');
+      const bodyText = await response.text();
+      logger.error(`Failed to update push token (${response.status}) ${bodyText}`);
     }
   } catch (error) {
     logger.error('Error updating push token:', error);
