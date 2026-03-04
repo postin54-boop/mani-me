@@ -435,23 +435,12 @@ export default function OrdersScreen({ navigation }) {
   };
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: themeColors.background }]}
-      refreshControl={
-        <RefreshControl 
-          refreshing={refreshing} 
-          onRefresh={onRefresh}
-          tintColor={themeColors.primary}
-          colors={[themeColors.primary]}
-        />
-      }
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar 
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={themeColors.primary}
       />
-      {/* Header with Gradient */}
+      {/* Fixed Header with Gradient */}
       <LinearGradient
         colors={[themeColors.primary, themeColors.primaryLight]}
         style={styles.header}
@@ -460,6 +449,18 @@ export default function OrdersScreen({ navigation }) {
         <Text style={[styles.headerSubtitle, { color: 'rgba(255, 255, 255, 0.8)' }]}>Track all your deliveries</Text>
       </LinearGradient>
 
+      <ScrollView 
+        style={styles.scrollContent}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor={themeColors.primary}
+            colors={[themeColors.primary]}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
       {/* Stats Cards */}
       <View style={styles.statsContainer}>
         <View style={[styles.statCard, { backgroundColor: themeColors.surface }]}>
@@ -839,11 +840,18 @@ export default function OrdersScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    flex: 1,
+  },
   header: {
     paddingTop: 50,
     paddingBottom: 25,
