@@ -69,6 +69,8 @@ export default function PackagingPaymentScreen({ route, navigation }) {
       const paymentResponse = await axios.post(`${API_BASE_URL}/api/payments/create-intent`, {
         amount: calculateTotal(),
         currency: 'gbp',
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       const { clientSecret } = paymentResponse.data;
@@ -127,6 +129,8 @@ export default function PackagingPaymentScreen({ route, navigation }) {
       const paymentResponse = await axios.post(`${API_BASE_URL}/api/payments/create-intent`, {
         amount: calculateTotal(),
         currency: 'gbp',
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       const { clientSecret } = paymentResponse.data;
