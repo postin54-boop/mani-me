@@ -112,6 +112,12 @@ exports.create = async (req, res) => {
 
     function parseDateSafe(val) {
       if (!val) return undefined;
+      // Handle UK date format DD/MM/YYYY
+      if (typeof val === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(val)) {
+        const [day, month, year] = val.split('/').map(Number);
+        const d = new Date(year, month - 1, day);
+        return isNaN(d.getTime()) ? undefined : d;
+      }
       const d = new Date(val);
       return isNaN(d.getTime()) ? undefined : d;
     }
@@ -480,7 +486,15 @@ exports.reschedule = async (req, res) => {
     }
 
     const old_pickup_date = shipment.pickup_date;
-    shipment.pickup_date = new_pickup_date;
+    // Parse UK date format DD/MM/YYYY if provided
+    let parsedDate = new_pickup_date;
+    if (typeof new_pickup_date === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(new_pickup_date)) {
+      const [day, month, year] = new_pickup_date.split('/').map(Number);
+      parsedDate = new Date(year, month - 1, day);
+    } else {
+      parsedDate = new Date(new_pickup_date);
+    }
+    shipment.pickup_date = parsedDate;
     shipment.admin_notes = `${shipment.admin_notes || ''}\nRescheduled from ${old_pickup_date} to ${new_pickup_date}. Reason: ${reason}`;
     await shipment.save();
 
