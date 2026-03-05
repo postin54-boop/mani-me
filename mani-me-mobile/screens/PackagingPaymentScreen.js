@@ -65,9 +65,9 @@ export default function PackagingPaymentScreen({ route, navigation }) {
     setLoading(true);
     
     try {
-      // Create payment intent on backend
+      // Create payment intent on backend (amount in pence)
       const paymentResponse = await axios.post(`${API_BASE_URL}/api/payments/create-intent`, {
-        amount: calculateTotal(),
+        amount: Math.round(calculateTotal() * 100), // Convert pounds to pence
         currency: 'gbp',
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -125,9 +125,9 @@ export default function PackagingPaymentScreen({ route, navigation }) {
     setLoading(true);
 
     try {
-      // Create payment intent on backend
+      // Create payment intent on backend (amount in pence)
       const paymentResponse = await axios.post(`${API_BASE_URL}/api/payments/create-intent`, {
-        amount: calculateTotal(),
+        amount: Math.round(calculateTotal() * 100), // Convert pounds to pence
         currency: 'gbp',
       }, {
         headers: { Authorization: `Bearer ${token}` }
