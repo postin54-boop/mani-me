@@ -137,6 +137,28 @@ const shipmentSchema = new mongoose.Schema({
   // User can hide cancelled/delivered orders from their list
   hidden_by_user: { type: Boolean, default: false },
 
+  // ========================================
+  // SIZE ADJUSTMENT (Driver reports mismatch)
+  // ========================================
+  size_adjustment: {
+    requested: { type: Boolean, default: false },
+    original_size: { type: String }, // What customer booked
+    new_size: { type: String }, // What driver found
+    original_cost: { type: Number }, // Original parcel cost
+    new_cost: { type: Number }, // New parcel cost
+    extra_amount: { type: Number }, // Difference to charge (in pence)
+    status: { 
+      type: String, 
+      enum: ['pending', 'approved', 'rejected', 'expired'],
+      default: 'pending'
+    },
+    payment_intent_id: { type: String }, // New payment intent for extra charge
+    driver_notes: { type: String }, // Driver's explanation
+    requested_at: { type: Date },
+    responded_at: { type: Date },
+    requested_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Driver ID
+  },
+
   // Additional fields as needed
 }, { timestamps: true });
 

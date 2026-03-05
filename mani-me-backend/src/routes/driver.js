@@ -15,4 +15,8 @@ router.post('/clock-in', verifyToken, driverController.clockIn);
 router.post('/clock-out', verifyToken, driverController.clockOut);
 router.get('/shifts/:driver_id', verifyToken, driverController.getShiftHistory);
 
+// Size adjustment - Driver reports parcel size mismatch
+router.post('/pickups/:id/size-adjustment', verifyToken, driverController.reportSizeMismatch);
+router.get('/pickups/:id/size-adjustment', verifyToken, driverController.getSizeAdjustmentStatus);
+
 module.exports = router;

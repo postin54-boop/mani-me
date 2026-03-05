@@ -15,6 +15,11 @@ router.put('/cancel-dropoff/:id', verifyToken, shipmentController.cancelDropoff)
 router.put('/reschedule/:id', verifyToken, shipmentController.reschedule);
 router.delete('/dismiss/:id', verifyToken, shipmentController.dismiss);
 
+// Size adjustment - Customer approve/reject extra charges
+router.get('/:id/size-adjustment', verifyToken, shipmentController.getSizeAdjustment);
+router.post('/:id/size-adjustment/approve', verifyToken, shipmentController.approveSizeAdjustment);
+router.post('/:id/size-adjustment/reject', verifyToken, shipmentController.rejectSizeAdjustment);
+
 // Status updates (driver/admin)
 router.put('/update-status/:id', verifyToken, shipmentController.updateStatus);
 router.put('/:id/status', verifyToken, shipmentController.updateStatusAlias);

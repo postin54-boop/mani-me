@@ -12,11 +12,21 @@ import {
   Image,
   Modal,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '../constants/theme';
-import { fetchDriverAssignmentsPaginated, updatePickupStatus } from '../utils/optimizedApi';
+import { fetchDriverAssignmentsPaginated, updatePickupStatus, reportSizeMismatch } from '../utils/optimizedApi';
 import { useAuth } from '../context/AuthContext';
+
+// Parcel size options with prices
+const PARCEL_SIZES = [
+  { id: 'small_box', label: 'Small Box', price: 45, dimensions: '30×30×30cm', icon: 'cube-outline' },
+  { id: 'medium_box', label: 'Medium Box', price: 75, dimensions: '45×45×45cm', icon: 'cube' },
+  { id: 'large_box', label: 'Large Box', price: 105, dimensions: '60×60×60cm', icon: 'cube' },
+  { id: 'extra_large_box', label: 'Extra-Large Box', price: 140, dimensions: '75×75×75cm', icon: 'cube' },
+  { id: 'barrel', label: 'Barrel / Drum', price: 180, dimensions: '60-200L', icon: 'file-tray-stacked' },
+];
 
 export default function UKPickupsScreen({ navigation }) {
   const { colors, isDark } = useThemeColors();
@@ -29,6 +39,13 @@ export default function UKPickupsScreen({ navigation }) {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  
+  // Size mismatch state
+  const [showSizeModal, setShowSizeModal] = useState(false);
+  const [sizeMismatchPickup, setSizeMismatchPickup] = useState(null);
+  const [selectedNewSize, setSelectedNewSize] = useState(null);
+  const [sizeNotes, setSizeNotes] = useState('');
+  const [submittingSizeMismatch, setSubmittingSizeMismatch] = useState(false);
 
   useEffect(() => {
     fetchPickups(1);
@@ -141,6 +158,69 @@ export default function UKPickupsScreen({ navigation }) {
   const viewQRCode = (pickup) => {
     setSelectedPickup(pickup);
     setShowQRModal(true);
+  };
+
+  // Size mismatch functions
+  const openSizeMismatchModal = (pickup) => {
+    setSizeMismatchPickup(pickup);
+    setSelectedNewSize(null);
+    setSizeNotes('');
+    setShowSizeModal(true);
+  };
+
+  const getOriginalSizePrice = (sizeId) => {
+    const size = PARCEL_SIZES.find(s => s.id === sizeId);
+    return size?.price || 45;
+  };
+
+  const handleReportSizeMismatch = async () => {
+    if (!selectedNewSize) {
+      Alert.alert('Select Size', 'Please select the actual parcel size');
+      return;
+    }
+
+    const originalSize = sizeMismatchPickup?.parcel_size || 'small_box';
+    const originalPrice = getOriginalSizePrice(originalSize);
+    const newPrice = getOriginalSizePrice(selectedNewSize);
+
+    if (newPrice <= originalPrice) {
+      Alert.alert(
+        'Invalid Selection', 
+        'The new size must be larger than the original booking. If the parcel is smaller or same size, proceed with the pickup.'
+      );
+      return;
+    }
+
+    const extraCharge = newPrice - originalPrice;
+
+    Alert.alert(
+      'Confirm Size Adjustment',
+      `This will request an extra £${extraCharge.toFixed(2)} from the customer.\n\nOriginal: ${originalSize.replace('_', ' ')} (£${originalPrice})\nActual: ${selectedNewSize.replace('_', ' ')} (£${newPrice})\n\nThe customer will be notified and must approve before you can complete the pickup.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Submit',
+          onPress: async () => {
+            setSubmittingSizeMismatch(true);
+            try {
+              await reportSizeMismatch(sizeMismatchPickup.id, selectedNewSize, sizeNotes);
+              Alert.alert(
+                'Request Sent',
+                'The customer has been notified. Wait for their approval before completing the pickup.',
+                [{ text: 'OK', onPress: () => {
+                  setShowSizeModal(false);
+                  onRefresh();
+                }}]
+              );
+            } catch (error) {
+              Alert.alert('Error', error.message || 'Failed to submit size adjustment request');
+            } finally {
+              setSubmittingSizeMismatch(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Format date for display
@@ -355,11 +435,63 @@ export default function UKPickupsScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Complete Button */}
+      {/* Size Adjustment Pending Banner */}
+      {pickup.size_adjustment?.requested && pickup.size_adjustment?.status === 'pending' && (
+        <View style={[styles.sizePendingBanner, { backgroundColor: '#FFA50020', borderColor: '#FFA500' }]}>
+          <Ionicons name="time-outline" size={20} color="#FFA500" />
+          <View style={{ flex: 1, marginLeft: 8 }}>
+            <Text style={{ color: '#FFA500', fontWeight: '600' }}>Size Adjustment Pending</Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+              Waiting for customer to approve £{((pickup.size_adjustment.extra_amount || 0) / 100).toFixed(2)} extra
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Size Adjustment Approved Banner */}
+      {pickup.size_adjustment?.requested && pickup.size_adjustment?.status === 'approved' && (
+        <View style={[styles.sizePendingBanner, { backgroundColor: '#10B98120', borderColor: '#10B981' }]}>
+          <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+          <View style={{ flex: 1, marginLeft: 8 }}>
+            <Text style={{ color: '#10B981', fontWeight: '600' }}>Size Adjustment Approved</Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+              Customer approved. You can now complete the pickup.
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Report Size Issue Button - Only show if no pending adjustment */}
+      {(pickup.status === 'pickup_scheduled' || pickup.status === 'pending' || pickup.status === 'booked') && 
+       !pickup.size_adjustment?.requested && (
+        <TouchableOpacity
+          style={[styles.sizeIssueBtn, { borderColor: '#FFA500' }]}
+          onPress={() => openSizeMismatchModal(pickup)}
+        >
+          <Ionicons name="resize-outline" size={18} color="#FFA500" />
+          <Text style={{ color: '#FFA500', fontWeight: '600', marginLeft: 8 }}>Report Size Issue</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Complete Button - Disabled if size adjustment pending */}
       {(pickup.status === 'pickup_scheduled' || pickup.status === 'pending' || pickup.status === 'booked') && (
         <TouchableOpacity
-          style={[styles.completeBtn, { backgroundColor: colors.success }]}
-          onPress={() => markAsCompleted(pickup)}
+          style={[
+            styles.completeBtn, 
+            { 
+              backgroundColor: pickup.size_adjustment?.status === 'pending' 
+                ? colors.textSecondary 
+                : colors.success,
+              opacity: pickup.size_adjustment?.status === 'pending' ? 0.5 : 1
+            }
+          ]}
+          onPress={() => {
+            if (pickup.size_adjustment?.status === 'pending') {
+              Alert.alert('Waiting for Customer', 'Customer must approve the size adjustment before pickup can be completed.');
+            } else {
+              markAsCompleted(pickup);
+            }
+          }}
         >
           <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
           <Text style={styles.completeBtnText}>Mark as Picked Up</Text>
@@ -470,6 +602,102 @@ export default function UKPickupsScreen({ navigation }) {
             </View>
           </View>
         </Modal>
+
+      {/* Size Mismatch Modal */}
+      <Modal
+        visible={showSizeModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowSizeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.sizeModal, { backgroundColor: colors.surface }]}>
+            <View style={styles.sizeModalHeader}>
+              <Text style={[styles.sizeModalTitle, { color: colors.text }]}>Report Size Mismatch</Text>
+              <TouchableOpacity onPress={() => setShowSizeModal(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Original Size Info */}
+            <View style={[styles.originalSizeBox, { backgroundColor: colors.background }]}>
+              <Text style={{ color: colors.textSecondary, fontSize: 12 }}>CUSTOMER BOOKED</Text>
+              <Text style={{ color: colors.text, fontSize: 16, fontWeight: '600', marginTop: 4 }}>
+                {(sizeMismatchPickup?.parcel_size || 'small_box').replace('_', ' ')} - £{getOriginalSizePrice(sizeMismatchPickup?.parcel_size || 'small_box')}
+              </Text>
+            </View>
+
+            <Text style={{ color: colors.text, fontWeight: '600', marginTop: 16, marginBottom: 8 }}>
+              Select Actual Size:
+            </Text>
+
+            {/* Size Options */}
+            {PARCEL_SIZES.filter(size => {
+              const originalPrice = getOriginalSizePrice(sizeMismatchPickup?.parcel_size || 'small_box');
+              return size.price > originalPrice;
+            }).map(size => (
+              <TouchableOpacity
+                key={size.id}
+                style={[
+                  styles.sizeOption,
+                  { 
+                    borderColor: selectedNewSize === size.id ? colors.primary : colors.border,
+                    backgroundColor: selectedNewSize === size.id ? colors.primary + '10' : colors.background
+                  }
+                ]}
+                onPress={() => setSelectedNewSize(size.id)}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                  <Ionicons name={size.icon} size={24} color={selectedNewSize === size.id ? colors.primary : colors.textSecondary} />
+                  <View style={{ marginLeft: 12 }}>
+                    <Text style={{ color: colors.text, fontWeight: '600' }}>{size.label}</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{size.dimensions}</Text>
+                  </View>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ color: colors.primary, fontWeight: '700' }}>£{size.price}</Text>
+                  <Text style={{ color: '#10B981', fontSize: 12 }}>
+                    +£{(size.price - getOriginalSizePrice(sizeMismatchPickup?.parcel_size || 'small_box')).toFixed(2)}
+                  </Text>
+                </View>
+                {selectedNewSize === size.id && (
+                  <Ionicons name="checkmark-circle" size={24} color={colors.primary} style={{ marginLeft: 8 }} />
+                )}
+              </TouchableOpacity>
+            ))}
+
+            {/* Notes Input */}
+            <Text style={{ color: colors.text, fontWeight: '600', marginTop: 16, marginBottom: 8 }}>
+              Notes (optional):
+            </Text>
+            <TextInput
+              style={[styles.notesInput, { borderColor: colors.border, color: colors.text }]}
+              placeholder="Add any notes for the customer..."
+              placeholderTextColor={colors.textSecondary}
+              value={sizeNotes}
+              onChangeText={setSizeNotes}
+              multiline
+              numberOfLines={2}
+            />
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              style={[styles.submitSizeBtn, { backgroundColor: '#FFA500', opacity: submittingSizeMismatch ? 0.6 : 1 }]}
+              onPress={handleReportSizeMismatch}
+              disabled={submittingSizeMismatch}
+            >
+              {submittingSizeMismatch ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <>
+                  <Ionicons name="send" size={20} color="#FFF" />
+                  <Text style={{ color: '#FFF', fontWeight: '700', marginLeft: 8 }}>Send Adjustment Request</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -687,5 +915,67 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  // Size mismatch styles
+  sizePendingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 12,
+  },
+  sizeIssueBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    marginTop: 12,
+  },
+  sizeModal: {
+    width: '90%',
+    maxHeight: '85%',
+    borderRadius: 16,
+    padding: 20,
+  },
+  sizeModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sizeModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  originalSizeBox: {
+    padding: 12,
+    borderRadius: 8,
+  },
+  sizeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 2,
+    marginBottom: 10,
+  },
+  notesInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  submitSizeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 10,
+    marginTop: 16,
   },
 });

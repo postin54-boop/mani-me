@@ -169,6 +169,35 @@ export const updateDeliveryStatus = async (deliveryId, status, proofData = null)
   }
 };
 
+// Report size mismatch - driver found parcel is different size
+export const reportSizeMismatch = async (pickupId, newSize, driverNotes = '') => {
+  try {
+    const response = await apiClient.post(`/drivers/pickups/${pickupId}/size-adjustment`, {
+      new_size: newSize,
+      driver_notes: driverNotes,
+    });
+    
+    // Clear relevant caches
+    clearCacheByPattern('assignments');
+    
+    return response.data;
+  } catch (error) {
+    logger.error('Error reporting size mismatch:', error);
+    throw error;
+  }
+};
+
+// Get size adjustment status
+export const getSizeAdjustmentStatus = async (pickupId) => {
+  try {
+    const response = await apiClient.get(`/drivers/pickups/${pickupId}/size-adjustment`);
+    return response.data;
+  } catch (error) {
+    logger.error('Error getting size adjustment status:', error);
+    throw error;
+  }
+};
+
 // Clear cache by pattern
 export const clearCacheByPattern = (pattern) => {
   const keysToDelete = [];

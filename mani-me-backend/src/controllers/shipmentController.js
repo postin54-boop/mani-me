@@ -648,3 +648,231 @@ exports.updateWarehouseStatus = async (req, res) => {
     res.status(500).json({ error: 'Server error', details: error.message });
   }
 };
+
+// ========================================
+// SIZE ADJUSTMENT - CUSTOMER ACTIONS
+// ========================================
+
+/**
+ * GET /shipments/:id/size-adjustment - Get size adjustment details for customer
+ */
+exports.getSizeAdjustment = async (req, res) => {
+  try {
+    const shipment = await Shipment.findById(req.params.id);
+    if (!shipment) return res.status(404).json({ error: 'Shipment not found' });
+
+    // Verify ownership
+    const userId = String(req.user?.user_id || req.user?.id || req.user?._id);
+    if (String(shipment.userId) !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!shipment.size_adjustment?.requested) {
+      return res.json({ 
+        has_adjustment: false,
+        message: 'No size adjustment for this shipment'
+      });
+    }
+
+    res.json({
+      has_adjustment: true,
+      tracking_number: shipment.tracking_number,
+      adjustment: {
+        original_size: shipment.size_adjustment.original_size,
+        new_size: shipment.size_adjustment.new_size,
+        original_cost: shipment.size_adjustment.original_cost,
+        new_cost: shipment.size_adjustment.new_cost,
+        extra_amount: shipment.size_adjustment.extra_amount,
+        status: shipment.size_adjustment.status,
+        driver_notes: shipment.size_adjustment.driver_notes,
+        requested_at: shipment.size_adjustment.requested_at
+      }
+    });
+  } catch (error) {
+    logger.error('Error getting size adjustment', { error: error.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+/**
+ * POST /shipments/:id/size-adjustment/approve - Customer approves extra charge
+ * Creates a new payment intent for the extra amount
+ */
+exports.approveSizeAdjustment = async (req, res) => {
+  try {
+    const shipment = await Shipment.findById(req.params.id);
+    if (!shipment) return res.status(404).json({ error: 'Shipment not found' });
+
+    // Verify ownership
+    const userId = String(req.user?.user_id || req.user?.id || req.user?._id);
+    if (String(shipment.userId) !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!shipment.size_adjustment?.requested) {
+      return res.status(400).json({ error: 'No size adjustment to approve' });
+    }
+
+    if (shipment.size_adjustment.status !== 'pending') {
+      return res.status(400).json({ 
+        error: 'Size adjustment already processed',
+        status: shipment.size_adjustment.status
+      });
+    }
+
+    const extraAmount = shipment.size_adjustment.extra_amount;
+
+    // Create payment intent for extra charge
+    if (stripe && shipment.payment_method !== 'cash') {
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: extraAmount,
+        currency: 'gbp',
+        capture_method: 'manual', // Pre-authorize, capture on pickup
+        automatic_payment_methods: { enabled: true },
+        metadata: { 
+          shipmentId: req.params.id,
+          type: 'size_adjustment',
+          original_size: shipment.size_adjustment.original_size,
+          new_size: shipment.size_adjustment.new_size
+        },
+      });
+
+      shipment.size_adjustment.payment_intent_id = paymentIntent.id;
+      shipment.size_adjustment.status = 'approved';
+      shipment.size_adjustment.responded_at = new Date();
+
+      // Update parcel size and cost
+      shipment.parcel_size = shipment.size_adjustment.new_size;
+      shipment.total_cost = (shipment.total_cost || 0) + (extraAmount / 100);
+
+      await shipment.save();
+
+      logger.info('Size adjustment approved', { 
+        shipmentId: req.params.id, 
+        extraAmount: extraAmount / 100,
+        newPaymentIntentId: paymentIntent.id
+      });
+
+      // Notify driver that customer approved
+      try {
+        const driver = await User.findById(shipment.pickup_driver_id);
+        if (driver?.push_token) {
+          const { sendPushNotification } = require('../services/notificationService');
+          await sendPushNotification(
+            driver.push_token,
+            '✅ Size Adjustment Approved',
+            `Customer approved the ${shipment.size_adjustment.new_size.replace('_', ' ')} size adjustment for ${shipment.tracking_number}. You can now proceed with pickup.`,
+            { type: 'size_adjustment_approved', shipmentId: req.params.id }
+          );
+        }
+      } catch (notifError) {
+        logger.error('Failed to notify driver of approval', { error: notifError.message });
+      }
+
+      res.json({
+        success: true,
+        message: 'Size adjustment approved',
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+        extra_charge: `£${(extraAmount / 100).toFixed(2)}`,
+        new_size: shipment.size_adjustment.new_size,
+        new_total: `£${shipment.total_cost.toFixed(2)}`
+      });
+    } else {
+      // Cash payment - just mark approved, collect extra on pickup
+      shipment.size_adjustment.status = 'approved';
+      shipment.size_adjustment.responded_at = new Date();
+      shipment.parcel_size = shipment.size_adjustment.new_size;
+      shipment.total_cost = (shipment.total_cost || 0) + (extraAmount / 100);
+      
+      await shipment.save();
+
+      res.json({
+        success: true,
+        message: 'Size adjustment approved - extra cash will be collected on pickup',
+        extra_charge: `£${(extraAmount / 100).toFixed(2)}`,
+        new_size: shipment.size_adjustment.new_size,
+        payment_method: 'cash'
+      });
+    }
+  } catch (error) {
+    logger.error('Error approving size adjustment', { error: error.message, shipmentId: req.params.id });
+    res.status(500).json({ error: 'Server error', details: error.message });
+  }
+};
+
+/**
+ * POST /shipments/:id/size-adjustment/reject - Customer rejects extra charge
+ * Booking is cancelled, original hold is released
+ */
+exports.rejectSizeAdjustment = async (req, res) => {
+  try {
+    const { reason } = req.body;
+
+    const shipment = await Shipment.findById(req.params.id);
+    if (!shipment) return res.status(404).json({ error: 'Shipment not found' });
+
+    // Verify ownership
+    const userId = String(req.user?.user_id || req.user?.id || req.user?._id);
+    if (String(shipment.userId) !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!shipment.size_adjustment?.requested) {
+      return res.status(400).json({ error: 'No size adjustment to reject' });
+    }
+
+    if (shipment.size_adjustment.status !== 'pending') {
+      return res.status(400).json({ 
+        error: 'Size adjustment already processed',
+        status: shipment.size_adjustment.status
+      });
+    }
+
+    // Release original payment hold
+    if (stripe && shipment.payment_intent_id && shipment.payment_status !== 'paid') {
+      try {
+        await stripe.paymentIntents.cancel(shipment.payment_intent_id);
+        shipment.payment_status = 'cancelled';
+        logger.info('Released payment hold due to size adjustment rejection', { shipmentId: req.params.id });
+      } catch (stripeError) {
+        logger.error('Failed to release payment hold', { error: stripeError.message });
+      }
+    }
+
+    shipment.size_adjustment.status = 'rejected';
+    shipment.size_adjustment.responded_at = new Date();
+    shipment.status = 'cancelled';
+    shipment.cancelled_at = new Date();
+    shipment.admin_notes = `${shipment.admin_notes || ''}\nCancelled: Customer rejected size adjustment. Reason: ${reason || 'Not provided'}`;
+
+    await shipment.save();
+
+    // Notify driver
+    try {
+      const driver = await User.findById(shipment.pickup_driver_id);
+      if (driver?.push_token) {
+        const { sendPushNotification } = require('../services/notificationService');
+        await sendPushNotification(
+          driver.push_token,
+          '❌ Size Adjustment Rejected',
+          `Customer rejected the size adjustment for ${shipment.tracking_number}. Booking has been cancelled.`,
+          { type: 'size_adjustment_rejected', shipmentId: req.params.id }
+        );
+      }
+    } catch (notifError) {
+      logger.error('Failed to notify driver of rejection', { error: notifError.message });
+    }
+
+    logger.info('Size adjustment rejected', { shipmentId: req.params.id, reason });
+
+    res.json({
+      success: true,
+      message: 'Size adjustment rejected - booking cancelled',
+      reason: reason || 'Customer declined extra charge'
+    });
+  } catch (error) {
+    logger.error('Error rejecting size adjustment', { error: error.message, shipmentId: req.params.id });
+    res.status(500).json({ error: 'Server error', details: error.message });
+  }
+};

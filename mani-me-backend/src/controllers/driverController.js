@@ -288,3 +288,161 @@ exports.getShiftHistory = async (req, res) => {
 		res.status(500).json({ error: 'Server error' });
 	}
 };
+
+// ========================================
+// PARCEL SIZE PRICING (in pence)
+// ========================================
+const PARCEL_SIZE_PRICES = {
+	small_box: 4500,      // £45
+	medium_box: 7500,     // £75
+	large_box: 10500,     // £105
+	extra_large_box: 14000, // £140
+	barrel: 18000,        // £180
+};
+
+/**
+ * POST /drivers/pickups/:id/size-adjustment - Report size mismatch
+ * Driver found parcel is different size than booked
+ */
+exports.reportSizeMismatch = async (req, res) => {
+	try {
+		const { id } = req.params;
+		const { new_size, driver_notes } = req.body;
+		const driverId = req.user?.user_id || req.user?.id || req.user?._id;
+
+		if (!new_size) {
+			return res.status(400).json({ error: 'new_size is required' });
+		}
+
+		if (!PARCEL_SIZE_PRICES[new_size]) {
+			return res.status(400).json({ 
+				error: 'Invalid parcel size', 
+				valid_sizes: Object.keys(PARCEL_SIZE_PRICES) 
+			});
+		}
+
+		const shipment = await Shipment.findById(id).populate('userId', 'push_token name email');
+		if (!shipment) {
+			return res.status(404).json({ error: 'Shipment not found' });
+		}
+
+		// Check if already has pending adjustment
+		if (shipment.size_adjustment?.requested && shipment.size_adjustment?.status === 'pending') {
+			return res.status(400).json({ error: 'Size adjustment already pending for this shipment' });
+		}
+
+		const originalSize = shipment.parcel_size || 'small_box';
+		const originalCost = PARCEL_SIZE_PRICES[originalSize] || 4500;
+		const newCost = PARCEL_SIZE_PRICES[new_size];
+		const extraAmount = newCost - originalCost;
+
+		if (extraAmount <= 0) {
+			return res.status(400).json({ 
+				error: 'New size must be larger than original size',
+				original_size: originalSize,
+				original_cost: originalCost / 100,
+				new_size: new_size,
+				new_cost: newCost / 100
+			});
+		}
+
+		// Update shipment with size adjustment request
+		shipment.size_adjustment = {
+			requested: true,
+			original_size: originalSize,
+			new_size: new_size,
+			original_cost: originalCost,
+			new_cost: newCost,
+			extra_amount: extraAmount,
+			status: 'pending',
+			driver_notes: driver_notes || '',
+			requested_at: new Date(),
+			requested_by: driverId,
+		};
+
+		await shipment.save();
+
+		// Send push notification to customer
+		if (shipment.userId?.push_token) {
+			try {
+				const { sendPushNotification } = require('../services/notificationService');
+				await sendPushNotification(
+					shipment.userId.push_token,
+					'📦 Parcel Size Adjustment Required',
+					`Your parcel ${shipment.tracking_number} is actually a ${new_size.replace('_', ' ')}. Please approve the extra £${(extraAmount / 100).toFixed(2)} charge to proceed.`,
+					{ 
+						type: 'size_adjustment',
+						shipmentId: id,
+						extraAmount: extraAmount,
+						newSize: new_size,
+						originalSize: originalSize
+					}
+				);
+			} catch (notifError) {
+				logger.error('Failed to send size adjustment notification', { error: notifError.message });
+			}
+		}
+
+		logger.info('Size mismatch reported', { 
+			shipmentId: id, 
+			originalSize, 
+			newSize: new_size, 
+			extraAmount: extraAmount / 100,
+			driverId 
+		});
+
+		res.json({
+			success: true,
+			message: 'Size adjustment request sent to customer',
+			adjustment: {
+				original_size: originalSize,
+				new_size: new_size,
+				original_cost: `£${(originalCost / 100).toFixed(2)}`,
+				new_cost: `£${(newCost / 100).toFixed(2)}`,
+				extra_charge: `£${(extraAmount / 100).toFixed(2)}`,
+				status: 'pending'
+			}
+		});
+	} catch (error) {
+		logger.error('Error reporting size mismatch', { error: error.message, shipmentId: req.params.id });
+		res.status(500).json({ error: 'Server error', details: error.message });
+	}
+};
+
+/**
+ * GET /drivers/pickups/:id/size-adjustment - Check size adjustment status
+ */
+exports.getSizeAdjustmentStatus = async (req, res) => {
+	try {
+		const { id } = req.params;
+		
+		const shipment = await Shipment.findById(id).select('size_adjustment tracking_number parcel_size');
+		if (!shipment) {
+			return res.status(404).json({ error: 'Shipment not found' });
+		}
+
+		if (!shipment.size_adjustment?.requested) {
+			return res.json({ 
+				has_adjustment: false,
+				message: 'No size adjustment requested for this shipment'
+			});
+		}
+
+		res.json({
+			has_adjustment: true,
+			tracking_number: shipment.tracking_number,
+			adjustment: {
+				original_size: shipment.size_adjustment.original_size,
+				new_size: shipment.size_adjustment.new_size,
+				extra_amount: `£${(shipment.size_adjustment.extra_amount / 100).toFixed(2)}`,
+				status: shipment.size_adjustment.status,
+				requested_at: shipment.size_adjustment.requested_at,
+				responded_at: shipment.size_adjustment.responded_at,
+				driver_notes: shipment.size_adjustment.driver_notes
+			}
+		});
+	} catch (error) {
+		logger.error('Error getting size adjustment status', { error: error.message });
+		res.status(500).json({ error: 'Server error' });
+	}
+};

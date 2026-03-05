@@ -1,6 +1,6 @@
 // © 2025-2026 ManiMe Ltd. All rights reserved.
 import React, { useEffect, useRef, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as Notifications from 'expo-notifications';
@@ -21,6 +21,9 @@ import { initSentry, setUserContext } from './utils/sentry';
 
 // Initialize Sentry as early as possible
 initSentry();
+
+// Navigation ref for accessing navigation from outside components
+export const navigationRef = createNavigationContainerRef();
 
 // Keep splash screen visible while we load
 SplashScreen.preventAutoHideAsync();
@@ -85,6 +88,7 @@ import TermsScreen from './screens/TermsScreen';
 import PrivacyScreen from './screens/PrivacyScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import ShopOrdersScreen from './screens/ShopOrdersScreen';
+import SizeAdjustmentScreen from './screens/SizeAdjustmentScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const Stack = createNativeStackNavigator();
@@ -205,7 +209,20 @@ function AppNavigator() {
       // Listen for user tapping on notification
       responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
         logger.log('Notification tapped:', response);
-        // You can navigate to tracking screen here if needed
+        const data = response.notification.request.content.data;
+        
+        // Handle different notification types
+        if (data?.type === 'size_adjustment' && data?.shipmentId) {
+          // Navigate to size adjustment screen
+          if (navigationRef.isReady()) {
+            navigationRef.navigate('SizeAdjustment', { shipmentId: data.shipmentId });
+          }
+        } else if (data?.shipmentId || data?.tracking_number) {
+          // Navigate to tracking screen for general shipment notifications
+          if (navigationRef.isReady()) {
+            navigationRef.navigate('TrackingSearch');
+          }
+        }
       });
 
       return () => {
@@ -225,7 +242,7 @@ function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Landing" component={LandingScreen} />
@@ -259,6 +276,7 @@ function AppNavigator() {
         <Stack.Screen name="Terms" component={TermsScreen} />
         <Stack.Screen name="Privacy" component={PrivacyScreen} />
         <Stack.Screen name="ShopOrders" component={ShopOrdersScreen} />
+        <Stack.Screen name="SizeAdjustment" component={SizeAdjustmentScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
