@@ -84,6 +84,7 @@ import HelpSupportScreen from './screens/HelpSupportScreen';
 import TermsScreen from './screens/TermsScreen';
 import PrivacyScreen from './screens/PrivacyScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
+import ShopOrdersScreen from './screens/ShopOrdersScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const Stack = createNativeStackNavigator();
@@ -257,6 +258,7 @@ function AppNavigator() {
         <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
         <Stack.Screen name="Terms" component={TermsScreen} />
         <Stack.Screen name="Privacy" component={PrivacyScreen} />
+        <Stack.Screen name="ShopOrders" component={ShopOrdersScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

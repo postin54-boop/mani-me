@@ -54,6 +54,13 @@ export default function MoreScreen({ navigation }) {
           onPress: () => navigation.navigate('GroceryShop'),
           color: '#10B981',
         },
+        {
+          icon: 'receipt-outline',
+          label: 'Shop Orders',
+          subtitle: 'View your shop purchases',
+          onPress: () => navigation.navigate('ShopOrders'),
+          color: '#8B5CF6',
+        },
       ],
     },
     {
