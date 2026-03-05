@@ -17,25 +17,40 @@ export default function ShopOrdersScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchOrders = useCallback(async () => {
-    if (!user?.id || !token) return;
+    if (!user?.id || !token) {
+      logger.log('ShopOrders: No user or token', { userId: user?.id, hasToken: !!token });
+      setLoading(false);
+      return;
+    }
     
     try {
+      logger.log('Fetching packaging orders for user:', user.id);
       // Fetch packaging orders
       const packagingRes = await fetch(`${API_BASE_URL}/api/shop/orders/user/${user.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      logger.log('Packaging orders response:', packagingRes.status);
       if (packagingRes.ok) {
         const data = await packagingRes.json();
+        logger.log('Packaging orders count:', data.length);
         setPackagingOrders(data);
+      } else {
+        const errText = await packagingRes.text();
+        logger.error('Packaging orders error:', packagingRes.status, errText);
       }
 
       // Fetch grocery orders
       const groceryRes = await fetch(`${API_BASE_URL}/api/grocery/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      logger.log('Grocery orders response:', groceryRes.status);
       if (groceryRes.ok) {
         const data = await groceryRes.json();
+        logger.log('Grocery orders count:', data.length);
         setGroceryOrders(data);
+      } else {
+        const errText = await groceryRes.text();
+        logger.error('Grocery orders error:', groceryRes.status, errText);
       }
     } catch (error) {
       logger.error('Error fetching shop orders:', error);
