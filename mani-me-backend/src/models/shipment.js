@@ -55,15 +55,17 @@ const shipmentSchema = new mongoose.Schema({
   // Payment & Pricing
   payment_method: {
     type: String,
-    enum: ['card', 'cash'],
+    enum: ['card', 'cash', 'apple_pay'],
     default: 'card'
   },
   payment_status: {
     type: String,
-    enum: ['pending', 'paid', 'refunded'],
+    enum: ['pending', 'authorized', 'paid', 'refunded', 'cancelled'],
     default: 'pending'
   },
   payment_intent_id: { type: String }, // Stripe payment intent ID
+  payment_notes: { type: String }, // Notes for payment issues
+  paid_at: { type: Date }, // When payment was captured
   total_cost: { type: Number, default: 0.00 },
 
   // Tracking & Status

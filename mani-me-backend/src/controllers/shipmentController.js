@@ -18,6 +18,9 @@ const {
   getNextSequenceNumber
 } = require('../utils/parcelIdGenerator');
 
+// Stripe for payment cancellation
+const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
+
 /**
  * GET /shipments/recent/:userId - Recent shipments for a user
  */
@@ -414,6 +417,29 @@ exports.cancel = async (req, res) => {
     }
 
     shipment.status = 'cancelled';
+    
+    // RELEASE PAYMENT HOLD: If there's a pre-authorized payment, cancel it to release funds
+    if (shipment.payment_intent_id && shipment.payment_status !== 'paid') {
+      try {
+        if (stripe) {
+          logger.info('Releasing payment hold for cancelled shipment', { 
+            shipmentId: req.params.id, 
+            paymentIntentId: shipment.payment_intent_id 
+          });
+          await stripe.paymentIntents.cancel(shipment.payment_intent_id);
+          shipment.payment_status = 'cancelled';
+          logger.info('Payment hold released', { shipmentId: req.params.id });
+        }
+      } catch (paymentError) {
+        // Log but don't block cancellation
+        logger.error('Failed to release payment hold', { 
+          error: paymentError.message, 
+          shipmentId: req.params.id 
+        });
+        shipment.payment_notes = `Failed to release payment hold: ${paymentError.message}`;
+      }
+    }
+    
     await shipment.save();
 
     const { sendPickupCancellationNotifications } = require('../services/notificationService');

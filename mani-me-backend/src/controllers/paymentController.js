@@ -56,15 +56,21 @@ exports.validatePromo = async (req, res) => {
   }
 };
 
+/**
+ * Create a payment intent with manual capture (pre-authorization)
+ * This holds the funds but doesn't charge until capture is called
+ */
 exports.createIntent = async (req, res) => {
   try {
     const { amount, currency = 'gbp', shipmentId } = req.body;
     if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
 
     // Amount is already in smallest currency unit (pence) from mobile app
+    // Use capture_method: 'manual' for pre-authorization (hold, don't charge yet)
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount), // Already in pence, just ensure it's an integer
       currency,
+      capture_method: 'manual', // PRE-AUTHORIZATION: Hold funds, capture later on pickup
       automatic_payment_methods: { enabled: true },
       metadata: { shipmentId: shipmentId || '' }, // Store shipment ID for webhook
     });
@@ -72,10 +78,14 @@ exports.createIntent = async (req, res) => {
     // If shipment ID provided, store the payment intent ID on the shipment
     if (shipmentId) {
       const Shipment = require('../models/shipment');
-      await Shipment.findByIdAndUpdate(shipmentId, { payment_intent_id: paymentIntent.id });
+      await Shipment.findByIdAndUpdate(shipmentId, { 
+        payment_intent_id: paymentIntent.id,
+        payment_status: 'authorized' // Mark as authorized (held), not paid yet
+      });
     }
 
-    res.json({ clientSecret: paymentIntent.client_secret });
+    logger.info('Payment intent created (pre-auth)', { paymentIntentId: paymentIntent.id, amount, shipmentId });
+    res.json({ clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id });
   } catch (error) {
     logger.error('Payment intent error', { error: error.message });
     res.status(500).json({ error: error.message });
@@ -148,4 +158,173 @@ exports.handleWebhook = async (req, res) => {
   }
 
   res.json({ received: true });
+};
+
+/**
+ * Capture a pre-authorized payment (called when driver confirms pickup)
+ * This actually charges the customer's card
+ */
+exports.capturePayment = async (req, res) => {
+  try {
+    const { shipmentId } = req.body;
+    
+    if (!shipmentId) {
+      return res.status(400).json({ error: 'shipmentId is required' });
+    }
+
+    const Shipment = require('../models/shipment');
+    const shipment = await Shipment.findById(shipmentId);
+    
+    if (!shipment) {
+      return res.status(404).json({ error: 'Shipment not found' });
+    }
+
+    if (!shipment.payment_intent_id) {
+      // Cash payment - no capture needed
+      if (shipment.payment_method === 'cash') {
+        return res.json({ success: true, message: 'Cash payment - no capture needed' });
+      }
+      return res.status(400).json({ error: 'No payment intent found for this shipment' });
+    }
+
+    if (shipment.payment_status === 'paid') {
+      return res.json({ success: true, message: 'Payment already captured' });
+    }
+
+    // Capture the pre-authorized payment
+    const paymentIntent = await stripe.paymentIntents.capture(shipment.payment_intent_id);
+    
+    // Update shipment payment status
+    shipment.payment_status = 'paid';
+    shipment.paid_at = new Date();
+    await shipment.save();
+
+    logger.info('Payment captured successfully', { 
+      shipmentId, 
+      paymentIntentId: shipment.payment_intent_id,
+      amount: paymentIntent.amount 
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Payment captured successfully',
+      paymentIntent: {
+        id: paymentIntent.id,
+        amount: paymentIntent.amount,
+        status: paymentIntent.status
+      }
+    });
+  } catch (error) {
+    logger.error('Payment capture error', { error: error.message, shipmentId: req.body.shipmentId });
+    
+    // Handle specific Stripe errors
+    if (error.type === 'StripeInvalidRequestError') {
+      if (error.message.includes('already been captured')) {
+        return res.json({ success: true, message: 'Payment was already captured' });
+      }
+      if (error.message.includes('has expired')) {
+        return res.status(400).json({ error: 'Authorization has expired. Customer must pay again.' });
+      }
+    }
+    
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Cancel a pre-authorized payment (release the hold)
+ * Called when a booking is cancelled before pickup
+ */
+exports.cancelAuthorization = async (req, res) => {
+  try {
+    const { shipmentId } = req.body;
+    
+    if (!shipmentId) {
+      return res.status(400).json({ error: 'shipmentId is required' });
+    }
+
+    const Shipment = require('../models/shipment');
+    const shipment = await Shipment.findById(shipmentId);
+    
+    if (!shipment) {
+      return res.status(404).json({ error: 'Shipment not found' });
+    }
+
+    if (!shipment.payment_intent_id) {
+      // No payment to cancel
+      return res.json({ success: true, message: 'No payment authorization to cancel' });
+    }
+
+    if (shipment.payment_status === 'paid') {
+      return res.status(400).json({ error: 'Payment already captured - use refund instead' });
+    }
+
+    // Cancel the payment intent to release the hold
+    const paymentIntent = await stripe.paymentIntents.cancel(shipment.payment_intent_id);
+    
+    // Update shipment
+    shipment.payment_status = 'cancelled';
+    await shipment.save();
+
+    logger.info('Payment authorization cancelled', { 
+      shipmentId, 
+      paymentIntentId: shipment.payment_intent_id 
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Authorization cancelled - funds released to customer',
+      paymentIntent: {
+        id: paymentIntent.id,
+        status: paymentIntent.status
+      }
+    });
+  } catch (error) {
+    logger.error('Cancel authorization error', { error: error.message, shipmentId: req.body.shipmentId });
+    
+    // Handle already cancelled
+    if (error.message.includes('already been canceled')) {
+      return res.json({ success: true, message: 'Authorization was already cancelled' });
+    }
+    
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Get payment status for a shipment
+ */
+exports.getPaymentStatus = async (req, res) => {
+  try {
+    const { shipmentId } = req.params;
+    
+    const Shipment = require('../models/shipment');
+    const shipment = await Shipment.findById(shipmentId).select('payment_intent_id payment_status payment_method');
+    
+    if (!shipment) {
+      return res.status(404).json({ error: 'Shipment not found' });
+    }
+
+    let stripeStatus = null;
+    if (shipment.payment_intent_id) {
+      const paymentIntent = await stripe.paymentIntents.retrieve(shipment.payment_intent_id);
+      stripeStatus = {
+        id: paymentIntent.id,
+        status: paymentIntent.status,
+        amount: paymentIntent.amount,
+        capturable: paymentIntent.amount_capturable,
+        captured: paymentIntent.amount_received
+      };
+    }
+
+    res.json({
+      shipmentId,
+      paymentMethod: shipment.payment_method,
+      paymentStatus: shipment.payment_status,
+      stripe: stripeStatus
+    });
+  } catch (error) {
+    logger.error('Get payment status error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
 };

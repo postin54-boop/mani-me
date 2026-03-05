@@ -9,6 +9,9 @@ const { shipment: Shipment } = require('../models');
 const User = require('../models/user');
 const logger = require('../utils/logger');
 
+// Stripe for payment capture
+const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
+
 /**
  * GET /drivers - Get all drivers (admin)
  */
@@ -143,6 +146,28 @@ exports.updatePickupStatus = async (req, res) => {
 		shipment.status = status;
 		if (status === 'parcel_collected' || status === 'picked_up') {
 			shipment.warehouse_status = 'received';
+			
+			// CAPTURE PAYMENT: When parcel is collected, charge the customer's card
+			if (shipment.payment_intent_id && shipment.payment_method !== 'cash' && shipment.payment_status !== 'paid') {
+				try {
+					if (stripe) {
+						logger.info('Capturing payment for pickup', { shipmentId: id, paymentIntentId: shipment.payment_intent_id });
+						const paymentIntent = await stripe.paymentIntents.capture(shipment.payment_intent_id);
+						shipment.payment_status = 'paid';
+						shipment.paid_at = new Date();
+						logger.info('Payment captured successfully', { shipmentId: id, amount: paymentIntent.amount });
+					}
+				} catch (paymentError) {
+					// Log but don't fail the pickup - payment can be handled separately
+					logger.error('Failed to capture payment on pickup', { 
+						error: paymentError.message, 
+						shipmentId: id,
+						paymentIntentId: shipment.payment_intent_id
+					});
+					// Mark for manual intervention if capture failed
+					shipment.payment_notes = `Auto-capture failed: ${paymentError.message}`;
+				}
+			}
 		}
 		await shipment.save();
 
