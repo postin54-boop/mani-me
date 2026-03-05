@@ -17,7 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useStripe } from '@stripe/stripe-react-native';
 import { useThemeColors } from '../constants/theme';
-import { useAuth } from '../context/AuthContext';
+import { useUser } from '../context/UserContext';
 import { API_BASE_URL } from '../utils/config';
 
 // Parcel size info for display
@@ -32,7 +32,7 @@ const PARCEL_SIZE_INFO = {
 export default function SizeAdjustmentScreen({ route, navigation }) {
   const { shipmentId } = route.params || {};
   const { colors, isDark } = useThemeColors();
-  const { token } = useAuth();
+  const { token } = useUser();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   
   const [loading, setLoading] = useState(true);
