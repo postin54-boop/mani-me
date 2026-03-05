@@ -54,7 +54,7 @@ exports.deletePackagingItem = async (req, res) => {
 
 exports.createPackagingOrder = async (req, res) => {
   try {
-    const { items, fulfillment_method, delivery_address, preferred_date, total_amount, notes } = req.body;
+    const { items, fulfillment_method, delivery_address, preferred_date, total_amount, notes, payment_status } = req.body;
     if (!items || items.length === 0) return res.status(400).json({ message: 'No items in order' });
     if (!fulfillment_method || !['delivery', 'pickup'].includes(fulfillment_method)) return res.status(400).json({ message: 'Invalid fulfillment method' });
     if (fulfillment_method === 'delivery' && !delivery_address) return res.status(400).json({ message: 'Delivery address required' });
@@ -65,7 +65,8 @@ exports.createPackagingOrder = async (req, res) => {
     const order = new PackagingOrder({
       user_id: userId, items, fulfillment_method,
       delivery_address: fulfillment_method === 'delivery' ? delivery_address : undefined,
-      preferred_date, total_amount, notes, status: 'pending', payment_status: 'pending'
+      preferred_date, total_amount, notes, status: 'pending', 
+      payment_status: payment_status || 'pending'
     });
     await order.save();
 

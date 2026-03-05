@@ -151,8 +151,10 @@ const PackagingShopScreen = ({ navigation }) => {
     const orderData = {
       items: cart.map((item) => ({
         item_id: item._id,
+        name: item.name,
         quantity: item.quantity,
         price: item.price,
+        imageUrl: item.imageUrl || item.image_url,
       })),
       fulfillment_method: fulfillmentMethod,
       delivery_address:

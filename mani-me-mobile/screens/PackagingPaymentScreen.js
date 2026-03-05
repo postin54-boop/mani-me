@@ -34,8 +34,11 @@ export default function PackagingPaymentScreen({ route, navigation }) {
   // Handle success after payment
   const handlePaymentSuccess = async () => {
     try {
-      // Create order after successful payment
-      await axios.post(`${API_BASE_URL}/api/shop/orders`, orderData, {
+      // Create order after successful payment - mark as paid
+      await axios.post(`${API_BASE_URL}/api/shop/orders`, {
+        ...orderData,
+        payment_status: 'paid',
+      }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
