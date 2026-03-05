@@ -78,6 +78,7 @@ export default function PackagingPaymentScreen({ route, navigation }) {
       // Confirm with Platform Pay (Apple/Google)
       const { error } = await confirmPlatformPayPayment(clientSecret, {
         applePay: {
+          merchantIdentifier: 'merchant.manime.delivery',
           cartItems: [
             {
               label: 'Mani Me - Packaging Items',
