@@ -299,7 +299,10 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
           <UnifiedCartProvider>
-            <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
+            <StripeProvider 
+              publishableKey={STRIPE_PUBLISHABLE_KEY}
+              merchantIdentifier="merchant.manime.delivery"
+            >
               <UserProvider>
                 <AppNavigator />
               </UserProvider>
