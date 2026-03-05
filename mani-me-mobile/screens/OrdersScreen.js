@@ -451,6 +451,7 @@ export default function OrdersScreen({ navigation }) {
 
       <ScrollView 
         style={styles.scrollContent}
+        contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
@@ -665,8 +666,6 @@ export default function OrdersScreen({ navigation }) {
           ))
         )}
       </View>
-
-      <View style={{ height: 20 }} />
       
       {/* Action Modal */}
       <Modal
