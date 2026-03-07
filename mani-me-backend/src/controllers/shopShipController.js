@@ -1,6 +1,6 @@
 const shopShipService = require('../services/shopShipService');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { sendOrderReceiptEmail } = require('../services/email');
+const { sendOrderReceiptEmail } = require('../utils/email');
 const User = require('../models/user');
 
 /**
@@ -153,7 +153,18 @@ const createOrder = async (req, res) => {
     try {
       const user = await User.findById(req.userId);
       if (user && user.email) {
-        await sendOrderReceiptEmail(user, order);
+        await sendOrderReceiptEmail({
+          email: user.email,
+          name: user.name || 'Customer',
+          orderType: 'Shop & Ship',
+          orderId: order._id.toString(),
+          items: order.items.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price
+          })),
+          total: order.total_amount
+        });
       }
     } catch (emailError) {
       console.error('Failed to send order email:', emailError);
