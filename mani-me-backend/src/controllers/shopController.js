@@ -7,6 +7,7 @@ const PackagingItem = require('../models/packagingItem');
 const PackagingOrder = require('../models/packagingOrder');
 const User = require('../models/user');
 const { sendPushNotification } = require('../services/notificationService');
+const { sendOrderReceiptEmail } = require('../utils/email');
 const logger = require('../utils/logger');
 
 exports.getPackagingItems = async (req, res) => {
@@ -69,6 +70,32 @@ exports.createPackagingOrder = async (req, res) => {
       payment_status: payment_status || 'pending'
     });
     await order.save();
+
+    // Send order receipt email to customer
+    try {
+      const user = await User.findById(userId);
+      if (user && user.email) {
+        // Format items for email
+        const emailItems = items.map(item => ({
+          name: item.name || 'Packaging Item',
+          quantity: item.quantity || 1,
+          price: item.price || 0,
+        }));
+        
+        sendOrderReceiptEmail({
+          email: user.email,
+          name: user.fullName || user.name || 'Customer',
+          orderType: 'Packaging',
+          orderId: order._id.toString(),
+          items: emailItems,
+          total: total_amount,
+        })
+          .then(() => logger.info('Order receipt email sent', { orderId: order._id }))
+          .catch((err) => logger.error('Failed to send order receipt email', { error: err.message }));
+      }
+    } catch (emailError) {
+      logger.error('Error sending order email', { error: emailError.message });
+    }
 
     // Notify admins
     try {

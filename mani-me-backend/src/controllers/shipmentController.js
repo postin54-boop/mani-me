@@ -17,6 +17,12 @@ const {
   determineParcelSize,
   getNextSequenceNumber
 } = require('../utils/parcelIdGenerator');
+const {
+  sendBookingConfirmationEmail,
+  sendPickupScheduledEmail,
+  sendParcelCollectedEmail,
+  sendDeliveryConfirmationEmail,
+} = require('../utils/email');
 
 // Stripe for payment cancellation
 const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
@@ -66,12 +72,20 @@ exports.assignDriver = async (req, res) => {
     }
     await shipment.save();
 
+    // Send push notification to driver
     if (driver.push_token) {
       try {
         await sendPickupAssignedNotification(driver.push_token, shipment, driver);
       } catch (notifError) {
         logger.error('Failed to send assignment notification', { error: notifError.message, driverId: driver_id });
       }
+    }
+
+    // Send email to customer about driver assignment (for pickups)
+    if (type === 'pickup') {
+      sendPickupScheduledEmail(shipment, driver.fullName || driver.name)
+        .then(() => logger.info('Pickup scheduled email sent', { tracking_number: shipment.tracking_number }))
+        .catch((err) => logger.error('Failed to send pickup scheduled email', { error: err.message }));
     }
 
     res.json({
@@ -191,6 +205,11 @@ exports.create = async (req, res) => {
       }
     }
 
+    // Send booking confirmation email (non-blocking)
+    sendBookingConfirmationEmail(shipment)
+      .then(() => logger.info('Booking confirmation email sent', { tracking_number: shipment.tracking_number }))
+      .catch((err) => logger.error('Failed to send booking confirmation email', { error: err.message }));
+
     return res.json({
       message: 'Shipment booked successfully',
       shipment: { ...shipment.toObject(), qr_code_url: qrCodeUrl, items: createdItems.map(i => i.toObject()) },
@@ -296,6 +315,19 @@ const updateStatusAndNotify = async (shipmentId, status) => {
     } catch (notifError) {
       logger.error('Failed to send notification', { error: notifError.message, shipmentId });
     }
+  }
+
+  // Send email notifications for key status changes
+  if (status === 'picked_up') {
+    sendParcelCollectedEmail(shipment)
+      .then(() => logger.info('Parcel collected email sent', { tracking_number: shipment.tracking_number }))
+      .catch((err) => logger.error('Failed to send parcel collected email', { error: err.message }));
+  }
+
+  if (status === 'delivered') {
+    sendDeliveryConfirmationEmail(shipment)
+      .then(() => logger.info('Delivery confirmation email sent', { tracking_number: shipment.tracking_number }))
+      .catch((err) => logger.error('Failed to send delivery confirmation email', { error: err.message }));
   }
 
   return { shipment, previousStatus };

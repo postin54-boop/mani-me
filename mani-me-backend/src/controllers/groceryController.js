@@ -6,6 +6,8 @@
 const mongoose = require('mongoose');
 const GroceryItem = require('../models/groceryItem');
 const GroceryOrder = require('../models/groceryOrder');
+const User = require('../models/user');
+const { sendOrderReceiptEmail } = require('../utils/email');
 const logger = require('../utils/logger');
 
 // Public
@@ -101,6 +103,32 @@ exports.createOrder = async (req, res) => {
     });
 
     await session.endSession();
+
+    // Send order receipt email to customer (non-blocking)
+    try {
+      const user = await User.findById(req.userId);
+      if (user && user.email) {
+        const emailItems = items.map(item => ({
+          name: item.name || 'Grocery Item',
+          quantity: item.quantity || 1,
+          price: item.price || 0,
+        }));
+        
+        sendOrderReceiptEmail({
+          email: user.email,
+          name: user.fullName || user.name || 'Customer',
+          orderType: 'Grocery',
+          orderId: order._id.toString(),
+          items: emailItems,
+          total: total_amount,
+        })
+          .then(() => logger.info('Grocery order receipt email sent', { orderId: order._id }))
+          .catch((err) => logger.error('Failed to send grocery order receipt email', { error: err.message }));
+      }
+    } catch (emailError) {
+      logger.error('Error sending grocery order email', { error: emailError.message });
+    }
+
     res.status(201).json(order);
   } catch (error) {
     await session.endSession();
