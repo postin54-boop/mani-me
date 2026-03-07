@@ -67,7 +67,7 @@ export default function CashReconciliation() {
         limit: rowsPerPage,
         ...(filter !== 'all' && { status: filter }),
       };
-      const response = await api.get('/cash-reconciliation', { params });
+      const response = await api.get('/api/cash-reconciliation', { params });
       const data = response.data;
       if (data.reports && data.pagination) {
         setReports(data.reports);
@@ -111,7 +111,7 @@ export default function CashReconciliation() {
 
     setSubmitting(true);
     try {
-      await api.patch(`/cash-reconciliation/${selectedReport.id}/approve`, {
+      await api.patch(`/api/cash-reconciliation/${selectedReport.id}/approve`, {
         status: actionType === 'approve' ? 'approved' : 'rejected',
         notes: notes.trim(),
         admin_id: localStorage.getItem('adminId') || 'admin_user_id',

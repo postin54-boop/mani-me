@@ -62,7 +62,7 @@ export default function SupportChat() {
 
   const fetchConversations = async () => {
     try {
-      const response = await api.get('/chat/support-conversations');
+      const response = await api.get('/api/chat/support-conversations');
       setConversations(response.data.conversations || []);
     } catch (error) {
       console.error('Error fetching conversations:', error);
@@ -73,7 +73,7 @@ export default function SupportChat() {
 
   const fetchMessagesFromAPI = async (userId) => {
     try {
-      const response = await api.get(`/chat/support/${userId}`);
+      const response = await api.get(`/api/chat/support/${userId}`);
       setMessages(response.data.messages || []);
       scrollToBottom();
     } catch (error) {
@@ -97,7 +97,7 @@ export default function SupportChat() {
 
     setSending(true);
     try {
-      await api.post('/chat/send', {
+      await api.post('/api/chat/send', {
         shipment_id: null,
         chat_type: 'support',
         sender_id: 'admin',

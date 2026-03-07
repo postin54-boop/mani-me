@@ -61,7 +61,7 @@ export default function PackagingOrders() {
     try {
       setLoading(true);
       const params = { page: page + 1, limit: rowsPerPage };
-      const res = await api.get('/shop/orders', { params });
+      const res = await api.get('/api/shop/orders', { params });
       const ordersData = res.data.orders || res.data;
       setOrders(Array.isArray(ordersData) ? ordersData : []);
       setTotalCount(res.data.pagination?.total || ordersData.length || 0);
@@ -86,7 +86,7 @@ export default function PackagingOrders() {
 
   const handleSaveUpdate = async () => {
     try {
-      const res = await api.put(`/shop/orders/${selectedOrder._id}`, updateData);
+      const res = await api.put(`/api/shop/orders/${selectedOrder._id}`, updateData);
       setOrders(orders.map(o => (o._id === res.data._id ? res.data : o)));
       setDialogOpen(false);
     } catch (error) {

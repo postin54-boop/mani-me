@@ -74,7 +74,7 @@ export default function GroceryShop() {
         limit: rowsPerPage,
         ...(debouncedSearch && { search: debouncedSearch }),
       };
-      const response = await api.get('/grocery/admin/items', { params });
+      const response = await api.get('/api/grocery/admin/items', { params });
       const data = response.data;
       if (data.items && data.pagination) {
         setItems(data.items);
@@ -123,8 +123,8 @@ export default function GroceryShop() {
   const handleSave = async () => {
     try {
       const url = editingItem
-        ? `/grocery/admin/items/${editingItem._id}`
-        : '/grocery/admin/items';
+        ? `/api/grocery/admin/items/${editingItem._id}`
+        : '/api/grocery/admin/items';
       
       if (editingItem) {
         await api.put(url, formData);
@@ -144,7 +144,7 @@ export default function GroceryShop() {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this item?')) {
       try {
-        await api.delete(`/grocery/admin/items/${id}`);
+        await api.delete(`/api/grocery/admin/items/${id}`);
         setAlert({ show: true, message: 'Item deleted successfully', severity: 'success' });
         setItems(items.filter(item => item._id !== id));
       } catch (error) {
