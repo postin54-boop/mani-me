@@ -221,6 +221,7 @@ apiV1.use('/addresses', require('./routes/address'));
 apiV1.use('/scans', require('./routes/scans'));
 apiV1.use('/upload', require('./routes/upload'));
 apiV1.use('/promo-codes', require('./routes/promoCode'));
+apiV1.use('/shop-ship', require('./routes/shopShip'));  // Shop & Ship - UK retailers to Ghana
 
 
 // Mount v1 API (both /api and /api/v1 for backwards compatibility)

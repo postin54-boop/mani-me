@@ -89,7 +89,12 @@ import PrivacyScreen from './screens/PrivacyScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import ShopOrdersScreen from './screens/ShopOrdersScreen';
 import SizeAdjustmentScreen from './screens/SizeAdjustmentScreen';
+import ShopShipScreen from './screens/ShopShipScreen';
+import ShopShipProductScreen from './screens/ShopShipProductScreen';
+import ShopShipCartScreen from './screens/ShopShipCartScreen';
+import ShopShipCheckoutScreen from './screens/ShopShipCheckoutScreen';
 import ErrorBoundary from './components/ErrorBoundary';
+import { ShopShipCartProvider } from './context/ShopShipCartContext';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -281,6 +286,10 @@ function AppNavigator() {
         <Stack.Screen name="Privacy" component={PrivacyScreen} />
         <Stack.Screen name="ShopOrders" component={ShopOrdersScreen} />
         <Stack.Screen name="SizeAdjustment" component={SizeAdjustmentScreen} />
+        <Stack.Screen name="ShopShip" component={ShopShipScreen} />
+        <Stack.Screen name="ShopShipProduct" component={ShopShipProductScreen} />
+        <Stack.Screen name="ShopShipCart" component={ShopShipCartScreen} />
+        <Stack.Screen name="ShopShipCheckout" component={ShopShipCheckoutScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -303,14 +312,16 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
           <UnifiedCartProvider>
-            <StripeProvider 
-              publishableKey={STRIPE_PUBLISHABLE_KEY}
-              merchantIdentifier="merchant.manime.delivery"
-            >
-              <UserProvider>
-                <AppNavigator />
-              </UserProvider>
-            </StripeProvider>
+            <ShopShipCartProvider>
+              <StripeProvider 
+                publishableKey={STRIPE_PUBLISHABLE_KEY}
+                merchantIdentifier="merchant.manime.delivery"
+              >
+                <UserProvider>
+                  <AppNavigator />
+                </UserProvider>
+              </StripeProvider>
+            </ShopShipCartProvider>
           </UnifiedCartProvider>
         </SafeAreaProvider>
       </QueryClientProvider>
