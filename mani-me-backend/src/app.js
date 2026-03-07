@@ -142,10 +142,51 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ======================
+// Application Performance Monitoring
+// ======================
+const apm = require('./utils/apm');
+
+// Track all requests
+app.use(apm.middleware());
+
+// APM stats endpoint (protected, admin only in production)
+app.get('/api/stats', (req, res) => {
+  // In production, you might want to protect this endpoint
+  res.json(apm.getStats());
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.status(200).send('🚚 ManiMe Backend is Live');
 });
+
+// ======================
+// API Documentation (Swagger UI)
+// ======================
+try {
+  const swaggerUi = require('swagger-ui-express');
+  const swaggerSpec = require('./config/swagger');
+  
+  // Serve Swagger UI at /api-docs
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'Mani Me API Docs',
+    customCss: '.swagger-ui .topbar { display: none }',
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  }));
+  
+  // Serve raw OpenAPI spec at /api-docs.json
+  app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
+  
+  console.log('📚 API docs available at /api-docs');
+} catch (err) {
+  console.log('⚠️ Swagger not configured (install swagger-jsdoc swagger-ui-express)');
+}
 
 // Halt processing if request has timed out
 app.use((req, res, next) => {
