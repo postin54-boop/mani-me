@@ -165,7 +165,7 @@ shopShipOrderSchema.pre('save', async function(next) {
 // Indexes
 shopShipOrderSchema.index({ customer_id: 1, createdAt: -1 });
 shopShipOrderSchema.index({ status: 1, createdAt: -1 });
-shopShipOrderSchema.index({ order_number: 1 });
+// Note: order_number index is created by unique: true in field definition
 shopShipOrderSchema.index({ payment_status: 1 });
 
 module.exports = mongoose.model('ShopShipOrder', shopShipOrderSchema);

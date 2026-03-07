@@ -185,7 +185,7 @@ try {
   
   console.log('📚 API docs available at /api-docs');
 } catch (err) {
-  console.log('⚠️ Swagger not configured (install swagger-jsdoc swagger-ui-express)');
+  console.log('⚠️ Swagger not configured:', err.message);
 }
 
 // Halt processing if request has timed out

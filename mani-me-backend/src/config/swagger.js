@@ -4,6 +4,7 @@
  */
 
 const swaggerJSDoc = require('swagger-jsdoc');
+const path = require('path');
 
 const options = {
   definition: {
@@ -176,7 +177,8 @@ Authorization: Bearer <jwt_token>
       { name: 'Admin', description: 'Admin dashboard endpoints' },
     ],
   },
-  apis: ['./src/routes/*.js'], // Parse route files for JSDoc comments
+  // Use absolute path to ensure it works regardless of working directory
+  apis: [path.join(__dirname, '../routes/*.js')],
 };
 
 const swaggerSpec = swaggerJSDoc(options);
