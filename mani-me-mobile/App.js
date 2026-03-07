@@ -178,12 +178,16 @@ function AppNavigator() {
   const notificationListener = useRef();
   const responseListener = useRef();
   const [initialRoute, setInitialRoute] = useState(null);
+  
+  // Increment version when adding new onboarding slides
+  const ONBOARDING_VERSION = 'v2';
+  const ONBOARDING_KEY = `hasSeenOnboarding_${ONBOARDING_VERSION}`;
 
   useEffect(() => {
-    // Check if user has seen onboarding
+    // Check if user has seen onboarding (versioned to re-show after updates)
     const checkOnboarding = async () => {
       try {
-        const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
+        const hasSeenOnboarding = await AsyncStorage.getItem(ONBOARDING_KEY);
         setInitialRoute(hasSeenOnboarding === 'true' ? 'Landing' : 'Onboarding');
       } catch (e) {
         setInitialRoute('Onboarding');

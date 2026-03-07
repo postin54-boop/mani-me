@@ -16,6 +16,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
+// Increment version when adding new slides to re-show onboarding
+const ONBOARDING_VERSION = 'v2';
+const ONBOARDING_KEY = `hasSeenOnboarding_${ONBOARDING_VERSION}`;
+
 const slides = [
   {
     key: '1',
@@ -48,6 +52,22 @@ const slides = [
     icon: 'cart',
     iconType: 'ionicon',
     accentColor: '#EC4899',
+  },
+  {
+    key: '5',
+    title: 'Email Updates',
+    description: 'Get detailed email notifications at every step - booking confirmation, pickup, and delivery.',
+    icon: 'mail',
+    iconType: 'ionicon',
+    accentColor: '#8B5CF6',
+  },
+  {
+    key: '6',
+    title: 'Secure Payments',
+    description: 'Pay securely with Apple Pay or card. Your payment is held until pickup is confirmed.',
+    icon: 'shield-checkmark',
+    iconType: 'ionicon',
+    accentColor: '#06B6D4',
   },
 ];
 
@@ -82,7 +102,7 @@ export default function OnboardingScreen({ navigation }) {
 
   const completeOnboarding = async () => {
     try {
-      await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
     } catch (e) {
       console.log('Error saving onboarding state:', e);
     }
