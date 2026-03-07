@@ -22,7 +22,7 @@ export default function ShopShipCheckoutScreen({ navigation }) {
   const { colors, isDark } = useThemeColors();
   const insets = useSafeAreaInsets();
   const { user } = useUser();
-  const { cartItems, totals, shippingInfo, serviceFee, grandTotal, clearCart } = useShopShipCart();
+  const { cartItems, totals, shippingInfo, serviceFee, grandTotal, clearCart, deliveryType } = useShopShipCart();
 
   const [loading, setLoading] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState({
@@ -87,6 +87,7 @@ export default function ShopShipCheckoutScreen({ navigation }) {
         })),
         delivery_address: deliveryAddress,
         customer_notes: notes,
+        delivery_type: deliveryType,
       };
 
       const response = await api.post('/shop-ship/orders', orderData);
@@ -132,6 +133,19 @@ export default function ShopShipCheckoutScreen({ navigation }) {
           {/* Order Summary */}
           <View style={[styles.card, { backgroundColor: colors.surface }]}>
             <Text style={[styles.cardTitle, { color: colors.text }]}>Order Summary</Text>
+            
+            {/* Delivery Type Badge */}
+            <View style={[styles.deliveryBadge, { backgroundColor: deliveryType === 'express' ? '#F59E0B15' : colors.primary + '15' }]}>
+              <Ionicons 
+                name={deliveryType === 'express' ? 'flash' : 'boat'} 
+                size={16} 
+                color={deliveryType === 'express' ? '#F59E0B' : colors.primary} 
+              />
+              <Text style={[styles.deliveryBadgeText, { color: deliveryType === 'express' ? '#F59E0B' : colors.primary }]}>
+                {deliveryType === 'express' ? 'Express Delivery (1-5 days)' : 'Standard Delivery (7-14 days)'}
+              </Text>
+            </View>
+            
             <View style={styles.summaryRow}>
               <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
                 {totals.itemCount} items ({totals.totalWeight.toFixed(1)}kg)
@@ -357,6 +371,18 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     marginBottom: 16,
+  },
+  deliveryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 16,
+    gap: 8,
+  },
+  deliveryBadgeText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   summaryRow: {
     flexDirection: 'row',

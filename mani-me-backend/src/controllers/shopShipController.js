@@ -93,10 +93,12 @@ const searchProducts = async (req, res) => {
 /**
  * GET /api/shop-ship/boxes
  * Get all shipping box options with pricing
+ * Query params: delivery_type (optional) - 'standard' or 'express'
  */
 const getShippingBoxes = async (req, res) => {
   try {
-    const boxes = await shopShipService.getShippingBoxes();
+    const { delivery_type } = req.query;
+    const boxes = await shopShipService.getShippingBoxes(delivery_type);
     res.json(boxes);
   } catch (error) {
     console.error('Error getting shipping boxes:', error);
@@ -107,20 +109,24 @@ const getShippingBoxes = async (req, res) => {
 /**
  * POST /api/shop-ship/calculate-shipping
  * Calculate shipping cost for cart items
+ * Body: { totalWeightKg, delivery_type (optional, defaults to 'standard') }
  */
 const calculateShipping = async (req, res) => {
   try {
-    const { totalWeightKg } = req.body;
+    const { totalWeightKg, delivery_type = 'standard' } = req.body;
     if (!totalWeightKg || totalWeightKg <= 0) {
       return res.status(400).json({ error: 'Valid total weight required' });
     }
     
-    const box = await shopShipService.calculateBoxForWeight(totalWeightKg);
+    const box = await shopShipService.calculateBoxForWeight(totalWeightKg, delivery_type);
     res.json({
       box_size: box.size,
       box_name: box.name,
       shipping_cost: box.quantity ? box.total_shipping : box.price_gbp,
-      quantity: box.quantity || 1
+      quantity: box.quantity || 1,
+      delivery_type: box.delivery_type || delivery_type,
+      delivery_days_min: box.delivery_days_min,
+      delivery_days_max: box.delivery_days_max
     });
   } catch (error) {
     console.error('Error calculating shipping:', error);

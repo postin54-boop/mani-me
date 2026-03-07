@@ -13,11 +13,17 @@ const ShippingBox = require('../src/models/shippingBox');
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mani-me';
 
 // Shipping boxes with flat-rate pricing
+// Standard: Same as regular parcel (7-14 days, goes in same container)
+// Express: 1-5 days, manually fulfilled in-house
 const shippingBoxes = [
+  // STANDARD DELIVERY (same as parcel pickup)
   {
     name: 'Small Box',
     description: 'Perfect for small electronics, documents, and lightweight items',
     size: 'small',
+    delivery_type: 'standard',
+    delivery_days_min: 7,
+    delivery_days_max: 14,
     max_weight_kg: 5,
     min_weight_kg: 0,
     dimensions: { length_cm: 30, width_cm: 20, height_cm: 15 },
@@ -29,6 +35,9 @@ const shippingBoxes = [
     name: 'Medium Box',
     description: 'Great for clothes, household items, and medium electronics',
     size: 'medium',
+    delivery_type: 'standard',
+    delivery_days_min: 7,
+    delivery_days_max: 14,
     max_weight_kg: 15,
     min_weight_kg: 5,
     dimensions: { length_cm: 45, width_cm: 35, height_cm: 30 },
@@ -40,6 +49,9 @@ const shippingBoxes = [
     name: 'Large Box',
     description: 'Ideal for bulk groceries, multiple items, or large electronics',
     size: 'large',
+    delivery_type: 'standard',
+    delivery_days_min: 7,
+    delivery_days_max: 14,
     max_weight_kg: 30,
     min_weight_kg: 15,
     dimensions: { length_cm: 60, width_cm: 45, height_cm: 40 },
@@ -51,12 +63,58 @@ const shippingBoxes = [
     name: 'Extra Large Box',
     description: 'Maximum capacity for heavy or bulky shipments',
     size: 'extra_large',
+    delivery_type: 'standard',
+    delivery_days_min: 7,
+    delivery_days_max: 14,
     max_weight_kg: 50,
     min_weight_kg: 30,
     dimensions: { length_cm: 80, width_cm: 60, height_cm: 50 },
     price_gbp: 120,
     icon: 'filing',
     color: '#8B5CF6'
+  },
+  // EXPRESS DELIVERY (1-5 days, manually fulfilled)
+  {
+    name: 'Express Small',
+    description: 'Fast delivery for urgent small items - 1-5 days',
+    size: 'small',
+    delivery_type: 'express',
+    delivery_days_min: 1,
+    delivery_days_max: 5,
+    max_weight_kg: 5,
+    min_weight_kg: 0,
+    dimensions: { length_cm: 30, width_cm: 20, height_cm: 15 },
+    price_gbp: 65,
+    icon: 'flash',
+    color: '#EF4444'
+  },
+  {
+    name: 'Express Medium',
+    description: 'Fast delivery for medium packages - 1-5 days',
+    size: 'medium',
+    delivery_type: 'express',
+    delivery_days_min: 1,
+    delivery_days_max: 5,
+    max_weight_kg: 15,
+    min_weight_kg: 5,
+    dimensions: { length_cm: 45, width_cm: 35, height_cm: 30 },
+    price_gbp: 95,
+    icon: 'flash',
+    color: '#EF4444'
+  },
+  {
+    name: 'Express Large',
+    description: 'Fast delivery for large packages - 1-5 days',
+    size: 'large',
+    delivery_type: 'express',
+    delivery_days_min: 1,
+    delivery_days_max: 5,
+    max_weight_kg: 30,
+    min_weight_kg: 15,
+    dimensions: { length_cm: 60, width_cm: 45, height_cm: 40 },
+    price_gbp: 150,
+    icon: 'flash',
+    color: '#EF4444'
   }
 ];
 
@@ -381,11 +439,11 @@ async function seedDatabase() {
     console.log('\nSeeding shipping boxes...');
     for (const box of shippingBoxes) {
       await ShippingBox.findOneAndUpdate(
-        { size: box.size },
+        { size: box.size, delivery_type: box.delivery_type },
         box,
         { upsert: true, new: true }
       );
-      console.log(`  ✓ ${box.name}`);
+      console.log(`  ✓ ${box.name} (${box.delivery_type})`);
     }
     console.log(`Seeded ${shippingBoxes.length} shipping boxes`);
     

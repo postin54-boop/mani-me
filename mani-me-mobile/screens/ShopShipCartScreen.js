@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,6 +26,8 @@ export default function ShopShipCartScreen({ navigation }) {
     shippingInfo,
     serviceFee,
     grandTotal,
+    deliveryType,
+    setDeliveryType,
   } = useShopShipCart();
 
   const handleRemoveItem = (productId, name) => {
@@ -144,6 +147,80 @@ export default function ShopShipCartScreen({ navigation }) {
 
           {/* Summary Card */}
           <View style={[styles.summaryCard, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 16 }]}>
+            {/* Delivery Type Selector */}
+            <Text style={[styles.sectionLabel, { color: colors.text }]}>Delivery Speed</Text>
+            <View style={styles.deliveryOptions}>
+              <TouchableOpacity
+                style={[
+                  styles.deliveryOption,
+                  { 
+                    backgroundColor: deliveryType === 'standard' ? colors.primary + '15' : colors.background,
+                    borderColor: deliveryType === 'standard' ? colors.primary : colors.border,
+                  }
+                ]}
+                onPress={() => setDeliveryType('standard')}
+              >
+                <View style={styles.deliveryOptionHeader}>
+                  <Ionicons 
+                    name="boat" 
+                    size={20} 
+                    color={deliveryType === 'standard' ? colors.primary : colors.textSecondary} 
+                  />
+                  <Text style={[
+                    styles.deliveryOptionTitle, 
+                    { color: deliveryType === 'standard' ? colors.primary : colors.text }
+                  ]}>
+                    Standard
+                  </Text>
+                </View>
+                <Text style={[styles.deliveryDays, { color: colors.textSecondary }]}>
+                  7-14 days
+                </Text>
+                <Text style={[styles.deliveryDesc, { color: colors.textSecondary }]}>
+                  Ships with regular parcels
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.deliveryOption,
+                  { 
+                    backgroundColor: deliveryType === 'express' ? colors.primary + '15' : colors.background,
+                    borderColor: deliveryType === 'express' ? colors.primary : colors.border,
+                    opacity: totals.totalWeight > 30 ? 0.5 : 1,
+                  }
+                ]}
+                onPress={() => {
+                  if (totals.totalWeight > 30) {
+                    Alert.alert('Weight Limit', 'Express delivery is only available for orders up to 30kg');
+                    return;
+                  }
+                  setDeliveryType('express');
+                }}
+                disabled={totals.totalWeight > 30}
+              >
+                <View style={styles.deliveryOptionHeader}>
+                  <Ionicons 
+                    name="flash" 
+                    size={20} 
+                    color={deliveryType === 'express' ? colors.primary : colors.textSecondary} 
+                  />
+                  <Text style={[
+                    styles.deliveryOptionTitle, 
+                    { color: deliveryType === 'express' ? colors.primary : colors.text }
+                  ]}>
+                    Express
+                  </Text>
+                </View>
+                <Text style={[styles.deliveryDays, { color: colors.textSecondary }]}>
+                  1-5 days
+                </Text>
+                <Text style={[styles.deliveryDesc, { color: colors.textSecondary }]}>
+                  Priority handling
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             {/* Weight & Box Info */}
             <View style={[styles.boxInfo, { backgroundColor: shippingInfo.shipping > 0 ? colors.primary + '10' : colors.background }]}>
               <Ionicons name="cube" size={20} color={colors.primary} />
@@ -381,5 +458,39 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 17,
     fontWeight: '700',
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  deliveryOptions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  deliveryOption: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+  },
+  deliveryOptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  deliveryOptionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  deliveryDays: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  deliveryDesc: {
+    fontSize: 11,
   },
 });

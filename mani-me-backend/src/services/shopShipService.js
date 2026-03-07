@@ -138,16 +138,30 @@ const searchProducts = async (searchTerm, limit = 20) => {
 
 /**
  * Get all shipping box options
+ * @param {string} deliveryType - 'standard' or 'express' (optional, returns all if not specified)
  */
-const getShippingBoxes = async () => {
-  return ShippingBox.find({ is_active: true }).sort({ max_weight_kg: 1 });
+const getShippingBoxes = async (deliveryType = null) => {
+  const query = { is_active: true };
+  if (deliveryType) {
+    query.delivery_type = deliveryType;
+  }
+  return ShippingBox.find(query).sort({ delivery_type: 1, max_weight_kg: 1 });
 };
 
 /**
  * Calculate which box is needed for given weight
+ * @param {number} totalWeightKg - Total weight in kg
+ * @param {string} deliveryType - 'standard' (7-14 days) or 'express' (1-5 days)
  */
-const calculateBoxForWeight = async (totalWeightKg) => {
-  const boxes = await ShippingBox.find({ is_active: true }).sort({ max_weight_kg: 1 });
+const calculateBoxForWeight = async (totalWeightKg, deliveryType = 'standard') => {
+  const boxes = await ShippingBox.find({ 
+    is_active: true, 
+    delivery_type: deliveryType 
+  }).sort({ max_weight_kg: 1 });
+  
+  if (boxes.length === 0) {
+    throw new Error(`No shipping boxes available for ${deliveryType} delivery`);
+  }
   
   // Find the smallest box that fits the weight
   for (const box of boxes) {
@@ -233,8 +247,12 @@ const seedShippingBoxes = async () => {
 
 /**
  * Create a Shop & Ship order
+ * @param {object} orderData - Order data including delivery_type ('standard' or 'express')
  */
 const createOrder = async (orderData) => {
+  // Delivery type defaults to standard (7-14 days, same container as parcels)
+  const deliveryType = orderData.delivery_type || 'standard';
+  
   // Calculate totals
   let totalWeight = 0;
   let itemsTotal = 0;
@@ -272,8 +290,8 @@ const createOrder = async (orderData) => {
     });
   }
   
-  // Calculate shipping box
-  const box = await calculateBoxForWeight(totalWeight);
+  // Calculate shipping box based on delivery type
+  const box = await calculateBoxForWeight(totalWeight, deliveryType);
   const shippingCost = box.quantity ? box.total_shipping : box.price_gbp;
   
   // Service fee (5% of items, minimum £2)
@@ -282,12 +300,26 @@ const createOrder = async (orderData) => {
   // Total
   const totalAmount = itemsTotal + shippingCost + serviceFee - (orderData.discount || 0);
   
+  // Calculate estimated dates based on delivery type
+  const now = Date.now();
+  const daysToMs = (days) => days * 24 * 60 * 60 * 1000;
+  
+  let estimatedDeliveryDate;
+  if (deliveryType === 'express') {
+    // Express: 1-5 days (manually fulfilled in-house)
+    estimatedDeliveryDate = new Date(now + daysToMs(5));
+  } else {
+    // Standard: 7-14 days (same container as parcel pickups)
+    estimatedDeliveryDate = new Date(now + daysToMs(14));
+  }
+  
   const order = new ShopShipOrder({
     customer_id: orderData.customer_id,
     items: itemsWithDetails,
     total_weight_kg: totalWeight,
     box_size: box.quantity ? 'extra_large' : box.size,
     box_id: box._id,
+    delivery_type: deliveryType,
     items_total: itemsTotal,
     shipping_cost: shippingCost,
     service_fee: serviceFee,
@@ -296,9 +328,11 @@ const createOrder = async (orderData) => {
     delivery_address: orderData.delivery_address,
     customer_notes: orderData.customer_notes,
     status_history: [{ status: 'pending', note: 'Order created' }],
-    estimated_purchase_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days
-    estimated_ship_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days
-    estimated_delivery_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 days
+    estimated_purchase_date: new Date(now + daysToMs(2)), // 2 days to purchase
+    estimated_ship_date: deliveryType === 'express' 
+      ? new Date(now + daysToMs(1)) // Express: ship next day 
+      : new Date(now + daysToMs(5)), // Standard: 5 days
+    estimated_delivery_date: estimatedDeliveryDate
   });
   
   await order.save();

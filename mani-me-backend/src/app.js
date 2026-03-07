@@ -228,6 +228,10 @@ apiV1.use('/shop-ship', require('./routes/shopShip'));  // Shop & Ship - UK reta
 app.use('/api/v1', apiV1);
 app.use('/api', apiV1); // Backwards compatible - remove in v2
 
+// Legacy route support: handle requests to /chat without /api prefix
+// Some clients may be missing the /api prefix
+app.use('/chat', require('./routes/chat'));
+
 // 404 handler for unknown routes
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Route not found', path: req.originalUrl });

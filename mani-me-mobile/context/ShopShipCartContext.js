@@ -2,11 +2,31 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CART_STORAGE_KEY = 'shop_ship_cart';
+const DELIVERY_TYPE_KEY = 'shop_ship_delivery_type';
+
+// Shipping prices by delivery type
+const SHIPPING_RATES = {
+  standard: {
+    // 7-14 days, same container as regular parcels
+    small: { name: 'Small Box', price: 25, maxWeight: 5, daysMin: 7, daysMax: 14 },
+    medium: { name: 'Medium Box', price: 45, maxWeight: 15, daysMin: 7, daysMax: 14 },
+    large: { name: 'Large Box', price: 75, maxWeight: 30, daysMin: 7, daysMax: 14 },
+    extra_large: { name: 'Extra Large Box', price: 120, maxWeight: 50, daysMin: 7, daysMax: 14 },
+  },
+  express: {
+    // 1-5 days, manually fulfilled in-house
+    small: { name: 'Small Box Express', price: 65, maxWeight: 5, daysMin: 1, daysMax: 5 },
+    medium: { name: 'Medium Box Express', price: 95, maxWeight: 15, daysMin: 1, daysMax: 5 },
+    large: { name: 'Large Box Express', price: 150, maxWeight: 30, daysMin: 1, daysMax: 5 },
+    // No extra_large for express
+  },
+};
 
 const ShopShipCartContext = createContext();
 
 export function ShopShipCartProvider({ children }) {
   const [cartItems, setCartItems] = useState([]);
+  const [deliveryType, setDeliveryType] = useState('standard');
   const [loading, setLoading] = useState(true);
 
   // Load cart from storage on mount
@@ -21,11 +41,24 @@ export function ShopShipCartProvider({ children }) {
     }
   }, [cartItems, loading]);
 
+  // Save delivery type when it changes
+  useEffect(() => {
+    if (!loading) {
+      AsyncStorage.setItem(DELIVERY_TYPE_KEY, deliveryType);
+    }
+  }, [deliveryType, loading]);
+
   const loadCart = async () => {
     try {
-      const stored = await AsyncStorage.getItem(CART_STORAGE_KEY);
+      const [stored, storedDeliveryType] = await Promise.all([
+        AsyncStorage.getItem(CART_STORAGE_KEY),
+        AsyncStorage.getItem(DELIVERY_TYPE_KEY),
+      ]);
       if (stored) {
         setCartItems(JSON.parse(stored));
+      }
+      if (storedDeliveryType) {
+        setDeliveryType(storedDeliveryType);
       }
     } catch (error) {
       console.error('Error loading cart:', error);
@@ -80,6 +113,7 @@ export function ShopShipCartProvider({ children }) {
 
   const clearCart = () => {
     setCartItems([]);
+    setDeliveryType('standard');
   };
 
   // Calculate totals
@@ -89,23 +123,85 @@ export function ShopShipCartProvider({ children }) {
     itemCount: acc.itemCount + item.quantity,
   }), { itemsTotal: 0, totalWeight: 0, itemCount: 0 });
 
-  // Determine box size and shipping cost
+  // Determine box size and shipping cost based on delivery type
   const getShippingInfo = () => {
     const weight = totals.totalWeight;
+    const rates = SHIPPING_RATES[deliveryType];
     
-    if (weight === 0) return { box: null, shipping: 0 };
-    if (weight <= 5) return { box: 'Small Box', size: 'small', shipping: 25, maxWeight: 5 };
-    if (weight <= 15) return { box: 'Medium Box', size: 'medium', shipping: 45, maxWeight: 15 };
-    if (weight <= 30) return { box: 'Large Box', size: 'large', shipping: 75, maxWeight: 30 };
+    if (weight === 0) return { box: null, shipping: 0, deliveryType };
     
-    // Extra large or multiple boxes needed
-    const boxCount = Math.ceil(weight / 50);
+    // Find the smallest box that fits
+    if (weight <= rates.small.maxWeight) {
+      return { 
+        box: rates.small.name, 
+        size: 'small', 
+        shipping: rates.small.price, 
+        maxWeight: rates.small.maxWeight,
+        daysMin: rates.small.daysMin,
+        daysMax: rates.small.daysMax,
+        deliveryType 
+      };
+    }
+    if (weight <= rates.medium.maxWeight) {
+      return { 
+        box: rates.medium.name, 
+        size: 'medium', 
+        shipping: rates.medium.price, 
+        maxWeight: rates.medium.maxWeight,
+        daysMin: rates.medium.daysMin,
+        daysMax: rates.medium.daysMax,
+        deliveryType 
+      };
+    }
+    
+    // Check if express has large box (express max is 30kg for large)
+    if (deliveryType === 'express') {
+      if (weight <= rates.large.maxWeight) {
+        return { 
+          box: rates.large.name, 
+          size: 'large', 
+          shipping: rates.large.price, 
+          maxWeight: rates.large.maxWeight,
+          daysMin: rates.large.daysMin,
+          daysMax: rates.large.daysMax,
+          deliveryType 
+        };
+      }
+      // Express doesn't support > 30kg, fall back to standard
+      return { 
+        box: 'Too Heavy for Express', 
+        size: null,
+        shipping: 0, 
+        maxWeight: 30,
+        error: 'Express delivery only available for orders up to 30kg',
+        deliveryType: 'express'
+      };
+    }
+    
+    // Standard delivery
+    if (weight <= rates.large.maxWeight) {
+      return { 
+        box: rates.large.name, 
+        size: 'large', 
+        shipping: rates.large.price, 
+        maxWeight: rates.large.maxWeight,
+        daysMin: rates.large.daysMin,
+        daysMax: rates.large.daysMax,
+        deliveryType 
+      };
+    }
+    
+    // Extra large or multiple boxes needed (standard only)
+    const boxCount = Math.ceil(weight / rates.extra_large.maxWeight);
     return { 
-      box: 'Extra Large Box', 
+      box: rates.extra_large.name, 
       size: 'extra_large',
-      shipping: 120 * boxCount, 
-      maxWeight: 50,
-      boxCount 
+      shipping: rates.extra_large.price * boxCount, 
+      maxWeight: rates.extra_large.maxWeight,
+      daysMin: rates.extra_large.daysMin,
+      daysMax: rates.extra_large.daysMax,
+      boxCount,
+      deliveryType 
     };
   };
 
@@ -128,6 +224,8 @@ export function ShopShipCartProvider({ children }) {
     shippingInfo,
     serviceFee,
     grandTotal,
+    deliveryType,
+    setDeliveryType,
   };
 
   return (

@@ -20,8 +20,24 @@ const shippingBoxSchema = new mongoose.Schema({
   size: {
     type: String,
     required: true,
-    enum: ['small', 'medium', 'large', 'extra_large'],
-    unique: true
+    enum: ['small', 'medium', 'large', 'extra_large']
+  },
+  
+  // Delivery type
+  delivery_type: {
+    type: String,
+    enum: ['standard', 'express'],
+    default: 'standard'
+  },
+  
+  // Estimated delivery days
+  delivery_days_min: {
+    type: Number,
+    default: 7
+  },
+  delivery_days_max: {
+    type: Number,
+    default: 14
   },
   
   // Weight limits

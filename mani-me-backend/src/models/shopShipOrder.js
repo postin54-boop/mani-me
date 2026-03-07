@@ -52,6 +52,11 @@ const shopShipOrderSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ShippingBox'
   },
+  delivery_type: {
+    type: String,
+    enum: ['standard', 'express'],
+    default: 'standard'
+  },
   
   // Pricing breakdown
   items_total: {
