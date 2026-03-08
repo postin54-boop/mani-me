@@ -6,24 +6,38 @@ const groceryItemSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  brand: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  category: {
+    type: String,
+    required: true,
+    enum: ['Grocery', 'Electronics', 'Household'],
+    default: 'Grocery'
+  },
+  subcategory: {
+    type: String,
+    required: true,
+    trim: true
+  },
   description: {
     type: String,
     required: true
+  },
+  pack_size: {
+    type: String,
+    default: '1 item'
   },
   price: {
     type: Number,
     required: true,
     min: 0
   },
-  category: {
+  currency: {
     type: String,
-    required: true,
-    enum: ['grocery', 'electronics', 'household'],
-    default: 'grocery'
-  },
-  image_url: {
-    type: String,
-    default: null
+    default: 'GBP'
   },
   stock: {
     type: Number,
@@ -31,9 +45,17 @@ const groceryItemSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
-  unit: {
+  image_url: {
     type: String,
-    default: 'item' // e.g., 'kg', 'litre', 'item', 'pack'
+    default: null
+  },
+  fulfilled_by: {
+    type: String,
+    default: 'ManiMe UK'
+  },
+  shipping: {
+    type: String,
+    default: 'UK → Ghana'
   },
   is_available: {
     type: Boolean,

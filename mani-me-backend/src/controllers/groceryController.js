@@ -15,7 +15,7 @@ exports.getItems = async (req, res) => {
   try {
     const { category } = req.query;
     const query = { is_available: true };
-    if (category && ['grocery', 'electronics', 'household'].includes(category)) {
+    if (category && ['Grocery', 'Electronics', 'Household'].includes(category)) {
       query.category = category;
     }
     const items = await GroceryItem.find(query).sort({ createdAt: -1 });
