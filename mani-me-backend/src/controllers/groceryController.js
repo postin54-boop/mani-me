@@ -191,8 +191,9 @@ exports.adminGetItems = async (req, res) => {
     const skip = (page - 1) * limit;
     let query = {};
     if (req.query.search) query.name = { $regex: req.query.search, $options: 'i' };
+    if (req.query.category) query.category = req.query.category;
     const [items, total] = await Promise.all([
-      GroceryItem.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      GroceryItem.find(query).sort({ category: 1, name: 1 }).skip(skip).limit(limit),
       GroceryItem.countDocuments(query)
     ]);
     res.json({ items, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
