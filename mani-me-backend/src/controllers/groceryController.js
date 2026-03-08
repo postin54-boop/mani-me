@@ -209,8 +209,8 @@ exports.adminCreateItem = async (req, res) => {
     await item.save();
     res.status(201).json(item);
   } catch (error) {
-    logger.error('Error creating item', { error: error.message });
-    res.status(500).json({ message: 'Failed to create item' });
+    logger.error('Error creating item', { error: error.message, body: req.body });
+    res.status(500).json({ message: error.message || 'Failed to create item' });
   }
 };
 

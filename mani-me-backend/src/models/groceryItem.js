@@ -8,8 +8,8 @@ const groceryItemSchema = new mongoose.Schema({
   },
   brand: {
     type: String,
-    required: true,
-    trim: true
+    trim: true,
+    default: ''
   },
   category: {
     type: String,
@@ -19,12 +19,12 @@ const groceryItemSchema = new mongoose.Schema({
   },
   subcategory: {
     type: String,
-    required: true,
-    trim: true
+    trim: true,
+    default: ''
   },
   description: {
     type: String,
-    required: true
+    default: ''
   },
   pack_size: {
     type: String,
