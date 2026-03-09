@@ -57,34 +57,54 @@ exports.validatePromo = async (req, res) => {
 };
 
 /**
- * Create a payment intent with manual capture (pre-authorization)
- * This holds the funds but doesn't charge until capture is called
+ * Create a payment intent
+ * - For shipments (shipmentId provided): Use manual capture (pre-authorization)
+ * - For grocery/other orders: Use automatic capture (immediate charge)
  */
 exports.createIntent = async (req, res) => {
   try {
-    const { amount, currency = 'gbp', shipmentId } = req.body;
+    const { amount, currency = 'gbp', shipmentId, orderId } = req.body;
     if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
 
-    // Amount is already in smallest currency unit (pence) from mobile app
-    // Use capture_method: 'manual' for pre-authorization (hold, don't charge yet)
-    const paymentIntent = await stripe.paymentIntents.create({
+    // Determine capture method based on order type
+    // - shipmentId: Pre-authorize only (capture on pickup)
+    // - orderId or no ID: Immediate capture (grocery orders, etc.)
+    const isPreAuth = !!shipmentId && !orderId;
+    
+    const paymentIntentOptions = {
       amount: Math.round(amount), // Already in pence, just ensure it's an integer
       currency,
-      capture_method: 'manual', // PRE-AUTHORIZATION: Hold funds, capture later on pickup
       automatic_payment_methods: { enabled: true },
-      metadata: { shipmentId: shipmentId || '' }, // Store shipment ID for webhook
-    });
+      metadata: { 
+        shipmentId: shipmentId || '',
+        orderId: orderId || ''
+      },
+    };
+    
+    // Only use manual capture for shipment pre-authorization
+    if (isPreAuth) {
+      paymentIntentOptions.capture_method = 'manual';
+    }
+    // else: defaults to 'automatic' - charges immediately
+    
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentOptions);
 
     // If shipment ID provided, store the payment intent ID on the shipment
     if (shipmentId) {
       const Shipment = require('../models/shipment');
       await Shipment.findByIdAndUpdate(shipmentId, { 
         payment_intent_id: paymentIntent.id,
-        payment_status: 'authorized' // Mark as authorized (held), not paid yet
+        payment_status: isPreAuth ? 'authorized' : 'paid'
       });
     }
 
-    logger.info('Payment intent created (pre-auth)', { paymentIntentId: paymentIntent.id, amount, shipmentId });
+    logger.info('Payment intent created', { 
+      paymentIntentId: paymentIntent.id, 
+      amount, 
+      shipmentId, 
+      orderId,
+      captureMethod: isPreAuth ? 'manual' : 'automatic'
+    });
     res.json({ clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id });
   } catch (error) {
     logger.error('Payment intent error', { error: error.message });
