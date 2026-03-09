@@ -18,6 +18,8 @@ export default function OrdersScreen({ navigation }) {
   const [stats, setStats] = useState({ total_parcels: 0, delivered: 0, in_transit: 0 });
   const { user, token } = useUser();
   const isFetchingRef = useRef(false); // Prevent duplicate concurrent fetches
+  const lastFetchTimeRef = useRef(0); // Throttle fetches to prevent spam
+  const FETCH_THROTTLE_MS = 5000; // Minimum 5 seconds between fetches
 
   // Pickup management state
   const [actionModalVisible, setActionModalVisible] = useState(false);
@@ -39,9 +41,8 @@ export default function OrdersScreen({ navigation }) {
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
       
       const url = `${API_BASE_URL}/api/shipments/user/${userId}`;
-      if (__DEV__) {
-        logger.log('Fetching parcels from:', url);
-      }
+      // Only log in debug builds to reduce spam
+      // logger.log('Fetching parcels from:', url);
       
       const response = await fetch(url, {
         signal: controller.signal,
@@ -80,9 +81,8 @@ export default function OrdersScreen({ navigation }) {
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
       
       const url = `${API_BASE_URL}/api/shipments/stats/${userId}`;
-      if (__DEV__) {
-        logger.log('Fetching stats from:', url);
-      }
+      // Only log in debug builds to reduce spam
+      // logger.log('Fetching stats from:', url);
       
       const response = await fetch(url, {
         signal: controller.signal,
@@ -112,9 +112,17 @@ export default function OrdersScreen({ navigation }) {
   // Load all data function - available for retry button
   const loadData = useCallback(async (force = false) => {
     if (!userId || !token) return;
+    
+    // Throttle: Skip if fetched recently (unless forced)
+    const now = Date.now();
+    if (!force && (now - lastFetchTimeRef.current) < FETCH_THROTTLE_MS) {
+      return;
+    }
+    
     // Prevent duplicate concurrent fetches unless forced
     if (isFetchingRef.current && !force) return;
     isFetchingRef.current = true;
+    lastFetchTimeRef.current = now;
     
     setLoading(true);
     setError(null);
@@ -139,8 +147,12 @@ export default function OrdersScreen({ navigation }) {
     if (!userId || !token) return;
 
     const interval = setInterval(() => {
-      fetchParcels();
-      fetchStats();
+      // Silent refresh in background (no loading state)
+      if (!isFetchingRef.current) {
+        isFetchingRef.current = true;
+        Promise.all([fetchParcels(), fetchStats()])
+          .finally(() => { isFetchingRef.current = false; });
+      }
     }, 30000);
 
     return () => clearInterval(interval);
