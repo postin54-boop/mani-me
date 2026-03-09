@@ -183,12 +183,13 @@ export default function GroceryPaymentScreen({ route, navigation }) {
         );
       } else {
         // Payment not succeeded - show status for debugging
-        logger.warn('Payment not succeeded, status:', paymentIntent?.status);
+        console.log('Payment not succeeded, status:', paymentIntent?.status);
         Alert.alert('Payment Issue', `Payment status: ${paymentIntent?.status || 'unknown'}. Please try again.`);
       }
     } catch (error) {
-      logger.error('Payment error:', error);
-      logger.error('Error details:', error.response?.data);
+      // Use console.log instead of logger.error to avoid LogBox spam
+      console.log('Payment error:', error?.message || error);
+      console.log('Error response:', error.response?.data);
       Alert.alert('Error', error.response?.data?.message || error.response?.data?.error || 'Payment failed. Please try again.');
     } finally {
       setLoading(false);
