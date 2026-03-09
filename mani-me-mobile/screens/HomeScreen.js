@@ -347,31 +347,6 @@ export default function HomeScreen({ navigation }) {
               </View>
             </LinearGradient>
           </TouchableOpacity>
-          
-          {/* UK Retailers - Shop & Ship */}
-          <TouchableOpacity
-            style={styles.shopCard}
-            onPress={() => navigation.navigate('ShopShip')}
-            activeOpacity={0.85}
-          >
-            <LinearGradient
-              colors={['rgba(59, 130, 246, 0.12)', 'rgba(59, 130, 246, 0.04)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.shopCardGradient}
-            >
-              <View style={[styles.shopIcon, { backgroundColor: 'rgba(59, 130, 246, 0.2)' }]}>
-                <MaterialCommunityIcons name="store" size={28} color="#3B82F6" />
-              </View>
-              <View style={styles.shopContent}>
-                <Text style={styles.shopTitle}>UK Retailers</Text>
-                <Text style={styles.shopSub}>Amazon, Argos, Currys & more to Ghana</Text>
-              </View>
-              <View style={[styles.shopArrow, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
-                <Ionicons name="chevron-forward" size={20} color="#3B82F6" />
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
         </Animated.View>
 
         {/* CONTINUE BOOKING */}

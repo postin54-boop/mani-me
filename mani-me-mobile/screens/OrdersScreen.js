@@ -108,26 +108,19 @@ export default function OrdersScreen({ navigation }) {
     }
   }, [userId, token]);
 
+  // Load all data function - available for retry button
+  const loadData = useCallback(async () => {
+    if (!userId || !token) return;
+    setLoading(true);
+    setError(null);
+    await Promise.all([fetchParcels(), fetchStats()]);
+    setLoading(false);
+  }, [userId, token, fetchParcels, fetchStats]);
+
   // Initial data load - only runs when userId or token changes
   useEffect(() => {
-    let isMounted = true;
-    
-    const loadData = async () => {
-      if (!userId || !token) return;
-      setLoading(true);
-      await Promise.all([fetchParcels(), fetchStats()]);
-      if (isMounted) {
-        setLoading(false);
-      }
-    };
-    
     loadData();
-    
-    return () => {
-      isMounted = false;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, token]);
+  }, [loadData]);
 
   // Auto-refresh interval - separate effect to prevent re-creating interval on every render
   useEffect(() => {

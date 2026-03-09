@@ -7,6 +7,9 @@
 const { user: User, shipment: Shipment } = require('../models');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { authenticator } = require('otplib');
+const QRCode = require('qrcode');
+const crypto = require('crypto');
 const { escapeRegex } = require('../utils/sanitize');
 const logger = require('../utils/logger');
 
@@ -14,35 +17,250 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, totpCode } = req.body;
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password required' });
     }
-    const adminUser = await User.findOne({ email, role: 'ADMIN' });
+    
+    // Fetch user with 2FA secret if needed
+    const adminUser = await User.findOne({ email, role: 'ADMIN' }).select('+twoFactorSecret +twoFactorBackupCodes');
     if (!adminUser) {
       logger.warn('Failed admin login attempt', { email, ip: req.ip });
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+    
     const isValidPassword = await bcrypt.compare(password, adminUser.password);
     if (!isValidPassword) {
       logger.warn('Failed admin password', { email, ip: req.ip });
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+    
+    // Check if 2FA is enabled
+    if (adminUser.twoFactorEnabled) {
+      if (!totpCode) {
+        // Return that 2FA is required (don't issue token yet)
+        return res.status(200).json({ 
+          requires2FA: true, 
+          message: '2FA code required',
+          adminId: adminUser.id 
+        });
+      }
+      
+      // Verify TOTP code
+      const isValidTotp = authenticator.verify({ token: totpCode, secret: adminUser.twoFactorSecret });
+      
+      // Check backup codes if TOTP fails
+      let usedBackupCode = false;
+      if (!isValidTotp && adminUser.twoFactorBackupCodes?.length > 0) {
+        const backupIndex = adminUser.twoFactorBackupCodes.indexOf(totpCode);
+        if (backupIndex !== -1) {
+          // Remove used backup code
+          adminUser.twoFactorBackupCodes.splice(backupIndex, 1);
+          await adminUser.save();
+          usedBackupCode = true;
+          logger.warn('Admin used backup code', { email, ip: req.ip });
+        }
+      }
+      
+      if (!isValidTotp && !usedBackupCode) {
+        logger.warn('Failed admin 2FA verification', { email, ip: req.ip });
+        return res.status(401).json({ message: 'Invalid 2FA code' });
+      }
+    }
+    
     const token = jwt.sign(
       { user_id: adminUser.id, email: adminUser.email, isAdmin: true, role: 'ADMIN' },
       JWT_SECRET,
       { expiresIn: '2h' }
     );
-    logger.info('Admin login successful', { email, ip: req.ip });
+    logger.info('Admin login successful', { email, ip: req.ip, twoFactorUsed: adminUser.twoFactorEnabled });
     res.json({
       token,
       message: 'Login successful',
       adminId: adminUser.id,
-      admin: { id: adminUser.id, email: adminUser.email, fullName: adminUser.fullName }
+      admin: { id: adminUser.id, email: adminUser.email, fullName: adminUser.fullName, twoFactorEnabled: adminUser.twoFactorEnabled }
     });
   } catch (error) {
     logger.error('Admin login error', { error: error.message });
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ========================================
+// TWO-FACTOR AUTHENTICATION (2FA)
+// ========================================
+
+/**
+ * Generate 2FA setup (secret + QR code)
+ * Admin must be logged in to enable 2FA
+ */
+exports.setup2FA = async (req, res) => {
+  try {
+    const userId = req.admin?.user_id || req.userId;
+    const adminUser = await User.findById(userId);
+    
+    if (!adminUser || adminUser.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    
+    if (adminUser.twoFactorEnabled) {
+      return res.status(400).json({ message: '2FA is already enabled' });
+    }
+    
+    // Generate secret
+    const secret = authenticator.generateSecret();
+    const otpauth = authenticator.keyuri(adminUser.email, 'ManiMe Admin', secret);
+    
+    // Generate QR code as data URL
+    const qrCodeUrl = await QRCode.toDataURL(otpauth);
+    
+    // Generate backup codes
+    const backupCodes = Array.from({ length: 8 }, () => 
+      crypto.randomBytes(4).toString('hex').toUpperCase()
+    );
+    
+    // Store secret temporarily (not enabled yet until verified)
+    adminUser.twoFactorSecret = secret;
+    adminUser.twoFactorBackupCodes = backupCodes;
+    await adminUser.save();
+    
+    logger.info('2FA setup initiated', { adminId: userId });
+    
+    res.json({
+      message: 'Scan QR code with your authenticator app',
+      qrCode: qrCodeUrl,
+      secret: secret, // Manual entry option
+      backupCodes: backupCodes // Show once, user must save these
+    });
+  } catch (error) {
+    logger.error('2FA setup error', { error: error.message });
+    res.status(500).json({ message: 'Failed to setup 2FA' });
+  }
+};
+
+/**
+ * Verify and enable 2FA
+ * User must provide a valid TOTP code to confirm setup
+ */
+exports.verify2FA = async (req, res) => {
+  try {
+    const { totpCode } = req.body;
+    const userId = req.admin?.user_id || req.userId;
+    
+    if (!totpCode) {
+      return res.status(400).json({ message: 'TOTP code required' });
+    }
+    
+    const adminUser = await User.findById(userId).select('+twoFactorSecret');
+    
+    if (!adminUser || adminUser.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    
+    if (!adminUser.twoFactorSecret) {
+      return res.status(400).json({ message: 'Please setup 2FA first' });
+    }
+    
+    if (adminUser.twoFactorEnabled) {
+      return res.status(400).json({ message: '2FA is already enabled' });
+    }
+    
+    // Verify the TOTP code
+    const isValid = authenticator.verify({ token: totpCode, secret: adminUser.twoFactorSecret });
+    
+    if (!isValid) {
+      logger.warn('Invalid 2FA verification attempt', { adminId: userId });
+      return res.status(400).json({ message: 'Invalid code. Please try again.' });
+    }
+    
+    // Enable 2FA
+    adminUser.twoFactorEnabled = true;
+    await adminUser.save();
+    
+    logger.info('2FA enabled successfully', { adminId: userId });
+    
+    res.json({ 
+      message: '2FA enabled successfully',
+      twoFactorEnabled: true
+    });
+  } catch (error) {
+    logger.error('2FA verification error', { error: error.message });
+    res.status(500).json({ message: 'Failed to verify 2FA' });
+  }
+};
+
+/**
+ * Disable 2FA (requires current TOTP code or backup code)
+ */
+exports.disable2FA = async (req, res) => {
+  try {
+    const { totpCode, password } = req.body;
+    const userId = req.admin?.user_id || req.userId;
+    
+    if (!totpCode || !password) {
+      return res.status(400).json({ message: 'Password and TOTP code required' });
+    }
+    
+    const adminUser = await User.findById(userId).select('+twoFactorSecret +twoFactorBackupCodes');
+    
+    if (!adminUser || adminUser.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    
+    if (!adminUser.twoFactorEnabled) {
+      return res.status(400).json({ message: '2FA is not enabled' });
+    }
+    
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, adminUser.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Invalid password' });
+    }
+    
+    // Verify TOTP code
+    const isValidTotp = authenticator.verify({ token: totpCode, secret: adminUser.twoFactorSecret });
+    const isBackupCode = adminUser.twoFactorBackupCodes?.includes(totpCode);
+    
+    if (!isValidTotp && !isBackupCode) {
+      return res.status(400).json({ message: 'Invalid 2FA code' });
+    }
+    
+    // Disable 2FA
+    adminUser.twoFactorEnabled = false;
+    adminUser.twoFactorSecret = undefined;
+    adminUser.twoFactorBackupCodes = [];
+    await adminUser.save();
+    
+    logger.info('2FA disabled', { adminId: userId });
+    
+    res.json({ 
+      message: '2FA disabled successfully',
+      twoFactorEnabled: false
+    });
+  } catch (error) {
+    logger.error('2FA disable error', { error: error.message });
+    res.status(500).json({ message: 'Failed to disable 2FA' });
+  }
+};
+
+/**
+ * Get 2FA status
+ */
+exports.get2FAStatus = async (req, res) => {
+  try {
+    const userId = req.admin?.user_id || req.userId;
+    const adminUser = await User.findById(userId);
+    
+    if (!adminUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json({ 
+      twoFactorEnabled: adminUser.twoFactorEnabled || false
+    });
+  } catch (error) {
+    logger.error('Get 2FA status error', { error: error.message });
+    res.status(500).json({ message: 'Failed to get 2FA status' });
   }
 };
 

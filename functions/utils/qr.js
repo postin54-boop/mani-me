@@ -1,21 +1,27 @@
 // QR code generation logic
 const QRCode = require('qrcode');
 
+// Website base URL for tracking
+const TRACKING_BASE_URL = 'https://maniime.com/track';
+
 function generateQRCodeData(shipmentData) {
+  // Generate a tracking URL instead of raw JSON
+  // This URL will be scannable and redirect to the tracking page
+  const trackingNumber = shipmentData.tracking_number || shipmentData.parcel_id_short;
+  return `${TRACKING_BASE_URL}/${trackingNumber}`;
+}
+
+// Generate full JSON data for internal use (stored separately)
+function generateQRCodeMetadata(shipmentData) {
   return JSON.stringify({
     parcel_id: shipmentData.parcel_id,
     parcel_id_short: shipmentData.parcel_id_short,
-    customer_id: shipmentData.user_id,
-    customer_name: shipmentData.sender_name,
-    customer_phone: shipmentData.sender_phone,
-    receiver_name: shipmentData.receiver_name,
-    receiver_phone: shipmentData.receiver_phone,
+    tracking_number: shipmentData.tracking_number,
     parcel_type: shipmentData.parcel_description || 'General',
     parcel_size: shipmentData.parcel_size,
     weight_kg: shipmentData.weight_kg,
     pickup_location: `${shipmentData.pickup_city}, ${shipmentData.pickup_postcode}`,
     destination: shipmentData.ghana_destination || shipmentData.delivery_city,
-    tracking_number: shipmentData.tracking_number,
     booked_at: shipmentData.booked_at,
     status: shipmentData.status
   });
@@ -37,4 +43,4 @@ async function generateQRCodeImage(qrCodeData) {
   }
 }
 
-module.exports = { generateQRCodeData, generateQRCodeImage };
+module.exports = { generateQRCodeData, generateQRCodeImage, generateQRCodeMetadata };

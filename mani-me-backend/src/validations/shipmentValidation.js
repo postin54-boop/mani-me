@@ -71,8 +71,15 @@ const updateStatus = {
   }),
   body: Joi.object({
     status: Joi.string().valid(
-      'pending', 'booked', 'picked_up', 'in_transit', 
-      'customs', 'out_for_delivery', 'delivered', 'cancelled'
+      // Core statuses
+      'pending', 'booked', 'pending_pickup', 'driver_assigned', 'driver_en_route',
+      'picked_up', 'at_uk_warehouse', 'processing', 'departed_uk',
+      'in_transit', 'arrived_ghana', 'customs', 'customs_cleared',
+      'out_for_delivery', 'delivered', 
+      // Exception statuses
+      'cancelled', 'on_hold', 'returned',
+      // Legacy aliases for backwards compatibility
+      'parcel_collected' // Same as picked_up
     ).required(),
     notes: Joi.string().max(500).optional(),
   }),

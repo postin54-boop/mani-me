@@ -59,6 +59,12 @@ const groceryOrderSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  // Link to shipment when order is shipped to Ghana
+  linked_shipment_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Shipment',
+    default: null
+  },
   notes: {
     type: String,
     default: ''
@@ -74,5 +80,7 @@ const groceryOrderSchema = new mongoose.Schema({
 // Index for faster queries
 groceryOrderSchema.index({ user_id: 1, order_status: 1 });
 groceryOrderSchema.index({ createdAt: -1 });
+groceryOrderSchema.index({ payment_intent_id: 1 }); // For Stripe webhook lookups
+groceryOrderSchema.index({ linked_shipment_id: 1 }); // For shipment linking
 
 module.exports = mongoose.model('GroceryOrder', groceryOrderSchema);

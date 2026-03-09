@@ -65,6 +65,7 @@ const shipmentSchema = new mongoose.Schema({
   },
   payment_intent_id: { type: String }, // Stripe payment intent ID
   payment_notes: { type: String }, // Notes for payment issues
+  payment_dispute: { type: Boolean, default: false }, // Flag for payment disputes/chargebacks
   paid_at: { type: Date }, // When payment was captured
   total_cost: { type: Number, default: 0.00 },
 

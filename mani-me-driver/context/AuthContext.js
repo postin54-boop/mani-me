@@ -203,7 +203,7 @@ export const AuthProvider = ({ children }) => {
             try {
               const pushToken = await registerForPushNotificationsAsync();
               if (pushToken && userData.id) {
-                await updatePushToken(userData.id, pushToken);
+                await updatePushToken(userData.id, pushToken, currentToken);
               }
             } catch (notifError) {
               logger.error("Failed to re-register push token:", notifError);
@@ -254,7 +254,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const pushToken = await registerForPushNotificationsAsync();
         if (pushToken && userData.id) {
-          await updatePushToken(userData.id, pushToken);
+          await updatePushToken(userData.id, pushToken, authToken);
         }
       } catch (notifError) {
         logger.error("Failed to register for push notifications:", notifError);
@@ -297,7 +297,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const pushToken = await registerForPushNotificationsAsync();
         if (pushToken && newUser.id) {
-          await updatePushToken(newUser.id, pushToken);
+          await updatePushToken(newUser.id, pushToken, authToken);
         }
       } catch (notifError) {
         logger.error("Failed to register for push notifications:", notifError);

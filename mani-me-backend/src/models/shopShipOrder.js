@@ -167,5 +167,6 @@ shopShipOrderSchema.index({ customer_id: 1, createdAt: -1 });
 shopShipOrderSchema.index({ status: 1, createdAt: -1 });
 // Note: order_number index is created by unique: true in field definition
 shopShipOrderSchema.index({ payment_status: 1 });
+shopShipOrderSchema.index({ payment_intent_id: 1 }); // For Stripe webhook lookups
 
 module.exports = mongoose.model('ShopShipOrder', shopShipOrderSchema);

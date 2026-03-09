@@ -129,5 +129,3 @@ describe('Payment Service', () => {
     });
   });
 });
-  });
-});

@@ -446,3 +446,28 @@ exports.getSizeAdjustmentStatus = async (req, res) => {
 		res.status(500).json({ error: 'Server error' });
 	}
 };
+
+/**
+ * POST /drivers/location - Update driver's live location
+ */
+exports.updateLocation = async (req, res) => {
+	try {
+		const { latitude, longitude, accuracy, heading, speed } = req.body;
+
+		await User.findByIdAndUpdate(req.userId, {
+			last_location: {
+				latitude,
+				longitude,
+				accuracy,
+				heading,
+				speed,
+				updated_at: new Date(),
+			}
+		});
+
+		res.json({ success: true });
+	} catch (error) {
+		logger.error('Error updating driver location', { error: error.message });
+		res.status(500).json({ error: 'Server error' });
+	}
+};

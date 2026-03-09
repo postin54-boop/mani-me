@@ -105,12 +105,15 @@ export default function GroceryPaymentScreen({ route, navigation }) {
     setLoading(true);
 
     try {
-      // Create payment intent
+      // Create payment intent (amount must be in pence for Stripe)
       const paymentResponse = await axios.post(
         `${API_BASE_URL}/api/payments/create-intent`,
         {
-          amount: getTotalAmount(),
+          amount: Math.round(getTotalAmount() * 100), // Convert pounds to pence
           currency: 'gbp'
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
         }
       );
 

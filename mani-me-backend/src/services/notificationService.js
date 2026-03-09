@@ -109,12 +109,33 @@ async function sendDeliveryAssignedNotification(pushToken, shipment, driver = {}
  */
 async function sendShipmentStatusNotification(pushToken, trackingNumber, status) {
   const statusMessages = {
+    // Booking & Pickup
     booked: 'Your parcel has been booked successfully! 📝',
+    pending_pickup: 'Your pickup is being scheduled 📅',
+    driver_assigned: 'A driver has been assigned for your pickup! 🚗',
+    driver_en_route: 'Your driver is on the way to collect your parcel! 🚗💨',
     picked_up: 'Your parcel has been picked up! 📦',
+    parcel_collected: 'Your parcel has been picked up! 📦',
+    
+    // UK Warehouse
+    at_uk_warehouse: 'Your parcel has arrived at our UK warehouse 🏭',
+    processing: 'Your parcel is being processed for shipping ⚙️',
+    departed_uk: 'Your parcel has left the UK! ✈️',
+    
+    // Transit & Ghana
     in_transit: 'Your parcel is now in transit to Ghana! ✈️',
+    arrived_ghana: 'Your parcel has arrived in Ghana! 🇬🇭',
     customs: 'Your parcel is going through customs clearance 🛃',
+    customs_cleared: 'Your parcel has cleared customs! ✅',
+    
+    // Delivery
     out_for_delivery: 'Your parcel is out for delivery! 🚚',
-    delivered: 'Your parcel has been delivered! ✅',
+    delivered: 'Your parcel has been delivered! ✅🎉',
+    
+    // Exceptions
+    on_hold: 'Your parcel is on hold. We will contact you shortly ⏸️',
+    cancelled: 'Your shipment has been cancelled ❌',
+    returned: 'Your parcel is being returned to sender 📤',
   };
 
   const title = 'Parcel Update';

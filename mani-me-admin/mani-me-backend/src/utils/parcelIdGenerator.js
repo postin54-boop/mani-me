@@ -1,5 +1,8 @@
 const QRCode = require('qrcode');
 
+// Website base URL for tracking
+const TRACKING_BASE_URL = 'https://maniime.com/track';
+
 /**
  * Generate unique parcel IDs
  * Format: MM-UK-2025-00482 (full) and MM482 (short)
@@ -19,23 +22,27 @@ function generateParcelId(sequenceNumber) {
 
 /**
  * Generate QR code data for a parcel
- * Layer 2: QR Code containing all essential information
+ * Returns a tracking URL that can be scanned to view parcel status
  */
 function generateQRCodeData(shipmentData) {
+  // Generate a tracking URL instead of raw JSON with phone numbers
+  const trackingNumber = shipmentData.tracking_number || shipmentData.parcel_id_short;
+  return `${TRACKING_BASE_URL}/${trackingNumber}`;
+}
+
+/**
+ * Generate full metadata for internal use (stored in database)
+ */
+function generateQRCodeMetadata(shipmentData) {
   return JSON.stringify({
     parcel_id: shipmentData.parcel_id,
     parcel_id_short: shipmentData.parcel_id_short,
-    customer_id: shipmentData.user_id,
-    customer_name: shipmentData.sender_name,
-    customer_phone: shipmentData.sender_phone,
-    receiver_name: shipmentData.receiver_name,
-    receiver_phone: shipmentData.receiver_phone,
+    tracking_number: shipmentData.tracking_number,
     parcel_type: shipmentData.parcel_description || 'General',
     parcel_size: shipmentData.parcel_size,
     weight_kg: shipmentData.weight_kg,
     pickup_location: `${shipmentData.pickup_city}, ${shipmentData.pickup_postcode}`,
     destination: shipmentData.ghana_destination || shipmentData.delivery_city,
-    tracking_number: shipmentData.tracking_number,
     booked_at: shipmentData.booked_at,
     status: shipmentData.status
   });
@@ -111,6 +118,7 @@ module.exports = {
   generateParcelId,
   generateQRCodeData,
   generateQRCodeImage,
+  generateQRCodeMetadata,
   determineParcelSize,
   getNextSequenceNumber
 };

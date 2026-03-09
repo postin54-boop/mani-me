@@ -73,12 +73,13 @@ app.use(cors({
     // Allow requests with no origin (mobile apps, Postman, curl, etc.)
     if (!origin) return callback(null, true);
     
-    // Allow all origins in development or if origin is in whitelist
-    if (allowedOrigins.includes(origin) || 
-        origin.endsWith('.vercel.app') || 
-        origin.endsWith('.onrender.com') ||
-        origin.endsWith('.netlify.app') ||
-        process.env.NODE_ENV !== 'production') {
+    // Allow all origins in development
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    
+    // In production, only allow whitelisted origins
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
     
@@ -95,7 +96,13 @@ app.use(cors({
 app.use('/api', apiLimiter);
 
 // Body parsing with size limits (reduced for security)
-app.use(express.json({ limit: '2mb' }));
+// Skip JSON parsing for Stripe webhook to preserve raw body for signature verification
+app.use((req, res, next) => {
+  if (req.originalUrl === '/api/payments/webhook') {
+    return next();
+  }
+  express.json({ limit: '2mb' })(req, res, next);
+});
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 // Input sanitization middleware (prevents NoSQL injection)
@@ -150,9 +157,9 @@ const apm = require('./utils/apm');
 // Track all requests
 app.use(apm.middleware());
 
-// APM stats endpoint (protected, admin only in production)
-app.get('/api/stats', (req, res) => {
-  // In production, you might want to protect this endpoint
+// APM stats endpoint (protected, admin only)
+const { verifyToken, verifyAdmin } = require('./middleware/auth');
+app.get('/api/stats', verifyToken, verifyAdmin, (req, res) => {
   res.json(apm.getStats());
 });
 

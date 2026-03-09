@@ -3,6 +3,8 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { verifyToken } = require('../middleware/auth');
 const { loginLimiter, registerLimiter } = require('../middleware/rateLimiter');
+const validate = require('../middleware/validate');
+const { auth } = require('../validations');
 
 /**
  * @swagger
@@ -30,7 +32,7 @@ const { loginLimiter, registerLimiter } = require('../middleware/rateLimiter');
  *       409:
  *         description: Email already exists
  */
-router.post('/register', registerLimiter, authController.register);
+router.post('/register', registerLimiter, validate(auth.register), authController.register);
 
 /**
  * @swagger
@@ -56,14 +58,14 @@ router.post('/register', registerLimiter, authController.register);
  *       401:
  *         description: Invalid credentials
  */
-router.post('/login', loginLimiter, authController.login);
+router.post('/login', loginLimiter, validate(auth.login), authController.login);
 
 // Public endpoints
 router.get('/test', authController.test);
 router.get('/me', authController.me);
 router.post('/refresh', authController.refresh);
-router.post('/forgot-password', authController.forgotPassword);
-router.post('/reset-password', authController.resetPassword);
+router.post('/forgot-password', validate(auth.forgotPassword), authController.forgotPassword);
+router.post('/reset-password', validate(auth.resetPassword), authController.resetPassword);
 router.post('/verify-email', authController.verifyEmail);
 router.post('/resend-verification', authController.resendVerification);
 
@@ -91,7 +93,7 @@ router.post('/resend-verification', authController.resendVerification);
  *       401:
  *         description: Unauthorized
  */
-router.post('/update-push-token', verifyToken, authController.updatePushToken);
+router.post('/update-push-token', verifyToken, validate(auth.updatePushToken), authController.updatePushToken);
 
 /**
  * @swagger
@@ -117,6 +119,6 @@ router.post('/update-push-token', verifyToken, authController.updatePushToken);
  *       401:
  *         description: Unauthorized
  */
-router.put('/update-profile', verifyToken, authController.updateProfile);
+router.put('/update-profile', verifyToken, validate(auth.updateProfile), authController.updateProfile);
 
 module.exports = router;

@@ -20,7 +20,10 @@ const app = initializeApp(firebaseConfig);
 export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
+
+// Initialize Firestore (uses memory cache by default on React Native)
 export const db = getFirestore(app);
+
 export const storage = getStorage(app);
 export { app };
 export default app;

@@ -33,8 +33,8 @@ export default {
       }
     },
     android: {
-      compileSdkVersion: 34,
-      targetSdkVersion: 34,
+      compileSdkVersion: 35,
+      targetSdkVersion: 35,
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#0B1A33"
@@ -73,7 +73,7 @@ export default {
       // For production, use the deployed API URL
       // apiUrl is now controlled by src/api.js USE_LOCAL_BACKEND flag
       apiUrl: null,
-      stripePublishableKey: process.env.STRIPE_KEY || process.env.EXPO_PUBLIC_STRIPE_KEY || "pk_test_51SkMiJRx556lxcckTLrW8xVroC3TflDIKMBfSdat6KAoaLXO4MQPBkUNi4F0pLizmMp6lmHjhxQJGoXu6Iq3PrnB00QfalR70y",
+      stripePublishableKey: process.env.STRIPE_KEY || process.env.EXPO_PUBLIC_STRIPE_KEY || "",
       environment: process.env.NODE_ENV || "development",
       // App Store required URLs
       privacyPolicyUrl: "https://manime.co.uk/privacy",

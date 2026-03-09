@@ -80,7 +80,7 @@ export default function PackagingShop() {
 
   // Inline price edit handlers
   const handleInlinePriceEdit = (item) => {
-    setEditingPriceId(item.id);
+    setEditingPriceId(item._id);
     setInlinePrice((item.price || 0).toString());
   };
   const handleInlinePriceCancel = () => {
@@ -89,7 +89,7 @@ export default function PackagingShop() {
   };
   const handleInlinePriceSave = async (item) => {
     try {
-      const res = await api.put(`/api/shop/packaging/${item._id || item.id}`, {
+      const res = await api.put(`/api/shop/packaging/${item._id}`, {
         ...item, price: parseFloat(inlinePrice)
       });
       setItems(items.map(i => (i._id === res.data._id ? res.data : i)));
@@ -101,7 +101,7 @@ export default function PackagingShop() {
   const handleSave = async () => {
     try {
       if (editingItem) {
-        const res = await api.put(`/api/shop/packaging/${editingItem._id || editingItem.id}`, {
+        const res = await api.put(`/api/shop/packaging/${editingItem._id}`, {
           ...formData,
           price: parseFloat(formData.price),
           stock: parseInt(formData.stock)
@@ -123,7 +123,7 @@ export default function PackagingShop() {
     if (window.confirm('Are you sure you want to delete this item?')) {
       try {
         await api.delete(`/api/shop/packaging/${id}`);
-        setItems(items.filter(item => (item._id || item.id) !== id));
+        setItems(items.filter(item => item._id !== id));
       } catch (e) { /* ignore */ }
     }
   };
@@ -182,7 +182,7 @@ export default function PackagingShop() {
           </TableHead>
           <TableBody>
             {items.map((item) => (
-              <TableRow key={item.id}>
+              <TableRow key={item._id}>
                 <TableCell>
                   <Box 
                     component="img" 
@@ -197,7 +197,7 @@ export default function PackagingShop() {
                 </TableCell>
                 <TableCell>{item.description}</TableCell>
                 <TableCell align="right">
-                  {editingPriceId === item.id ? (
+                  {editingPriceId === item._id ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <TextField
                         size="small"
@@ -234,7 +234,7 @@ export default function PackagingShop() {
                   <IconButton size="small" onClick={() => handleEdit(item)}>
                     <EditIcon />
                   </IconButton>
-                  <IconButton size="small" onClick={() => handleDelete(item.id)}>
+                  <IconButton size="small" onClick={() => handleDelete(item._id)}>
                     <DeleteIcon />
                   </IconButton>
                 </TableCell>

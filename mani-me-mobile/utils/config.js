@@ -11,7 +11,7 @@ const getApiUrl = () => {
   // First check for environment/config override (must be a non-null string)
   const configUrl = Constants.expoConfig?.extra?.apiUrl;
   if (configUrl && typeof configUrl === 'string') return configUrl;
-  // Always use production URL (change to LOCAL_URL for local testing)
+  // Use production URL
   return PRODUCTION_URL;
 };
 

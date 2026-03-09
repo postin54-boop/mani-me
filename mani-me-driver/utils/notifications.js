@@ -61,17 +61,25 @@ export async function registerForPushNotificationsAsync() {
 
 /**
  * Update driver's push token on the backend
- * @param {string} userId - Driver ID
+ * @param {string} userId - Driver ID (legacy, now ignored - userId derived from JWT)
  * @param {string} pushToken - Expo push token
+ * @param {string} authToken - JWT auth token for Authorization header
  */
-export async function updatePushToken(userId, pushToken) {
+export async function updatePushToken(userId, pushToken, authToken) {
   try {
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Include auth token if provided (required for authenticated endpoints)
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    
     const response = await fetch(`${API_BASE_URL}/api/auth/update-push-token`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userId, pushToken }),
+      headers,
+      body: JSON.stringify({ pushToken }),
     });
 
     if (response.ok) {

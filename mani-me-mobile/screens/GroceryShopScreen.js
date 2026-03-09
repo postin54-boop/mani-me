@@ -26,16 +26,16 @@ export default function GroceryShopScreen({ navigation }) {
   const { user, token } = useUser();
   const { isConnected, isInternetReachable } = useNetworkStatus();
   
-  const [selectedCategory, setSelectedCategory] = useState('grocery');
+  const [selectedCategory, setSelectedCategory] = useState('Grocery');
   const [items, setItems] = useState([]);
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
   const categories = [
-    { id: 'grocery', label: 'Grocery', icon: 'cart' },
-    { id: 'electronics', label: 'Electronics', icon: 'hardware-chip' },
-    { id: 'household', label: 'Household', icon: 'home' }
+    { id: 'Grocery', label: 'Grocery', icon: 'cart' },
+    { id: 'Electronics', label: 'Electronics', icon: 'hardware-chip' },
+    { id: 'Household', label: 'Household', icon: 'home' }
   ];
 
   useEffect(() => {
@@ -156,17 +156,18 @@ export default function GroceryShopScreen({ navigation }) {
 
     return (
       <View key={item._id} style={[styles.card, { backgroundColor: colors.surface }]}>
-        <View style={styles.imageContainer}>
+        {/* Product Image */}
+        <View style={[styles.imageContainer, { backgroundColor: colors.background }]}>
           {item.image_url ? (
             <Image
               source={{ uri: item.image_url }}
               style={styles.itemImage}
-              resizeMode="contain"
+              resizeMode="cover"
             />
           ) : (
             <View style={styles.placeholderImage}>
               <Ionicons 
-                name={selectedCategory === 'electronics' ? 'hardware-chip' : selectedCategory === 'household' ? 'home' : 'cart'}
+                name={selectedCategory === 'Electronics' ? 'hardware-chip' : selectedCategory === 'Household' ? 'home' : 'cart'}
                 size={48} 
                 color={colors.textSecondary} 
               />
@@ -174,28 +175,22 @@ export default function GroceryShopScreen({ navigation }) {
           )}
         </View>
 
+        {/* Product Name */}
         <Text style={[styles.itemName, { color: colors.text }]} numberOfLines={2}>
           {item.name}
         </Text>
-        <Text style={[styles.itemDescription, { color: colors.textSecondary }]} numberOfLines={1}>
-          {item.description}
+        
+        {/* Pack Size */}
+        <Text style={[styles.itemPackSize, { color: colors.textSecondary }]}>
+          {item.pack_size}
         </Text>
         
-        <View style={styles.priceRow}>
-          <Text style={[styles.itemPrice, { color: colors.primary }]}>
-            £{(item?.price || 0).toFixed(2)}
-          </Text>
-          {item.stock > 0 ? (
-            <Text style={[styles.stockText, { color: colors.textSecondary }]}>
-              {item.stock} left
-            </Text>
-          ) : (
-            <Text style={[styles.outOfStock, { color: '#dc2626' }]}>
-              Out of stock
-            </Text>
-          )}
-        </View>
+        {/* Price */}
+        <Text style={[styles.itemPrice, { color: colors.primary }]}>
+          £{(item?.price || 0).toFixed(2)}
+        </Text>
 
+        {/* Add to Cart / Quantity Controls */}
         {quantity > 0 ? (
           <View style={styles.quantityControls}>
             <TouchableOpacity
@@ -218,7 +213,7 @@ export default function GroceryShopScreen({ navigation }) {
             onPress={() => addToCart(item)}
             disabled={item.stock === 0}
           >
-            <Text style={styles.addButtonText}>Add to Cart</Text>
+            <Text style={styles.addButtonText}>{item.stock === 0 ? 'Out of Stock' : 'Add to Cart'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -447,27 +442,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 4,
   },
-  itemDescription: {
+  itemPackSize: {
     fontSize: 12,
-    lineHeight: 18,
-    marginBottom: 8,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 8,
   },
   itemPrice: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-  },
-  stockText: {
-    fontSize: 11,
-  },
-  outOfStock: {
-    fontSize: 11,
-    fontWeight: '600',
+    marginBottom: 12,
   },
   quantityControls: {
     flexDirection: 'row',

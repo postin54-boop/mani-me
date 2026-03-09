@@ -81,7 +81,8 @@ exports.login = async (req, res) => {
  */
 exports.updatePushToken = async (req, res) => {
   try {
-    await authService.updatePushToken(req.body);
+    // Use userId from JWT token (set by verifyToken middleware) to prevent IDOR
+    await authService.updatePushToken({ userId: req.userId, pushToken: req.body.pushToken });
     return res.json({ message: 'Push token updated successfully' });
   } catch (error) {
     logger.error('Push token update error:', { error: error.message });
@@ -94,7 +95,12 @@ exports.updatePushToken = async (req, res) => {
  */
 exports.updateProfile = async (req, res) => {
   try {
-    const user = await authService.updateProfile(req.body);
+    // Use userId from JWT token (set by verifyToken middleware) to prevent IDOR
+    const { name, email, phone, address, vehicle_number, profileImage } = req.body;
+    const user = await authService.updateProfile({ 
+      userId: req.userId, 
+      name, email, phone, address, vehicle_number, profileImage 
+    });
     return res.json({
       message: 'Profile updated successfully',
       user: { ...user, address: req.body.address },

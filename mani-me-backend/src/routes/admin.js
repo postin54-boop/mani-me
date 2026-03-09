@@ -4,8 +4,13 @@ const adminController = require('../controllers/adminController');
 const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
 const logger = require('../utils/logger');
+const validate = require('../middleware/validate');
+const { auth, shipment } = require('../validations');
 
 const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable not set. Generate with: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
+}
 
 // Admin login rate limiter
 const adminLoginLimiter = rateLimit({
@@ -34,15 +39,21 @@ const verifyAdmin = (req, res, next) => {
 };
 
 // Auth
-router.post('/login', adminLoginLimiter, adminController.login);
+router.post('/login', adminLoginLimiter, validate(auth.login), adminController.login);
 router.get('/verify', verifyAdmin, adminController.verify);
+
+// Two-Factor Authentication (2FA)
+router.post('/2fa/setup', verifyAdmin, adminController.setup2FA);
+router.post('/2fa/verify', verifyAdmin, adminController.verify2FA);
+router.post('/2fa/disable', verifyAdmin, adminController.disable2FA);
+router.get('/2fa/status', verifyAdmin, adminController.get2FAStatus);
 
 // Dashboard
 router.get('/dashboard', verifyAdmin, adminController.getDashboard);
 
 // Orders
 router.get('/orders', verifyAdmin, adminController.getOrders);
-router.put('/orders/:id/status', verifyAdmin, adminController.updateOrderStatus);
+router.put('/orders/:id/status', verifyAdmin, validate(shipment.updateStatus), adminController.updateOrderStatus);
 
 // Users
 router.get('/users', verifyAdmin, adminController.getUsers);
@@ -58,7 +69,7 @@ router.get('/pickups/assigned', verifyAdmin, adminController.getAssignedPickups)
 router.get('/deliveries/pending', verifyAdmin, adminController.getPendingDeliveries);
 
 // Driver Assignment
-router.put('/shipments/:id/assign-pickup-driver', verifyAdmin, adminController.assignPickupDriver);
-router.put('/shipments/:id/assign-delivery-driver', verifyAdmin, adminController.assignDeliveryDriver);
+router.put('/shipments/:id/assign-pickup-driver', verifyAdmin, validate(shipment.assignDriver), adminController.assignPickupDriver);
+router.put('/shipments/:id/assign-delivery-driver', verifyAdmin, validate(shipment.assignDriver), adminController.assignDeliveryDriver);
 
 module.exports = router;

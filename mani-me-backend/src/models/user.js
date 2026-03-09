@@ -41,6 +41,21 @@ const userSchema = new mongoose.Schema({
 	email_verified: { type: Boolean, default: false },
 	verification_token: { type: String, index: true },
 	verification_token_expires: { type: Date },
+
+	// Two-Factor Authentication (2FA)
+	twoFactorEnabled: { type: Boolean, default: false },
+	twoFactorSecret: { type: String, select: false }, // Hidden by default
+	twoFactorBackupCodes: [{ type: String, select: false }], // One-time backup codes
+
+	// Driver live location (updated by background tracking)
+	last_location: {
+		latitude: { type: Number },
+		longitude: { type: Number },
+		accuracy: { type: Number },
+		heading: { type: Number },
+		speed: { type: Number },
+		updated_at: { type: Date },
+	},
 }, { timestamps: true });
 
 // ========================================

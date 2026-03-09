@@ -1,8 +1,10 @@
 /**
  * Production-Ready Structured Logger
  * Uses Winston for structured JSON logging with correlation IDs
+ * Daily log rotation in production to prevent disk exhaustion
  */
 const winston = require('winston');
+require('winston-daily-rotate-file');
 
 const logFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
@@ -31,18 +33,22 @@ const logger = winston.createLogger({
   ],
 });
 
-// Add file transport in production
+// Add daily-rotating file transports in production
 if (process.env.NODE_ENV === 'production') {
-  logger.add(new winston.transports.File({ 
-    filename: 'logs/error.log', 
+  logger.add(new winston.transports.DailyRotateFile({
+    filename: 'logs/error-%DATE%.log',
     level: 'error',
-    maxsize: 5242880, // 5MB
-    maxFiles: 5,
+    datePattern: 'YYYY-MM-DD',
+    maxSize: '20m',
+    maxFiles: '30d',
+    zippedArchive: true,
   }));
-  logger.add(new winston.transports.File({ 
-    filename: 'logs/combined.log',
-    maxsize: 5242880,
-    maxFiles: 5,
+  logger.add(new winston.transports.DailyRotateFile({
+    filename: 'logs/combined-%DATE%.log',
+    datePattern: 'YYYY-MM-DD',
+    maxSize: '20m',
+    maxFiles: '14d',
+    zippedArchive: true,
   }));
 }
 

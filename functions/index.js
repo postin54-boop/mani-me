@@ -1,4 +1,4 @@
-const { onCall } = require("firebase-functions/v2/https");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const QRCode = require("qrcode");
@@ -7,10 +7,20 @@ const QRCode = require("qrcode");
 initializeApp();
 const db = getFirestore();
 
+// Helper to verify authentication
+const requireAuth = (context, functionName) => {
+  if (!context.auth) {
+    throw new HttpsError('unauthenticated', `${functionName} requires authentication`);
+  }
+  return context.auth.uid;
+};
+
 // Generate QR Code
 exports.generateQRCode = onCall(async (data, context) => {
+  requireAuth(context, 'generateQRCode');
+  
   const { parcelId } = data;
-  if (!parcelId) throw new Error("Missing parcelId");
+  if (!parcelId) throw new HttpsError('invalid-argument', "Missing parcelId");
 
   const qrData = `parcel:${parcelId}`;
   const qrImage = await QRCode.toDataURL(qrData);
@@ -25,11 +35,11 @@ exports.generateQRCode = onCall(async (data, context) => {
 //   return { message: "Login endpoint hit" };
 // });
 
-// Register Driver
+// Register Driver (public - no auth required for registration)
 exports.registerDriver = onCall(async (data, context) => {
   const { name, email, phone, vehicle } = data;
   if (!name || !email || !phone || !vehicle)
-    throw new Error("Missing required fields");
+    throw new HttpsError('invalid-argument', "Missing required fields");
 
   const driverRef = db.collection("drivers").doc();
 
@@ -46,20 +56,26 @@ exports.registerDriver = onCall(async (data, context) => {
 
 // Create Parcel
 exports.createParcel = onCall(async (data, context) => {
+  const uid = requireAuth(context, 'createParcel');
+  
   const { senderId, receiverName, receiverAddress, weight, status } = data;
 
-  if (!senderId || !receiverName || !receiverAddress || !weight)
-    throw new Error("Missing required parcel fields");
+  // Use authenticated user's ID if senderId not provided
+  const actualSenderId = senderId || uid;
+
+  if (!receiverName || !receiverAddress || !weight)
+    throw new HttpsError('invalid-argument', "Missing required parcel fields");
 
   const parcelRef = db.collection("parcels").doc();
 
   await parcelRef.set({
-    senderId,
+    senderId: actualSenderId,
     receiverName,
     receiverAddress,
     weight,
     status: status || "pending",
     createdAt: new Date().toISOString(),
+    createdBy: uid,
   });
 
   return { id: parcelRef.id, message: "Parcel created" };
@@ -67,8 +83,10 @@ exports.createParcel = onCall(async (data, context) => {
 
 // Assign Driver
 exports.assignDriver = onCall(async (data, context) => {
+  requireAuth(context, 'assignDriver');
+  
   const { parcelId, driverId } = data;
-  if (!parcelId || !driverId) throw new Error("Missing IDs");
+  if (!parcelId || !driverId) throw new HttpsError('invalid-argument', "Missing IDs");
 
   await db.collection("parcels").doc(parcelId).update({
     driverId,
@@ -80,8 +98,10 @@ exports.assignDriver = onCall(async (data, context) => {
 
 // Update Parcel Status
 exports.updateParcelStatus = onCall(async (data, context) => {
+  requireAuth(context, 'updateParcelStatus');
+  
   const { parcelId, status } = data;
-  if (!parcelId || !status) throw new Error("Missing fields");
+  if (!parcelId || !status) throw new HttpsError('invalid-argument', "Missing fields");
 
   await db.collection("parcels").doc(parcelId).update({
     status,
@@ -93,8 +113,10 @@ exports.updateParcelStatus = onCall(async (data, context) => {
 
 // Send Driver Message
 exports.sendDriverMessage = onCall(async (data, context) => {
+  requireAuth(context, 'sendDriverMessage');
+  
   const { driverId, message } = data;
-  if (!driverId || !message) throw new Error("Missing fields");
+  if (!driverId || !message) throw new HttpsError('invalid-argument', "Missing fields");
 
   const msgRef = db
     .collection("drivers")
@@ -105,6 +127,7 @@ exports.sendDriverMessage = onCall(async (data, context) => {
   await msgRef.set({
     message,
     sentAt: new Date().toISOString(),
+    sentBy: context.auth.uid,
   });
 
   return { id: msgRef.id, message: "Message sent" };
@@ -112,8 +135,10 @@ exports.sendDriverMessage = onCall(async (data, context) => {
 
 // Scan Parcel
 exports.scanParcel = onCall(async (data, context) => {
+  const uid = requireAuth(context, 'scanParcel');
+  
   const { parcelId, scannedBy } = data;
-  if (!parcelId || !scannedBy) throw new Error("Missing fields");
+  if (!parcelId) throw new HttpsError('invalid-argument', "Missing parcelId");
 
   const scanRef = db
     .collection("parcels")
@@ -122,7 +147,7 @@ exports.scanParcel = onCall(async (data, context) => {
     .doc();
 
   await scanRef.set({
-    scannedBy,
+    scannedBy: scannedBy || uid,
     scannedAt: new Date().toISOString(),
   });
 
@@ -131,12 +156,12 @@ exports.scanParcel = onCall(async (data, context) => {
 
 // Order History
 exports.getOrderHistory = onCall(async (data, context) => {
-  const { userId } = data;
-  if (!userId) throw new Error("Missing userId");
-
+  const uid = requireAuth(context, 'getOrderHistory');
+  
+  // Only allow users to see their own orders
   const snap = await db
     .collection("parcels")
-    .where("senderId", "==", userId)
+    .where("senderId", "==", uid)
     .get();
 
   const orders = snap.docs.map((doc) => ({

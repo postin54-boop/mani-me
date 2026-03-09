@@ -24,7 +24,9 @@ import {
   Card,
   CardContent,
   Avatar,
-  InputAdornment
+  InputAdornment,
+  Tabs,
+  Tab
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, ShoppingCart, Inventory, Image as ImageIcon, Search as SearchIcon } from '@mui/icons-material';
 import { API_BASE_URL } from '../api';
@@ -39,11 +41,13 @@ export default function GroceryShop() {
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
+    brand: '',
     description: '',
     price: '',
-    category: 'grocery',
+    category: 'Grocery',
+    subcategory: '',
+    pack_size: '',
     stock: '',
-    unit: 'item',
     is_available: true,
     image_url: ''
   });
@@ -53,6 +57,7 @@ export default function GroceryShop() {
   const [totalCount, setTotalCount] = useState(0);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
 
   // Debounce search
   useEffect(() => {
@@ -65,7 +70,7 @@ export default function GroceryShop() {
 
   useEffect(() => {
     fetchItems();
-  }, [page, rowsPerPage, debouncedSearch]);
+  }, [page, rowsPerPage, debouncedSearch, categoryFilter]);
 
   const fetchItems = async () => {
     try {
@@ -73,6 +78,7 @@ export default function GroceryShop() {
         page: page + 1,
         limit: rowsPerPage,
         ...(debouncedSearch && { search: debouncedSearch }),
+        ...(categoryFilter !== 'All' && { category: categoryFilter }),
       };
       const response = await api.get('/api/grocery/admin/items', { params });
       const data = response.data;
@@ -94,11 +100,13 @@ export default function GroceryShop() {
     setEditingItem(null);
     setFormData({
       name: '',
+      brand: '',
       description: '',
       price: '',
-      category: 'grocery',
+      category: 'Grocery',
+      subcategory: '',
+      pack_size: '',
       stock: '',
-      unit: 'item',
       is_available: true,
       image_url: ''
     });
@@ -108,13 +116,15 @@ export default function GroceryShop() {
   const handleEdit = (item) => {
     setEditingItem(item);
     setFormData({
-      name: item.name,
-      description: item.description,
-      price: item.price,
-      category: item.category,
-      stock: item.stock,
-      unit: item.unit,
-      is_available: item.is_available,
+      name: item.name || '',
+      brand: item.brand || '',
+      description: item.description || '',
+      price: item.price || '',
+      category: item.category || 'Grocery',
+      subcategory: item.subcategory || '',
+      pack_size: item.pack_size || '',
+      stock: item.stock || '',
+      is_available: item.is_available !== false,
       image_url: item.image_url || ''
     });
     setDialogOpen(true);
@@ -168,9 +178,9 @@ export default function GroceryShop() {
 
   const getCategoryIcon = (category) => {
     switch (category) {
-      case 'grocery': return '🛒';
-      case 'electronics': return '💻';
-      case 'household': return '🏠';
+      case 'Grocery': return '🛒';
+      case 'Electronics': return '💻';
+      case 'Household': return '🏠';
       default: return '📦';
     }
   };
@@ -205,6 +215,22 @@ export default function GroceryShop() {
           </Button>
         </Box>
       </Box>
+
+      {/* Category Tabs */}
+      <Paper sx={{ mb: 3 }}>
+        <Tabs
+          value={categoryFilter}
+          onChange={(e, newValue) => { setCategoryFilter(newValue); setPage(0); }}
+          indicatorColor="primary"
+          textColor="primary"
+          variant="fullWidth"
+        >
+          <Tab value="All" label="📦 All Items" />
+          <Tab value="Grocery" label="🛒 Grocery" />
+          <Tab value="Electronics" label="💻 Electronics" />
+          <Tab value="Household" label="🏠 Household" />
+        </Tabs>
+      </Paper>
 
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -257,10 +283,10 @@ export default function GroceryShop() {
               <TableCell>Image</TableCell>
               <TableCell>Category</TableCell>
               <TableCell>Name</TableCell>
-              <TableCell>Description</TableCell>
+              <TableCell>Brand</TableCell>
+              <TableCell>Pack Size</TableCell>
               <TableCell>Price</TableCell>
               <TableCell>Stock</TableCell>
-              <TableCell>Unit</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
@@ -281,9 +307,8 @@ export default function GroceryShop() {
                   <Chip label={`${getCategoryIcon(item.category)} ${item.category}`} size="small" />
                 </TableCell>
                 <TableCell>{item.name}</TableCell>
-                <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {item.description}
-                </TableCell>
+                <TableCell>{item.brand || '-'}</TableCell>
+                <TableCell>{item.pack_size || '-'}</TableCell>
                 <TableCell>£{(item.price || 0).toFixed(2)}</TableCell>
                 <TableCell>
                   <Chip
@@ -292,7 +317,6 @@ export default function GroceryShop() {
                     size="small"
                   />
                 </TableCell>
-                <TableCell>{item.unit}</TableCell>
                 <TableCell>
                   <Chip
                     label={item.is_available ? 'Available' : 'Unavailable'}
@@ -331,35 +355,69 @@ export default function GroceryShop() {
             <Grid item xs={12} md={8}>
               <TextField
                 fullWidth
-                label="Name"
+                label="Product Name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 margin="normal"
                 required
+                placeholder="e.g., Green Dragon Rice"
+              />
+              <TextField
+                fullWidth
+                label="Brand"
+                value={formData.brand}
+                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                margin="normal"
+                placeholder="e.g., Green Dragon, Apple, Pampers"
               />
               <TextField
                 fullWidth
                 label="Description"
                 multiline
-                rows={3}
+                rows={2}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 margin="normal"
+                placeholder="Brief product description"
               />
-              <TextField
-                fullWidth
-                select
-                label="Category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                margin="normal"
-              >
-                <MenuItem value="grocery">🛒 Grocery</MenuItem>
-                <MenuItem value="electronics">💻 Electronics</MenuItem>
-                <MenuItem value="household">🏠 Household</MenuItem>
-              </TextField>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    select
+                    label="Category"
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    margin="normal"
+                  >
+                    <MenuItem value="Grocery">🛒 Grocery</MenuItem>
+                    <MenuItem value="Electronics">💻 Electronics</MenuItem>
+                    <MenuItem value="Household">🏠 Household</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    label="Subcategory"
+                    value={formData.subcategory}
+                    onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
+                    margin="normal"
+                    placeholder="e.g., Rice, Phones, Baby"
+                  />
+                </Grid>
+              </Grid>
+              <Grid container spacing={2}>
+                <Grid item xs={4}>
+                  <TextField
+                    fullWidth
+                    label="Pack Size"
+                    value={formData.pack_size}
+                    onChange={(e) => setFormData({ ...formData, pack_size: e.target.value })}
+                    margin="normal"
+                    placeholder="e.g., 10kg, 1 unit"
+                  />
+                </Grid>
+                <Grid item xs={4}>
                   <TextField
                     fullWidth
                     label="Price (£)"
@@ -370,7 +428,7 @@ export default function GroceryShop() {
                     required
                   />
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={4}>
                   <TextField
                     fullWidth
                     label="Stock"
@@ -382,31 +440,17 @@ export default function GroceryShop() {
                   />
                 </Grid>
               </Grid>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Unit"
-                    value={formData.unit}
-                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                    margin="normal"
-                    placeholder="e.g., item, kg, litre"
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    select
-                    label="Status"
-                    value={formData.is_available}
-                    onChange={(e) => setFormData({ ...formData, is_available: e.target.value })}
-                    margin="normal"
-                  >
-                    <MenuItem value={true}>Available</MenuItem>
-                    <MenuItem value={false}>Unavailable</MenuItem>
-                  </TextField>
-                </Grid>
-              </Grid>
+              <TextField
+                fullWidth
+                select
+                label="Availability"
+                value={formData.is_available}
+                onChange={(e) => setFormData({ ...formData, is_available: e.target.value })}
+                margin="normal"
+              >
+                <MenuItem value={true}>✅ Available</MenuItem>
+                <MenuItem value={false}>❌ Unavailable</MenuItem>
+              </TextField>
             </Grid>
             <Grid item xs={12} md={4}>
               <Box sx={{ mt: 2 }}>

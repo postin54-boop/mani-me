@@ -9,6 +9,7 @@ const GroceryOrder = require('../models/groceryOrder');
 const User = require('../models/user');
 const { sendOrderReceiptEmail } = require('../utils/email');
 const logger = require('../utils/logger');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // Public
 exports.getItems = async (req, res) => {
@@ -147,15 +148,51 @@ exports.createOrder = async (req, res) => {
 exports.updateOrderPayment = async (req, res) => {
   try {
     const { payment_intent_id } = req.body;
+    if (!payment_intent_id) {
+      return res.status(400).json({ message: 'Payment intent ID required' });
+    }
+    
     const order = await GroceryOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
     if (order.user_id.toString() !== req.userId) return res.status(403).json({ message: 'Unauthorized' });
+    
+    // SECURITY: Verify payment with Stripe before marking as paid
+    const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
+    if (paymentIntent.status !== 'succeeded') {
+      logger.warn('Payment verification failed', { 
+        orderId: order._id, 
+        paymentIntentId: payment_intent_id,
+        stripeStatus: paymentIntent.status 
+      });
+      return res.status(400).json({ 
+        message: 'Payment not completed', 
+        stripeStatus: paymentIntent.status 
+      });
+    }
+    
+    // Verify amount matches (prevent amount manipulation)
+    const expectedAmountCents = Math.round(order.total_amount * 100);
+    if (paymentIntent.amount !== expectedAmountCents) {
+      logger.warn('Payment amount mismatch', {
+        orderId: order._id,
+        expected: expectedAmountCents,
+        received: paymentIntent.amount
+      });
+      return res.status(400).json({ message: 'Payment amount mismatch' });
+    }
+    
     order.payment_status = 'paid';
     order.payment_intent_id = payment_intent_id;
     order.order_status = 'confirmed';
     await order.save();
+    
+    logger.info('Order payment verified and confirmed', { orderId: order._id });
     res.json(order);
   } catch (error) {
+    if (error.type === 'StripeInvalidRequestError') {
+      logger.warn('Invalid payment intent', { error: error.message });
+      return res.status(400).json({ message: 'Invalid payment intent' });
+    }
     logger.error('Error updating payment', { error: error.message });
     res.status(500).json({ message: 'Failed to update payment' });
   }

@@ -18,5 +18,15 @@ services:
         sync: false
       - key: FIREBASE_SERVICE_ACCOUNT
         sync: false  # Base64-encoded Firebase service account JSON (required for chat)
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: FROM_EMAIL
+        value: noreply@manime.co.uk
+      - key: FROM_NAME
+        value: Mani Me
     healthCheckPath: /health
     autoDeploy: true

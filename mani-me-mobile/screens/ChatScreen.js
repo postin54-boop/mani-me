@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import logger from '../utils/logger';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, StatusBar, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,6 +25,7 @@ export default function ChatScreen({ route, navigation }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const flatListRef = useRef(null);
 
   // Get user ID - handle both 'id' and '_id' formats
@@ -36,6 +37,7 @@ export default function ChatScreen({ route, navigation }) {
   useEffect(() => {
     if (!userId) {
       logger.log("No user ID → skipping listener setup");
+      setInitialLoading(false);
       return;
     }
 
@@ -67,6 +69,7 @@ export default function ChatScreen({ route, navigation }) {
       });
       logger.log("Real-time update: received", newMessages.length, "messages");
       setMessages(newMessages);
+      setInitialLoading(false);
       
       // Auto-scroll to bottom on new messages
       setTimeout(() => {
@@ -74,6 +77,7 @@ export default function ChatScreen({ route, navigation }) {
       }, 100);
     }, (error) => {
       logger.error("Firebase listener error:", error);
+      setInitialLoading(false);
     });
 
     // Cleanup listener on unmount
@@ -163,10 +167,10 @@ export default function ChatScreen({ route, navigation }) {
           styles.messageBubble,
           isMyMessage
             ? { backgroundColor: colors.primary, borderTopRightRadius: 4, borderTopLeftRadius: 18, borderBottomRightRadius: 18, borderBottomLeftRadius: 18, alignSelf: 'flex-end', borderWidth: 0 }
-            : { backgroundColor: colors.surface, borderLeftWidth: 4, borderLeftColor: '#83C5FA', borderTopLeftRadius: 4, borderTopRightRadius: 18, borderBottomRightRadius: 18, borderBottomLeftRadius: 18, alignSelf: 'flex-start' }
+            : { backgroundColor: isDark ? '#1E293B' : '#F8FAFC', borderLeftWidth: 4, borderLeftColor: '#10B981', borderTopLeftRadius: 4, borderTopRightRadius: 18, borderBottomRightRadius: 18, borderBottomLeftRadius: 18, alignSelf: 'flex-start' }
         ]}>
           {!isMyMessage && (
-            <Text style={[styles.senderName, { color: '#0B1A33' }]}> 
+            <Text style={[styles.senderName, { color: '#10B981', fontWeight: '600' }]}> 
               {item.sender_name}
             </Text>
           )}
@@ -174,7 +178,7 @@ export default function ChatScreen({ route, navigation }) {
             styles.messageText,
             isMyMessage
               ? { color: '#fff', fontWeight: '500' }
-              : { color: '#0B1A33', fontWeight: '500' }
+              : { color: isDark ? '#F1F5F9' : '#1E293B', fontWeight: '500' }
           ]}>
             {item.message}
           </Text>
@@ -182,7 +186,7 @@ export default function ChatScreen({ route, navigation }) {
             styles.messageTime,
             isMyMessage
               ? { color: 'rgba(255,255,255,0.7)' }
-              : { color: '#3A5BA0' }
+              : { color: isDark ? '#94A3B8' : '#64748B' }
           ]}>
             {messageTime}
           </Text>
@@ -252,6 +256,12 @@ export default function ChatScreen({ route, navigation }) {
       </View>
 
       {/* Messages List */}
+      {initialLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={isSupportChat ? '#10B981' : colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading messages...</Text>
+        </View>
+      ) : (
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -259,6 +269,10 @@ export default function ChatScreen({ route, navigation }) {
         renderItem={renderMessage}
         contentContainerStyle={[styles.messagesList, { paddingBottom: 100 }]}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        initialNumToRender={20}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        removeClippedSubviews={true}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons 
@@ -277,6 +291,7 @@ export default function ChatScreen({ route, navigation }) {
           </View>
         }
       />
+      )}
 
       {/* Input Area - Fixed at bottom */}
       <KeyboardAvoidingView
@@ -436,6 +451,15 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     marginTop: 5,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
+    marginTop: 12,
   },
   inputContainer: {
     flexDirection: 'row',

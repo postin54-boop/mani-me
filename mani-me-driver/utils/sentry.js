@@ -11,9 +11,8 @@
 import * as Sentry from '@sentry/react-native';
 import Constants from 'expo-constants';
 
-// Replace with your actual Sentry DSN from https://sentry.io
-const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN || 
-  'https://YOUR_DSN_HERE@sentry.io/YOUR_PROJECT_ID';
+// Set EXPO_PUBLIC_SENTRY_DSN in your .env or eas.json build config
+const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN || '';
 
 const isDev = __DEV__;
 
@@ -22,7 +21,7 @@ const isDev = __DEV__;
  */
 export const initSentry = () => {
   // Skip initialization if no valid DSN or in development
-  if (isDev || !SENTRY_DSN || SENTRY_DSN.includes('YOUR_DSN_HERE')) {
+  if (isDev || !SENTRY_DSN) {
     console.log('[Sentry] Skipped - development mode or no DSN configured');
     return;
   }
