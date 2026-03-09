@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, Modal, TextInput, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { API_BASE_URL } from '../utils/config';
 import { ParcelCardSkeleton } from '../components/Skeleton';
 import { InlineError, EmptyState } from '../components/ErrorRetry';
 import logger from '../utils/logger';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function OrdersScreen({ navigation }) {
   const { colors: themeColors, isDark } = useThemeColors();
@@ -27,6 +28,9 @@ export default function OrdersScreen({ navigation }) {
 
   // Use user.id from context
   const userId = user?.id;
+  
+  // Track if initial load has happened
+  const hasLoadedRef = useRef(false);
 
   const fetchParcels = useCallback(async () => {
     if (!userId || !token) return; // Don't fetch if no user or token
@@ -117,10 +121,24 @@ export default function OrdersScreen({ navigation }) {
     setLoading(false);
   }, [userId, token, fetchParcels, fetchStats]);
 
-  // Initial data load - only runs when userId or token changes
+  // Initial data load - only on mount or when user changes
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (userId && token && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      loadData();
+    }
+  }, [userId, token]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refresh data when screen comes into focus (but not on first mount)
+  useFocusEffect(
+    useCallback(() => {
+      if (hasLoadedRef.current && userId && token) {
+        // Only refresh silently, don't show loading
+        fetchParcels();
+        fetchStats();
+      }
+    }, [userId, token, fetchParcels, fetchStats])
+  );
 
   // Auto-refresh interval - separate effect to prevent re-creating interval on every render
   useEffect(() => {
