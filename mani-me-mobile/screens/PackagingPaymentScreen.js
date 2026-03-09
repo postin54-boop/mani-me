@@ -156,8 +156,12 @@ export default function PackagingPaymentScreen({ route, navigation }) {
         return;
       }
 
-      if (paymentIntent.status === 'Succeeded') {
+      // Stripe returns lowercase 'succeeded', not 'Succeeded'
+      if (paymentIntent?.status === 'Succeeded' || paymentIntent?.status === 'succeeded') {
         await handlePaymentSuccess();
+      } else {
+        console.log('Payment status:', paymentIntent?.status);
+        Alert.alert('Payment Issue', `Payment status: ${paymentIntent?.status || 'unknown'}. Please try again.`);
       }
     } catch (error) {
       console.error('Payment error:', error);
