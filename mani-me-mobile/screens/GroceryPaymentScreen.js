@@ -130,7 +130,10 @@ export default function GroceryPaymentScreen({ route, navigation }) {
         return;
       }
 
-      if (paymentIntent.status === 'Succeeded') {
+      logger.log('Payment intent status:', paymentIntent?.status);
+      
+      // Stripe returns lowercase status: 'succeeded', not 'Succeeded'
+      if (paymentIntent?.status === 'Succeeded' || paymentIntent?.status === 'succeeded') {
         // Create order
         const orderData = {
           items: cart.map(item => ({
@@ -178,10 +181,15 @@ export default function GroceryPaymentScreen({ route, navigation }) {
             }
           ]
         );
+      } else {
+        // Payment not succeeded - show status for debugging
+        logger.warn('Payment not succeeded, status:', paymentIntent?.status);
+        Alert.alert('Payment Issue', `Payment status: ${paymentIntent?.status || 'unknown'}. Please try again.`);
       }
     } catch (error) {
       logger.error('Payment error:', error);
-      Alert.alert('Error', error.response?.data?.message || 'Payment failed. Please try again.');
+      logger.error('Error details:', error.response?.data);
+      Alert.alert('Error', error.response?.data?.message || error.response?.data?.error || 'Payment failed. Please try again.');
     } finally {
       setLoading(false);
     }
