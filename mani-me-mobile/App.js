@@ -88,6 +88,7 @@ import TermsScreen from './screens/TermsScreen';
 import PrivacyScreen from './screens/PrivacyScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import ShopOrdersScreen from './screens/ShopOrdersScreen';
+import ShopOrderDetailScreen from './screens/ShopOrderDetailScreen';
 import SizeAdjustmentScreen from './screens/SizeAdjustmentScreen';
 import ShopShipScreen from './screens/ShopShipScreen';
 import ShopShipProductScreen from './screens/ShopShipProductScreen';
@@ -285,6 +286,7 @@ function AppNavigator() {
         <Stack.Screen name="Terms" component={TermsScreen} />
         <Stack.Screen name="Privacy" component={PrivacyScreen} />
         <Stack.Screen name="ShopOrders" component={ShopOrdersScreen} />
+        <Stack.Screen name="ShopOrderDetail" component={ShopOrderDetailScreen} />
         <Stack.Screen name="SizeAdjustment" component={SizeAdjustmentScreen} />
         <Stack.Screen name="ShopShip" component={ShopShipScreen} />
         <Stack.Screen name="ShopShipProduct" component={ShopShipProductScreen} />

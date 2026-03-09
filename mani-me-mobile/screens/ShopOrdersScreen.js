@@ -105,7 +105,12 @@ export default function ShopOrdersScreen({ navigation }) {
   };
 
   const renderPackagingOrder = (order) => (
-    <View key={order._id} style={[styles.orderCard, { backgroundColor: colors.surface }]}>
+    <TouchableOpacity 
+      key={order._id} 
+      style={[styles.orderCard, { backgroundColor: colors.surface }]}
+      onPress={() => navigation.navigate('ShopOrderDetail', { orderId: order._id, orderType: 'packaging' })}
+      activeOpacity={0.7}
+    >
       <View style={styles.orderHeader}>
         <View style={styles.orderIdContainer}>
           <Ionicons name="cube-outline" size={20} color={colors.primary} />
@@ -162,11 +167,16 @@ export default function ShopOrdersScreen({ navigation }) {
           </Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   const renderGroceryOrder = (order) => (
-    <View key={order._id} style={[styles.orderCard, { backgroundColor: colors.surface }]}>
+    <TouchableOpacity 
+      key={order._id} 
+      style={[styles.orderCard, { backgroundColor: colors.surface }]}
+      onPress={() => navigation.navigate('ShopOrderDetail', { orderId: order._id, orderType: 'grocery' })}
+      activeOpacity={0.7}
+    >
       <View style={styles.orderHeader}>
         <View style={styles.orderIdContainer}>
           <Ionicons name="cart-outline" size={20} color="#10B981" />
@@ -227,7 +237,7 @@ export default function ShopOrdersScreen({ navigation }) {
           £{order.total_amount?.toFixed(2)}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   const currentOrders = activeTab === 'packaging' ? packagingOrders : groceryOrders;
