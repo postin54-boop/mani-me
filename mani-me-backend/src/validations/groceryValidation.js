@@ -22,28 +22,28 @@ const createOrder = {
     
     // Support both camelCase and snake_case address formats
     deliveryAddress: Joi.object({
-      name: Joi.string().max(100).optional(),
-      phone: phone.optional(),
-      addressLine: Joi.string().max(200).optional(),
-      street: Joi.string().max(200).optional(),
+      name: Joi.string().max(100).allow('').optional(),
+      phone: phone.allow('').optional(),
+      addressLine: Joi.string().max(200).allow('').optional(),
+      street: Joi.string().max(200).allow('').optional(),
       city: Joi.string().max(100).required(),
-      region: Joi.string().max(100).optional(),
+      region: Joi.string().max(100).allow('').optional(),
       country: Joi.string().max(50).required(),
-      postcode: Joi.string().max(20).optional(),
-      landmark: Joi.string().max(200).optional(),
+      postcode: Joi.string().max(20).allow('').optional(),
+      landmark: Joi.string().max(200).allow('').optional(),
     }).optional(),
     
     // Also accept snake_case format from mobile app
     delivery_address: Joi.object({
-      name: Joi.string().max(100).optional(),
-      phone: phone.optional(),
-      addressLine: Joi.string().max(200).optional(),
-      street: Joi.string().max(200).optional(),
+      name: Joi.string().max(100).allow('').optional(),
+      phone: phone.allow('').optional(),
+      addressLine: Joi.string().max(200).allow('').optional(),
+      street: Joi.string().max(200).allow('').optional(),
       city: Joi.string().max(100).required(),
-      region: Joi.string().max(100).optional(),
+      region: Joi.string().max(100).allow('').optional(),
       country: Joi.string().max(50).required(),
-      postcode: Joi.string().max(20).optional(),
-      landmark: Joi.string().max(200).optional(),
+      postcode: Joi.string().max(20).allow('').optional(),
+      landmark: Joi.string().max(200).allow('').optional(),
     }).optional(),
     
     // Extra fields from mobile app
