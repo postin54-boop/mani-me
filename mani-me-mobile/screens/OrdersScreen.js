@@ -8,7 +8,6 @@ import { API_BASE_URL } from '../utils/config';
 import { ParcelCardSkeleton } from '../components/Skeleton';
 import { InlineError, EmptyState } from '../components/ErrorRetry';
 import logger from '../utils/logger';
-import { useFocusEffect } from '@react-navigation/native';
 
 export default function OrdersScreen({ navigation }) {
   const { colors: themeColors, isDark } = useThemeColors();
@@ -18,6 +17,7 @@ export default function OrdersScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ total_parcels: 0, delivered: 0, in_transit: 0 });
   const { user, token } = useUser();
+  const isFetchingRef = useRef(false); // Prevent duplicate concurrent fetches
 
   // Pickup management state
   const [actionModalVisible, setActionModalVisible] = useState(false);
@@ -28,9 +28,6 @@ export default function OrdersScreen({ navigation }) {
 
   // Use user.id from context
   const userId = user?.id;
-  
-  // Track if initial load has happened
-  const hasLoadedRef = useRef(false);
 
   const fetchParcels = useCallback(async () => {
     if (!userId || !token) return; // Don't fetch if no user or token
@@ -113,32 +110,29 @@ export default function OrdersScreen({ navigation }) {
   }, [userId, token]);
 
   // Load all data function - available for retry button
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (force = false) => {
     if (!userId || !token) return;
+    // Prevent duplicate concurrent fetches unless forced
+    if (isFetchingRef.current && !force) return;
+    isFetchingRef.current = true;
+    
     setLoading(true);
     setError(null);
-    await Promise.all([fetchParcels(), fetchStats()]);
-    setLoading(false);
+    try {
+      await Promise.all([fetchParcels(), fetchStats()]);
+    } finally {
+      setLoading(false);
+      isFetchingRef.current = false;
+    }
   }, [userId, token, fetchParcels, fetchStats]);
 
-  // Initial data load - only on mount or when user changes
+  // Initial data load - only runs once when userId and token are available
   useEffect(() => {
-    if (userId && token && !hasLoadedRef.current) {
-      hasLoadedRef.current = true;
+    if (userId && token) {
       loadData();
     }
-  }, [userId, token]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Refresh data when screen comes into focus (but not on first mount)
-  useFocusEffect(
-    useCallback(() => {
-      if (hasLoadedRef.current && userId && token) {
-        // Only refresh silently, don't show loading
-        fetchParcels();
-        fetchStats();
-      }
-    }, [userId, token, fetchParcels, fetchStats])
-  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, token]); // Intentionally exclude loadData to prevent re-triggering
 
   // Auto-refresh interval - separate effect to prevent re-creating interval on every render
   useEffect(() => {
@@ -155,8 +149,8 @@ export default function OrdersScreen({ navigation }) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchParcels();
-    await fetchStats();
+    isFetchingRef.current = false; // Allow refresh to proceed
+    await Promise.all([fetchParcels(), fetchStats()]);
     setRefreshing(false);
   };
 
