@@ -9,14 +9,19 @@ export default function QRCodeScreen({ route, navigation }) {
   const [qrCodeData, setQrCodeData] = useState(null);
 
   useEffect(() => {
-    if (parcel?.qr_code_data) {
+    // Only try to parse if qr_code_data exists and is a non-empty string
+    if (parcel?.qr_code_data && typeof parcel.qr_code_data === 'string') {
       try {
-        setQrCodeData(JSON.parse(parcel.qr_code_data));
+        const parsed = JSON.parse(parcel.qr_code_data);
+        setQrCodeData(parsed);
       } catch (e) {
-        console.error('Failed to parse QR code data');
+        // Silently handle - QR data may not be valid JSON or may be the URL itself
+        if (__DEV__) {
+          console.log('QR code data is not JSON, may be URL or not set');
+        }
       }
     }
-  }, [parcel]);
+  }, [parcel?.qr_code_data]);
 
   const shareQRCode = async () => {
     try {
