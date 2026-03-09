@@ -22,46 +22,77 @@ const addressSchema = Joi.object({
 // Create shipment
 const createShipment = {
   body: Joi.object({
+    // Booking mode
+    booking_mode: Joi.string().valid('box', 'item').optional(),
+    
     // Sender info
     sender_name: Joi.string().max(100).required(),
     sender_phone: phone.required(),
-    sender_email: Joi.string().email().optional(),
+    sender_email: Joi.string().email().allow('', null).optional(),
     
     // Pickup address
     pickup_address: Joi.string().max(300).required(),
     pickup_city: Joi.string().max(100).required(),
-    pickup_postcode: Joi.string().max(20).optional(),
-    pickup_date: Joi.date().iso().optional(),
-    pickup_time_slot: Joi.string().optional(),
+    pickup_postcode: Joi.string().max(20).allow('', null).optional(),
+    pickup_date: Joi.alternatives().try(
+      Joi.date().iso(),
+      Joi.string().allow('', null)
+    ).optional(),
+    pickup_time: Joi.string().allow('', null).optional(),
+    pickup_time_slot: Joi.string().allow('', null).optional(),
     
     // Receiver info
     receiver_name: Joi.string().max(100).required(),
     receiver_phone: phone.required(),
-    receiver_email: Joi.string().email().optional(),
+    receiver_email: Joi.string().email().allow('', null).optional(),
+    receiver_alternate_phone: Joi.string().allow('', null).optional(),
     
     // Delivery address
     delivery_address: Joi.string().max(300).required(),
     delivery_city: Joi.string().max(100).required(),
-    delivery_region: Joi.string().max(100).optional(),
-    delivery_landmark: Joi.string().max(200).optional(),
+    delivery_region: Joi.string().max(100).allow('', null).optional(),
+    delivery_landmark: Joi.string().max(200).allow('', null).optional(),
     
-    // Parcel details
-    parcel_size: Joi.string().valid('small', 'medium', 'large', 'extra-large').required(),
+    // Parcel details - optional since app uses boxes/items model
+    parcel_size: Joi.string().valid('small', 'medium', 'large', 'extra-large').optional(),
     weight_kg: Joi.number().min(0.1).max(100).optional(),
-    parcel_description: Joi.string().max(500).optional(),
-    special_instructions: Joi.string().max(500).optional(),
+    parcel_description: Joi.string().max(500).allow('', null).optional(),
+    special_instructions: Joi.string().max(500).allow('', null).optional(),
     
-    // Items
+    // Boxes (for box booking mode)
+    boxes: Joi.array().items(Joi.object({
+      id: Joi.string().optional(),
+      name: Joi.string().optional(),
+      size: Joi.string().optional(),
+      dimensions: Joi.string().optional(),
+      price: Joi.number().min(0).optional(),
+      quantity: Joi.number().integer().min(1).optional(),
+    })).optional(),
+    
+    // Items (for item booking mode)
     items: Joi.array().items(Joi.object({
-      name: Joi.string().required(),
-      quantity: Joi.number().integer().min(1).required(),
+      id: Joi.string().optional(),
+      name: Joi.string().optional(),
+      category: Joi.string().optional(),
+      price: Joi.number().min(0).optional(),
+      quantity: Joi.number().integer().min(1).optional(),
       value: Joi.number().min(0).optional(),
     })).optional(),
     
     // Payment
-    payment_method: Joi.string().valid('card', 'cash', 'mobile_money').optional(),
+    payment_method: Joi.string().valid('card', 'cash', 'apple_pay', 'mobile_money').optional(),
+    payment_status: Joi.string().valid('pending', 'paid', 'failed', 'refunded').optional(),
+    payment_amount: Joi.number().min(0).optional(),
     total_price: Joi.number().min(0).optional(),
-  }),
+    total_estimated_price: Joi.number().min(0).optional(),
+    
+    // Promo
+    promo_code: Joi.string().allow('', null).optional(),
+    promo_discount: Joi.number().min(0).optional(),
+    
+    // User reference
+    user_id: objectId.optional(),
+  }).unknown(true), // Allow additional fields for flexibility
 };
 
 // Update shipment status
