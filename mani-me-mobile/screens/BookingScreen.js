@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import logger from '../utils/logger';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform, StatusBar, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform, StatusBar, Modal, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors, SIZES, SHADOWS, FONTS } from '../constants/theme';
@@ -815,31 +815,40 @@ export default function BookingScreen({ navigation, route }) {
           transparent
           animationType="fade"
           onRequestClose={() => {
+            Keyboard.dismiss();
             setSelectedCategory(null);
             setCustomItemName('');
             setSelectedCustomSize(null);
           }}
         >
-          <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }]}>
-            <View style={[styles.customItemModal, { backgroundColor: colors.surface, maxHeight: '80%' }]}>
-              <Text style={[styles.modalTitle, { color: colors.text, marginBottom: SIZES.md }]}>Add Custom Item</Text>
-              
-              <ScrollView 
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                style={{ flexGrow: 0 }}
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }]}>
+              <KeyboardAvoidingView 
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ width: '90%', maxWidth: 400 }}
               >
-                {/* Item Name Input */}
-                <Text style={[styles.inputLabel, { color: colors.textSecondary, marginBottom: SIZES.xs }]}>Item Name *</Text>
-                <TextInput
-                  style={[styles.customItemInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-                  placeholder="e.g., Standing Fan, Laptop, etc."
-                  placeholderTextColor={colors.textSecondary}
-                  value={customItemName}
-                  onChangeText={setCustomItemName}
-                  autoCapitalize="words"
-                  returnKeyType="next"
-                />
+                <TouchableWithoutFeedback>
+                  <View style={[styles.customItemModal, { backgroundColor: colors.surface, maxHeight: '90%' }]}>
+                    <Text style={[styles.modalTitle, { color: colors.text, marginBottom: SIZES.md }]}>Add Custom Item</Text>
+              
+                    <ScrollView 
+                      showsVerticalScrollIndicator={false}
+                      keyboardShouldPersistTaps="handled"
+                      contentContainerStyle={{ flexGrow: 1, paddingBottom: 10 }}
+                    >
+                      {/* Item Name Input */}
+                      <Text style={[styles.inputLabel, { color: colors.textSecondary, marginBottom: SIZES.xs }]}>Item Name *</Text>
+                      <TextInput
+                        style={[styles.customItemInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                        placeholder="e.g., Standing Fan, Laptop, etc."
+                        placeholderTextColor={colors.textSecondary}
+                        value={customItemName}
+                        onChangeText={setCustomItemName}
+                        autoCapitalize="words"
+                        returnKeyType="done"
+                        onSubmitEditing={Keyboard.dismiss}
+                        blurOnSubmit={true}
+                      />
 
                 {/* Size Selection */}
                 <Text style={[styles.inputLabel, { color: colors.textSecondary, marginTop: SIZES.md, marginBottom: SIZES.sm }]}>
@@ -881,6 +890,7 @@ export default function BookingScreen({ navigation, route }) {
                 <TouchableOpacity 
                   style={[styles.customItemButton, { backgroundColor: colors.border }]}
                   onPress={() => {
+                    Keyboard.dismiss();
                     setSelectedCategory(null);
                     setCustomItemName('');
                     setSelectedCustomSize(null);
@@ -892,6 +902,7 @@ export default function BookingScreen({ navigation, route }) {
                   activeOpacity={0.7}
                   style={[styles.customItemButton, { backgroundColor: colors.primary, opacity: (!customItemName.trim() || !selectedCustomSize) ? 0.5 : 1 }]}
                   onPress={() => {
+                    Keyboard.dismiss();
                     if (customItemName.trim() && selectedCustomSize) {
                       addItem(selectedCategory.categoryId, selectedCategory.item);
                     }
@@ -902,8 +913,11 @@ export default function BookingScreen({ navigation, route }) {
                   </Text>
                 </TouchableOpacity>
               </View>
+                  </View>
+                </TouchableWithoutFeedback>
+              </KeyboardAvoidingView>
             </View>
-          </View>
+          </TouchableWithoutFeedback>
         </Modal>
       )}
 
