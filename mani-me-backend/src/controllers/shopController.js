@@ -134,6 +134,32 @@ exports.getUserOrders = async (req, res) => {
   }
 };
 
+// Get single order by ID (for user)
+exports.getOrderById = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = await PackagingOrder.findById(orderId).populate('items.item_id', 'name image_url price');
+    
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    
+    // IDOR Protection: Ensure user can only access their own orders
+    const requestingUserId = String(req.user?.user_id || req.user?.id || req.user?._id || '');
+    const orderUserId = String(order.user_id);
+    
+    if (orderUserId !== requestingUserId) {
+      logger.warn('IDOR attempt blocked on order detail', { orderId, requested: orderUserId, actual: requestingUserId });
+      return res.status(403).json({ message: 'You can only view your own orders' });
+    }
+    
+    res.json(order);
+  } catch (error) {
+    logger.error('Error fetching order by ID', { error: error.message, orderId: req.params.orderId });
+    res.status(500).json({ message: 'Failed to fetch order' });
+  }
+};
+
 exports.adminGetOrders = async (req, res) => {
   try {
     const orders = await PackagingOrder.find().sort({ createdAt: -1 }).populate('user_id', 'fullName email phone').populate('items.item_id', 'name price');

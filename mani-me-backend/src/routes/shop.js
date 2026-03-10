@@ -19,6 +19,7 @@ router.delete('/packaging/:id', verifyAdmin, shopController.deletePackagingItem)
 // Packaging orders
 router.post('/orders', verifyToken, shopController.createPackagingOrder);
 router.get('/orders/user/:userId', verifyToken, shopController.getUserOrders);
+router.get('/orders/:orderId', verifyToken, shopController.getOrderById);
 router.get('/orders', verifyAdmin, shopController.adminGetOrders);
 router.put('/orders/:orderId', verifyAdmin, shopController.adminUpdateOrder);
 
