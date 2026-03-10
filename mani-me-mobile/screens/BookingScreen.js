@@ -892,8 +892,6 @@ export default function BookingScreen({ navigation, route }) {
                   activeOpacity={0.7}
                   style={[styles.customItemButton, { backgroundColor: colors.primary, opacity: (!customItemName.trim() || !selectedCustomSize) ? 0.5 : 1 }]}
                   onPress={() => {
-                    console.log('Add Item pressed', { customItemName, selectedCustomSize: selectedCustomSize ? selectedCustomSize.label : null });
-                    Alert.alert('Debug', `Name: "${customItemName}", Size: ${selectedCustomSize ? selectedCustomSize.label : 'NOT SELECTED'}`);
                     if (customItemName.trim() && selectedCustomSize) {
                       addItem(selectedCategory.categoryId, selectedCategory.item);
                     }
