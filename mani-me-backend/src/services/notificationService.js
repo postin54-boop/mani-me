@@ -405,6 +405,94 @@ async function sendSupportChatReplyNotification(pushToken, message, userId) {
   );
 }
 
+/**
+ * Send broadcast notification to multiple users (for promos, marketing, announcements)
+ * @param {Array} users - Array of user objects with push_token
+ * @param {string} title - Notification title
+ * @param {string} body - Notification body
+ * @param {object} data - Additional data (type, promoCode, etc.)
+ * @returns {Promise<object>} Results summary
+ */
+async function sendBroadcastNotification(users, title, body, data = {}) {
+  const results = { sent: 0, failed: 0, noToken: 0, errors: [] };
+  
+  const notifications = users.map(async (user) => {
+    if (!user.push_token) {
+      results.noToken++;
+      return null;
+    }
+    
+    try {
+      await sendPushNotification(user.push_token, title, body, {
+        ...data,
+        userId: user._id,
+      });
+      results.sent++;
+    } catch (error) {
+      results.failed++;
+      results.errors.push({ userId: user._id, error: error.message });
+    }
+  });
+  
+  await Promise.allSettled(notifications);
+  
+  logger.info('Broadcast notification complete', { 
+    title,
+    sent: results.sent, 
+    failed: results.failed, 
+    noToken: results.noToken 
+  });
+  
+  return results;
+}
+
+/**
+ * Send promo notification to all users
+ * @param {string} promoCode - Promo code
+ * @param {string} discount - Discount description (e.g., "20% off")
+ * @param {string} message - Custom message
+ * @param {Date} expiresAt - Expiration date
+ */
+async function sendPromoNotification(promoCode, discount, message, expiresAt) {
+  const User = require('../models/user');
+  
+  const users = await User.find({
+    role: 'user',
+    push_token: { $exists: true, $ne: null }
+  }).select('push_token _id fullName');
+  
+  const title = '🎉 Special Offer!';
+  const body = message || `Use code ${promoCode} to get ${discount}! Limited time offer.`;
+  
+  return sendBroadcastNotification(users, title, body, {
+    type: 'promo',
+    promoCode,
+    discount,
+    expiresAt: expiresAt?.toISOString(),
+    screen: 'BookingScreen',
+  });
+}
+
+/**
+ * Send marketing/announcement notification to all users
+ * @param {string} title - Notification title
+ * @param {string} message - Notification message
+ * @param {string} targetScreen - Screen to open when tapped
+ */
+async function sendMarketingNotification(title, message, targetScreen = 'Home') {
+  const User = require('../models/user');
+  
+  const users = await User.find({
+    role: 'user',
+    push_token: { $exists: true, $ne: null }
+  }).select('push_token _id fullName');
+  
+  return sendBroadcastNotification(users, title, message, {
+    type: 'marketing',
+    screen: targetScreen,
+  });
+}
+
 module.exports = {
   sendPushNotification,
   sendShipmentStatusNotification,
@@ -414,4 +502,7 @@ module.exports = {
   sendDeliveryAssignedNotification,
   sendDropoffCancelledNotifications,
   sendSupportChatReplyNotification,
+  sendBroadcastNotification,
+  sendPromoNotification,
+  sendMarketingNotification,
 };

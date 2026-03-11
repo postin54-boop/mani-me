@@ -24,4 +24,7 @@ router.get('/driver/:driverId', verifyToken, notificationController.getDriverNot
 // Mark all notifications as read for a driver
 router.post('/driver/:driverId/read-all', verifyToken, notificationController.markAllDriverRead);
 
+// Send broadcast notification to all users (admin only)
+router.post('/broadcast', verifyAdmin, notificationController.sendBroadcast);
+
 module.exports = router;

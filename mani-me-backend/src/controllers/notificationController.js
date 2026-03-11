@@ -182,3 +182,48 @@ exports.markAllDriverRead = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
+// Send broadcast notification to all users (admin only)
+exports.sendBroadcast = async (req, res) => {
+  try {
+    const { title, message, type, promoCode, discount, expiresAt, targetScreen } = req.body;
+    
+    if (!title || !message) {
+      return res.status(400).json({ success: false, error: 'Title and message are required' });
+    }
+    
+    const { sendBroadcastNotification, sendPromoNotification, sendMarketingNotification } = require('../services/notificationService');
+    
+    let results;
+    
+    if (type === 'promo' && promoCode) {
+      results = await sendPromoNotification(promoCode, discount, message, expiresAt ? new Date(expiresAt) : null);
+    } else {
+      results = await sendMarketingNotification(title, message, targetScreen || 'Home');
+    }
+    
+    // Also save to notification history for all users
+    const User = require('../models/user');
+    const users = await User.find({ role: 'user' }).select('_id');
+    
+    const notificationDocs = users.map(user => ({
+      userId: user._id,
+      title,
+      message,
+      data: { type: type || 'marketing', promoCode, discount },
+      read: false,
+      createdAt: new Date(),
+    }));
+    
+    await Notification.insertMany(notificationDocs);
+    
+    res.json({ 
+      success: true, 
+      message: `Broadcast sent to ${results.sent} users`,
+      results 
+    });
+  } catch (err) {
+    console.error('Error sending broadcast:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
