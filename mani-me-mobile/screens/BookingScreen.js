@@ -62,7 +62,7 @@ export default function BookingScreen({ navigation, route }) {
   // ========================================
   // BOOKING MODE SELECTION
   // ========================================
-  const [bookingMode, setBookingMode] = useState(null); // 'box' or 'item'
+  const [bookingMode, setBookingMode] = useState(null); // 'box', 'item', or 'both'
 
   // ========================================
   // SENDER & PICKUP DETAILS (SHARED)
@@ -313,10 +313,16 @@ export default function BookingScreen({ navigation, route }) {
   // ========================================
 
   const calculateTotal = () => {
+    const boxTotal = selectedBoxes.reduce((sum, box) => sum + box.totalPrice, 0);
+    const itemTotal = selectedItems.reduce((sum, item) => sum + item.totalPrice, 0);
+    
     if (bookingMode === 'box') {
-      return selectedBoxes.reduce((sum, box) => sum + box.totalPrice, 0);
+      return boxTotal;
+    } else if (bookingMode === 'item') {
+      return itemTotal;
     } else {
-      return selectedItems.reduce((sum, item) => sum + item.totalPrice, 0);
+      // 'both' mode - sum of boxes and items
+      return boxTotal + itemTotal;
     }
   };
 
@@ -344,6 +350,12 @@ export default function BookingScreen({ navigation, route }) {
       return;
     }
 
+    // 'both' mode requires at least one box OR item
+    if (bookingMode === 'both' && selectedBoxes.length === 0 && selectedItems.length === 0) {
+      Alert.alert('No Items Selected', 'Please add at least one box or item to your shipment');
+      return;
+    }
+
     // Navigate to Receiver Details screen with all data
     // Clear saved progress since user is moving forward
     clearBookingProgress();
@@ -359,8 +371,8 @@ export default function BookingScreen({ navigation, route }) {
         pickup_postcode: pickupPostcode,
         pickup_date: pickupDate,
         pickup_time: pickupTime,
-        boxes: bookingMode === 'box' ? selectedBoxes : [],
-        items: bookingMode === 'item' ? selectedItems : [],
+        boxes: (bookingMode === 'box' || bookingMode === 'both') ? selectedBoxes : [],
+        items: (bookingMode === 'item' || bookingMode === 'both') ? selectedItems : [],
         total_estimated_price: calculateTotal(),
         special_instructions: specialInstructions
       }
@@ -451,6 +463,25 @@ export default function BookingScreen({ navigation, route }) {
                 </View>
                 <Ionicons name="chevron-forward" size={24} color={colors.primary} />
               </TouchableOpacity>
+
+              {/* Both Options - Boxes + Items */}
+              <TouchableOpacity 
+                style={[styles.modeCard, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: SIZES.md }]}
+                onPress={() => setBookingMode('both')}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.modeIcon, { backgroundColor: '#8B5CF610' }]}>
+                  <Ionicons name="layers" size={40} color="#8B5CF6" />
+                </View>
+                <View style={styles.modeContent}>
+                  <Text style={[styles.modeTitle, { color: colors.text }]}>📦🧺 Combined Booking</Text>
+                  <Text style={[styles.modeDescription, { color: colors.textSecondary }]}>
+                    Add boxes AND individual items together{'\n'}
+                    Best for mixed shipments
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color={colors.primary} />
+              </TouchableOpacity>
             </View>
           )}
 
@@ -463,12 +494,12 @@ export default function BookingScreen({ navigation, route }) {
               <View style={[styles.modeIndicator, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                   <Ionicons 
-                    name={bookingMode === 'box' ? 'cube' : 'list'} 
+                    name={bookingMode === 'box' ? 'cube' : bookingMode === 'item' ? 'list' : 'layers'} 
                     size={20} 
-                    color={bookingMode === 'box' ? '#10B981' : '#3B82F6'} 
+                    color={bookingMode === 'box' ? '#10B981' : bookingMode === 'item' ? '#3B82F6' : '#8B5CF6'} 
                   />
                   <Text style={[styles.modeIndicatorText, { color: colors.text }]}>
-                    {bookingMode === 'box' ? '📦 Box Packages' : '🧺 Individual Items'}
+                    {bookingMode === 'box' ? '📦 Box Packages' : bookingMode === 'item' ? '🧺 Individual Items' : '📦🧺 Combined Booking'}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => {
@@ -494,7 +525,7 @@ export default function BookingScreen({ navigation, route }) {
               </View>
 
               {/* DYNAMIC CONTENT BASED ON MODE */}
-              {bookingMode === 'box' && (
+              {(bookingMode === 'box' || bookingMode === 'both') && (
                 <View style={styles.section}>
                   <View style={styles.sectionHeader}>
                     <Ionicons name="cube" size={20} color={colors.primary} />
@@ -556,7 +587,7 @@ export default function BookingScreen({ navigation, route }) {
                 </View>
               )}
 
-              {bookingMode === 'item' && (
+              {(bookingMode === 'item' || bookingMode === 'both') && (
                 <View style={styles.section}>
                   <View style={styles.sectionHeader}>
                     <Ionicons name="list" size={20} color={colors.primary} />

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, StatusBar, TextInput, ActivityIndicator, Image, Platform } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, StatusBar, TextInput, ActivityIndicator, Image, Platform, KeyboardAvoidingView, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -159,12 +159,11 @@ export default function ProfileScreen({ navigation }) {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          userId: user?.id,
           name: editedUser.name,
           email: editedUser.email,
           phone: editedUser.phone,
           address: editedUser.address,
-          profileImage: imageUrl,
+          profileImage: imageUrl || undefined,
         }),
       });
 
@@ -224,7 +223,10 @@ export default function ProfileScreen({ navigation }) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <KeyboardAvoidingView 
+      style={{ flex: 1, backgroundColor: colors.background }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       
       {/* Simple Header */}
@@ -254,7 +256,13 @@ export default function ProfileScreen({ navigation }) {
         )}
       </View>
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView 
+          style={styles.container} 
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 150 }}
+        >
         {/* Profile Photo Section */}
         <View style={styles.photoSection}>
           <TouchableOpacity 
@@ -367,12 +375,13 @@ export default function ProfileScreen({ navigation }) {
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Address</Text>
             {isEditing ? (
               <TextInput
-                style={[styles.fieldInput, { color: colors.text }]}
+                style={[styles.fieldInput, { color: colors.text, minHeight: 60 }]}
                 value={editedUser.address}
                 onChangeText={(text) => setEditedUser({ ...editedUser, address: text })}
                 placeholder="Enter your address"
                 placeholderTextColor={colors.textSecondary}
                 multiline
+                scrollEnabled={false}
               />
             ) : (
               <View style={styles.fieldValueContainer}>
@@ -432,8 +441,9 @@ export default function ProfileScreen({ navigation }) {
         )}
 
         <View style={{ height: 60 }} />
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 

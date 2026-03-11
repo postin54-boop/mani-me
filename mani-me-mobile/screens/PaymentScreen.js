@@ -366,7 +366,13 @@ export default function PaymentScreen({ route, navigation }) {
           amount: calculateTotal(),
         });
       } else {
-        Alert.alert('Error', data.error || `Booking failed (${response.status})`);
+        // Show validation error details if available
+        let errorMessage = data.error || `Booking failed (${response.status})`;
+        if (data.details && Array.isArray(data.details) && data.details.length > 0) {
+          const fieldErrors = data.details.map(d => `${d.field}: ${d.message}`).join('\n');
+          errorMessage = `${errorMessage}\n\n${fieldErrors}`;
+        }
+        Alert.alert('Error', errorMessage);
       }
     } catch (error) {
       logger.error('Booking error:', error);
@@ -461,7 +467,13 @@ export default function PaymentScreen({ route, navigation }) {
           amount: calculateTotal(),
         });
       } else {
-        Alert.alert('Error', data.error || `Booking failed (${response.status})`);
+        // Show validation error details if available
+        let errorMessage = data.error || `Booking failed (${response.status})`;
+        if (data.details && Array.isArray(data.details) && data.details.length > 0) {
+          const fieldErrors = data.details.map(d => `${d.field}: ${d.message}`).join('\n');
+          errorMessage = `${errorMessage}\n\n${fieldErrors}`;
+        }
+        Alert.alert('Error', errorMessage);
       }
     } catch (error) {
       logger.error('Booking error:', error);

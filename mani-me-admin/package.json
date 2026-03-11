@@ -26,5 +26,8 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.4.1",
     "vite": "^6.3.5"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.59.0"
   }
 }

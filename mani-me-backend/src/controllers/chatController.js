@@ -5,7 +5,9 @@
 
 const { db } = require('../firebase');
 const Message = require('../models/message');
+const User = require('../models/user');
 const logger = require('../utils/logger');
+const { sendSupportChatReplyNotification } = require('../services/notificationService');
 
 exports.sendMessage = async (req, res) => {
   try {
@@ -23,6 +25,24 @@ exports.sendMessage = async (req, res) => {
       message, timestamp: new Date().toISOString(), read: false
     };
     const messageRef = await db.collection('messages').add(messageData);
+    
+    // Send push notification if admin/support is replying to user
+    if (isSupport && (sender_role === 'admin' || sender_role === 'support')) {
+      try {
+        // Extract user ID from conversation_id (format: support_userId)
+        const userId = conversation_id.replace('support_', '');
+        if (userId && userId !== 'admin') {
+          const user = await User.findById(userId).select('push_token fullName');
+          if (user && user.push_token) {
+            await sendSupportChatReplyNotification(user.push_token, message, userId);
+            logger.info('Support chat notification sent', { userId, messagePreview: message.substring(0, 50) });
+          }
+        }
+      } catch (notifError) {
+        logger.warn('Failed to send support chat notification', { error: notifError.message });
+      }
+    }
+    
     try {
       await new Message(messageData).save();
     } catch (mongoError) {

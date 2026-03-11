@@ -383,6 +383,28 @@ async function sendDropoffCancelledNotifications(shipment) {
   return Promise.allSettled(notifications);
 }
 
+/**
+ * Send notification when support team replies to a user's chat
+ * @param {string} pushToken - User's Expo push token
+ * @param {string} message - Preview of the message
+ * @param {string} userId - User ID for navigation
+ */
+async function sendSupportChatReplyNotification(pushToken, message, userId) {
+  // Truncate message for notification preview
+  const messagePreview = message.length > 100 ? message.substring(0, 100) + '...' : message;
+  
+  return sendPushNotification(
+    pushToken,
+    '💬 Support Team Reply',
+    messagePreview,
+    {
+      type: 'support_chat_reply',
+      userId: userId,
+      screen: 'SupportChat',
+    }
+  );
+}
+
 module.exports = {
   sendPushNotification,
   sendShipmentStatusNotification,
@@ -391,4 +413,5 @@ module.exports = {
   sendPickupAssignedNotification,
   sendDeliveryAssignedNotification,
   sendDropoffCancelledNotifications,
+  sendSupportChatReplyNotification,
 };
