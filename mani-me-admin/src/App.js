@@ -21,6 +21,7 @@ import ParcelPrices from './pages/ParcelPrices';
 import ParcelItems from './pages/ParcelItems';
 import CashReconciliation from './pages/CashReconciliation';
 import SupportChat from './pages/SupportChat';
+import Broadcasts from './pages/Broadcasts';
 import theme from './theme';
 import api from './api';
 import { ENDPOINTS, APP_CONFIG } from './config';
@@ -274,6 +275,16 @@ function App() {
               isAuthenticated ?
               <Layout onLogout={handleLogout}>
                 <SupportChat />
+              </Layout> :
+              <Navigate to="/login" replace />
+            }
+          />
+          <Route
+            path="/broadcasts"
+            element={
+              isAuthenticated ?
+              <Layout onLogout={handleLogout}>
+                <Broadcasts />
               </Layout> :
               <Navigate to="/login" replace />
             }
