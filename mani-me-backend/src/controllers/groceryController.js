@@ -253,11 +253,13 @@ exports.adminCreateItem = async (req, res) => {
 
 exports.adminUpdateItem = async (req, res) => {
   try {
+    logger.info('Updating grocery item', { id: req.params.id, body: req.body });
     const item = await GroceryItem.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     if (!item) return res.status(404).json({ message: 'Item not found' });
+    logger.info('Item updated successfully', { id: item._id, image_url: item.image_url });
     res.json(item);
   } catch (error) {
-    logger.error('Error updating item', { error: error.message });
+    logger.error('Error updating item', { error: error.message, body: req.body });
     res.status(500).json({ message: 'Failed to update item' });
   }
 };

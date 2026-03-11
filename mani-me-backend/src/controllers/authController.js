@@ -103,7 +103,7 @@ exports.updateProfile = async (req, res) => {
     });
     return res.json({
       message: 'Profile updated successfully',
-      user: { ...user, address: req.body.address },
+      user,
     });
   } catch (error) {
     logger.error('Profile update error:', { error: error.message });

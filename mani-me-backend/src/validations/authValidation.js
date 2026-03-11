@@ -61,8 +61,11 @@ const changePassword = {
 const updateProfile = {
   body: Joi.object({
     name: Joi.string().min(2).max(100).optional(),
+    email: email.optional(),
     phone: phone.optional(),
+    address: Joi.string().max(500).optional().allow(''),
     country: Joi.string().valid('UK', 'Ghana').optional(),
+    profileImage: Joi.string().uri().max(2048).optional().allow('', null),
   }),
 };
 

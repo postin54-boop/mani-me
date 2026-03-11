@@ -62,14 +62,19 @@ const createOrder = {
 const addItem = {
   body: Joi.object({
     name: Joi.string().max(100).required(),
-    description: Joi.string().max(500).optional(),
+    brand: Joi.string().max(100).optional().allow(''),
+    description: Joi.string().max(500).optional().allow(''),
     price: Joi.number().positive().required(),
     currency: Joi.string().valid('GBP', 'GHS').default('GBP'),
     category: Joi.string().max(50).required(),
-    unit: Joi.string().max(20).default('each'), // e.g., "kg", "pack", "each"
-    imageUrl: Joi.string().uri().optional(),
-    inStock: Joi.boolean().default(true),
-    stockQuantity: Joi.number().integer().min(0).optional(),
+    subcategory: Joi.string().max(50).optional().allow(''),
+    pack_size: Joi.string().max(50).optional().allow(''),
+    stock: Joi.alternatives().try(
+      Joi.number().integer().min(0),
+      Joi.string().allow('')
+    ).optional(),
+    is_available: Joi.boolean().default(true),
+    image_url: Joi.string().max(2048).optional().allow('', null),
   }),
 };
 
@@ -80,14 +85,19 @@ const updateItem = {
   }),
   body: Joi.object({
     name: Joi.string().max(100).optional(),
-    description: Joi.string().max(500).optional(),
+    brand: Joi.string().max(100).optional().allow(''),
+    description: Joi.string().max(500).optional().allow(''),
     price: Joi.number().positive().optional(),
     currency: Joi.string().valid('GBP', 'GHS').optional(),
     category: Joi.string().max(50).optional(),
-    unit: Joi.string().max(20).optional(),
-    imageUrl: Joi.string().uri().optional(),
-    inStock: Joi.boolean().optional(),
-    stockQuantity: Joi.number().integer().min(0).optional(),
+    subcategory: Joi.string().max(50).optional().allow(''),
+    pack_size: Joi.string().max(50).optional().allow(''),
+    stock: Joi.alternatives().try(
+      Joi.number().integer().min(0),
+      Joi.string().allow('')
+    ).optional(),
+    is_available: Joi.boolean().optional(),
+    image_url: Joi.string().max(2048).optional().allow('', null),
   }),
 };
 

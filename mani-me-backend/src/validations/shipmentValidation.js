@@ -23,7 +23,7 @@ const addressSchema = Joi.object({
 const createShipment = {
   body: Joi.object({
     // Booking mode
-    booking_mode: Joi.string().valid('box', 'item').optional(),
+    booking_mode: Joi.string().valid('box', 'item', 'both').optional(),
     
     // Sender info
     sender_name: Joi.string().max(100).required(),
@@ -61,23 +61,35 @@ const createShipment = {
     
     // Boxes (for box booking mode)
     boxes: Joi.array().items(Joi.object({
-      id: Joi.string().optional(),
+      id: Joi.alternatives().try(Joi.string(), Joi.number()).optional(),
+      boxId: Joi.string().optional(),
       name: Joi.string().optional(),
       size: Joi.string().optional(),
       dimensions: Joi.string().optional(),
       price: Joi.number().min(0).optional(),
+      unitPrice: Joi.number().min(0).optional(),
+      totalPrice: Joi.number().min(0).optional(),
       quantity: Joi.number().integer().min(1).optional(),
-    })).optional(),
+    }).unknown(true)).optional(),
     
     // Items (for item booking mode)
     items: Joi.array().items(Joi.object({
-      id: Joi.string().optional(),
+      id: Joi.alternatives().try(Joi.string(), Joi.number()).optional(),
+      itemId: Joi.string().optional(),
+      categoryId: Joi.string().optional(),
       name: Joi.string().optional(),
+      label: Joi.string().optional(),
+      customName: Joi.string().allow('', null).optional(),
       category: Joi.string().optional(),
       price: Joi.number().min(0).optional(),
+      unitPrice: Joi.number().min(0).optional(),
+      totalPrice: Joi.number().min(0).optional(),
       quantity: Joi.number().integer().min(1).optional(),
       value: Joi.number().min(0).optional(),
-    })).optional(),
+      size: Joi.string().optional(),
+      estimatedWeight: Joi.alternatives().try(Joi.string(), Joi.number()).optional(),
+      isCustomItem: Joi.boolean().optional(),
+    }).unknown(true)).optional(),
     
     // Payment
     payment_method: Joi.string().valid('card', 'cash', 'apple_pay', 'mobile_money').optional(),
