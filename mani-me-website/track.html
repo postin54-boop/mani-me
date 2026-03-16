@@ -363,6 +363,17 @@
             .search-btn {
                 width: 100%;
             }
+            
+            .sender-receiver-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+        
+        .sender-receiver-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -371,7 +382,7 @@
         <!-- Header -->
         <div class="header">
             <a href="/" class="logo" style="text-decoration: none;">
-                <div class="logo-icon">📦</div>
+                <img src="/images/logo.png" alt="Mani Me" class="logo-img" style="width: 60px; height: 60px; border-radius: 12px;">
                 <span class="logo-text">Mani Me</span>
             </a>
             <h1>Track Your Parcel</h1>
@@ -411,13 +422,42 @@
                     </div>
                 </div>
                 <div class="tracking-body">
-                    <div class="info-row">
-                        <span class="info-label">From</span>
-                        <span class="info-value" id="fromLocation">London, UK</span>
+                    <!-- Sender & Receiver Cards -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                        <!-- Sender Card -->
+                        <div style="background: rgba(131, 197, 250, 0.1); border-radius: 12px; padding: 16px;">
+                            <div style="font-size: 11px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">📤 Sender</div>
+                            <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;" id="senderName">—</div>
+                            <div style="color: var(--gray-400); font-size: 13px;" id="senderLocation">—</div>
+                        </div>
+                        <!-- Receiver Card -->
+                        <div style="background: rgba(16, 185, 129, 0.1); border-radius: 12px; padding: 16px;">
+                            <div style="font-size: 11px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">📥 Receiver</div>
+                            <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;" id="receiverName">—</div>
+                            <div style="color: var(--gray-400); font-size: 13px;" id="receiverLocation">—</div>
+                            <div style="color: var(--sky); font-size: 13px; margin-top: 4px;" id="receiverPhone">—</div>
+                        </div>
                     </div>
+
+                    <!-- Route Info -->
+                    <div style="background: rgba(255, 255, 255, 0.03); border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: center;">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+                            <div>
+                                <div style="font-size: 12px; color: var(--sky);">FROM</div>
+                                <div style="font-weight: 600;" id="fromLocation">London, UK</div>
+                            </div>
+                            <div style="font-size: 24px;">✈️</div>
+                            <div>
+                                <div style="font-size: 12px; color: var(--success);">TO</div>
+                                <div style="font-weight: 600;" id="toLocation">Accra, Ghana</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Parcel Details -->
                     <div class="info-row">
-                        <span class="info-label">To</span>
-                        <span class="info-value" id="toLocation">Accra, Ghana</span>
+                        <span class="info-label">Parcel Description</span>
+                        <span class="info-value" id="parcelDescription">—</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Weight</span>
@@ -426,6 +466,14 @@
                     <div class="info-row">
                         <span class="info-label">Booked On</span>
                         <span class="info-value" id="bookedDate">12 Mar 2026</span>
+                    </div>
+                    <div class="info-row" id="pickupDateRow" style="display: none;">
+                        <span class="info-label">Pickup Date</span>
+                        <span class="info-value" id="pickupDate">—</span>
+                    </div>
+                    <div class="info-row" id="deliveredDateRow" style="display: none;">
+                        <span class="info-label">Delivered On</span>
+                        <span class="info-value" id="deliveredDate">—</span>
                     </div>
                     
                     <!-- Timeline -->
@@ -439,7 +487,7 @@
         
         <!-- Footer -->
         <div class="footer">
-            <p>Need help? <a href="mailto:support@manime.co.uk">Contact Support</a></p>
+            <p>Need help? <a href="mailto:manimeappinfo@gmail.com">Contact Support</a></p>
             <p>Download our app for real-time notifications</p>
             <div class="app-badges">
                 <a href="#" class="app-badge">📱 iOS App</a>
@@ -526,7 +574,10 @@
         }
         
         // Display tracking results
-        function displayResults(shipment) {
+        function displayResults(data) {
+            // Handle both {shipment: {...}} and direct shipment object
+            const shipment = data.shipment || data;
+            
             // Update tracking ID
             document.getElementById('resultTrackingId').textContent = shipment.tracking_number;
             
@@ -537,17 +588,52 @@
             statusBadge.className = `status-badge ${config.class}`;
             statusBadge.innerHTML = `<span>${config.icon}</span> ${config.label}`;
             
-            // Update info
+            // Update sender info
+            document.getElementById('senderName').textContent = shipment.sender_name || 'Customer';
+            document.getElementById('senderLocation').textContent = 
+                `${shipment.pickup_city || 'UK'}${shipment.pickup_postcode ? ', ' + shipment.pickup_postcode : ''}`;
+            
+            // Update receiver info
+            document.getElementById('receiverName').textContent = shipment.receiver_name || '—';
+            document.getElementById('receiverLocation').textContent = 
+                `${shipment.delivery_city || shipment.ghana_destination || 'Ghana'}${shipment.delivery_region ? ', ' + shipment.delivery_region : ''}`;
+            document.getElementById('receiverPhone').textContent = 
+                shipment.receiver_phone ? `📞 ${shipment.receiver_phone}` : '';
+            
+            // Update route info
             document.getElementById('fromLocation').textContent = 
-                `${shipment.pickup_city || 'UK'}, ${shipment.pickup_postcode || ''}`.trim();
+                `${shipment.pickup_city || 'UK'}`;
             document.getElementById('toLocation').textContent = 
                 shipment.ghana_destination || shipment.delivery_city || 'Ghana';
+            
+            // Update parcel details
+            document.getElementById('parcelDescription').textContent = 
+                shipment.parcel_description || shipment.description || 'General Items';
             document.getElementById('weight').textContent = 
                 shipment.weight_kg ? `${shipment.weight_kg} kg` : 'N/A';
             document.getElementById('bookedDate').textContent = 
                 shipment.booked_at ? new Date(shipment.booked_at).toLocaleDateString('en-GB', {
                     day: 'numeric', month: 'short', year: 'numeric'
                 }) : 'N/A';
+            
+            // Show pickup date if available
+            if (shipment.pickup_date || shipment.picked_up_at) {
+                const pickupDate = shipment.picked_up_at || shipment.pickup_date;
+                document.getElementById('pickupDateRow').style.display = 'flex';
+                document.getElementById('pickupDate').textContent = 
+                    new Date(pickupDate).toLocaleDateString('en-GB', {
+                        day: 'numeric', month: 'short', year: 'numeric'
+                    });
+            }
+            
+            // Show delivered date if delivered
+            if (shipment.status === 'delivered' && shipment.delivered_at) {
+                document.getElementById('deliveredDateRow').style.display = 'flex';
+                document.getElementById('deliveredDate').textContent = 
+                    new Date(shipment.delivered_at).toLocaleDateString('en-GB', {
+                        day: 'numeric', month: 'short', year: 'numeric'
+                    });
+            }
             
             // Build timeline
             const timeline = document.getElementById('timeline');
