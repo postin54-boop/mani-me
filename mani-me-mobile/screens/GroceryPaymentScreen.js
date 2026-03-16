@@ -31,7 +31,7 @@ export default function GroceryPaymentScreen({ route, navigation }) {
     region: '',
     country: 'Ghana', // Default to Ghana
     postcode: '',
-    phone: user?.phone || ''
+    phone: ''
   });
   const { confirmPayment } = useStripe();
   const { colors, isDark } = useThemeColors();

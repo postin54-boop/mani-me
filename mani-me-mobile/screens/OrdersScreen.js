@@ -100,12 +100,13 @@ export default function OrdersScreen({ navigation }) {
       const data = await response.json();
       setStats(data);
     } catch (err) {
+      // Use warn instead of error for non-critical stats - avoids Sentry noise
       if (err.name === 'AbortError') {
-        logger.error('Error fetching stats: Request timed out. Check if API_BASE_URL is reachable:', API_BASE_URL);
+        logger.warn('Stats fetch timed out (non-critical)');
       } else {
-        logger.error('Error fetching stats:', err.message || err);
+        logger.warn('Stats fetch failed (non-critical):', err.message || err);
       }
-      // Don't show error to user for stats - gracefully fail with default values
+      // Gracefully fail with default values - stats are optional
     }
   }, [userId, token]);
 

@@ -4,7 +4,7 @@
 const Joi = require('joi');
 
 const objectId = Joi.string().pattern(/^[0-9a-fA-F]{24}$/);
-const phone = Joi.string().pattern(/^[\d\s\-+()]+$/).min(10).max(20);
+const phone = Joi.string().pattern(/^[\d\s\-+()]+$/).min(10).max(20).allow('', null);
 
 // Create address
 const createAddress = {
@@ -15,7 +15,7 @@ const createAddress = {
     city: Joi.string().max(100).required(),
     region: Joi.string().max(100).optional(),
     country: Joi.string().valid('UK', 'Ghana').required(),
-    postcode: Joi.string().max(20).optional(),
+    postcode: Joi.string().max(20).optional().allow('', null),
     phone: phone.optional(),
     isDefault: Joi.boolean().optional(),
   }),
@@ -30,9 +30,9 @@ const updateAddress = {
     label: Joi.string().max(50).optional(),
     addressLine: Joi.string().max(200).optional(),
     city: Joi.string().max(100).optional(),
-    region: Joi.string().max(100).optional(),
+    region: Joi.string().max(100).optional().allow('', null),
     country: Joi.string().valid('UK', 'Ghana').optional(),
-    postcode: Joi.string().max(20).optional(),
+    postcode: Joi.string().max(20).optional().allow('', null),
     phone: phone.optional(),
     isDefault: Joi.boolean().optional(),
   }),

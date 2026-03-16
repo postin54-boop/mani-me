@@ -15,7 +15,7 @@ export default function ShopCheckoutScreen({ route, navigation }) {
   const [loading, setLoading] = useState(false);
   const [cardComplete, setCardComplete] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   const handlePayment = async () => {
     if (!cardComplete) {
