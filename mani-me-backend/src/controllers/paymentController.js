@@ -6,6 +6,7 @@
 
 const logger = require('../utils/logger');
 const PromoCode = require('../models/promoCode');
+const { sendPaymentSuccessEmail, sendPaymentFailedEmail, sendRefundEmail } = require('../utils/email');
 
 // Stripe initialization
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -228,6 +229,16 @@ exports.handleWebhook = async (req, res) => {
         const trackingNumber = order.tracking_number || order.order_number;
         await sendPaymentNotification(user, type, trackingNumber, true);
         
+        // Send email confirmation
+        const amount = (paymentIntent.amount_received || paymentIntent.amount || 0) / 100;
+        await sendPaymentSuccessEmail({
+          email: user?.email,
+          name: user?.name || user?.first_name || 'Customer',
+          orderType: type,
+          trackingNumber,
+          amount: amount.toFixed(2)
+        }).catch(err => logger.error('Failed to send payment success email', { error: err.message }));
+        
       } catch (dbError) {
         logger.error('Failed to update order payment status', { error: dbError.message, paymentIntentId });
       }
@@ -253,6 +264,14 @@ exports.handleWebhook = async (req, res) => {
           
           // Notify customer of failure
           await sendPaymentNotification(user, type, null, false);
+          
+          // Send email notification
+          await sendPaymentFailedEmail({
+            email: user?.email,
+            name: user?.name || user?.first_name || 'Customer',
+            orderType: type,
+            trackingNumber: order.tracking_number || order.order_number
+          }).catch(err => logger.error('Failed to send payment failed email', { error: err.message }));
         }
       } catch (dbError) {
         logger.error('Failed to update order on payment failure', { error: dbError.message });
@@ -306,6 +325,15 @@ exports.handleWebhook = async (req, res) => {
               { type: 'refund_processed' }
             );
           }
+          
+          // Send refund email
+          const refundAmount = (paymentIntent.amount_refunded || paymentIntent.amount || 0) / 100;
+          await sendRefundEmail({
+            email: user?.email,
+            name: user?.name || user?.first_name || 'Customer',
+            amount: refundAmount.toFixed(2),
+            trackingNumber: order.tracking_number || order.order_number
+          }).catch(err => logger.error('Failed to send refund email', { error: err.message }));
         }
       } catch (dbError) {
         logger.error('Failed to update order refund status', { error: dbError.message });

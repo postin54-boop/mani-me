@@ -23,6 +23,7 @@ import {
   MenuItem,
   Skeleton,
   alpha,
+  Collapse,
 } from '@mui/material';
 import {
   BarChart,
@@ -50,38 +51,62 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SendIcon from '@mui/icons-material/Send';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import api from '../api';
 import logger from '../utils/logger';
 import { getErrorMessage } from '../utils/errorHandler';
 import WarehouseInventory from '../components/WarehouseInventory';
-// Notification Panel Component
+// Notification Panel Component - Collapsible with 5 notification limit
 function NotificationPanel({ notifications, onMarkRead }) {
+  const [expanded, setExpanded] = useState(false);
+  
+  // Filter out broadcast/marketing notifications and limit to 5
+  const filteredNotifications = notifications
+    .filter(n => n.type !== 'broadcast' && n.type !== 'marketing' && n.type !== 'promo')
+    .slice(0, 5);
+  
+  const unreadCount = filteredNotifications.filter(n => !n.read).length;
+  
   return (
     <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: '#F9FAFB', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-        <NotificationsActiveIcon sx={{ color: '#0B1A33', mr: 1 }} />
-        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0B1A33' }}>Notifications</Typography>
+      <Box 
+        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <NotificationsActiveIcon sx={{ color: '#0B1A33', mr: 1 }} />
+          <Typography variant="h6" sx={{ fontWeight: 700, color: '#0B1A33' }}>Notifications</Typography>
+          {unreadCount > 0 && (
+            <Chip label={unreadCount} size="small" color="error" sx={{ ml: 1, height: 20, fontSize: '0.75rem' }} />
+          )}
+        </Box>
+        <IconButton size="small">
+          {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+        </IconButton>
       </Box>
-      {notifications.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">No new notifications.</Typography>
-      ) : (
-        <List>
-          {notifications.map((n) => (
-            <ListItem key={n._id} alignItems="flex-start" sx={{ bgcolor: n.read ? '#fff' : '#E3F2FD', borderRadius: 1, mb: 1 }}>
-              <ListItemText
-                primary={<b>{n.title}</b>}
-                secondary={<>
-                  <Typography variant="body2" color="text.secondary">{n.message}</Typography>
-                  <Typography variant="caption" color="text.secondary">{new Date(n.createdAt).toLocaleString()}</Typography>
-                </>}
-              />
-              {!n.read && (
-                <Button size="small" onClick={() => onMarkRead(n._id)} sx={{ ml: 2 }}>Mark as read</Button>
-              )}
-            </ListItem>
-          ))}
-        </List>
-      )}
+      <Collapse in={expanded}>
+        {filteredNotifications.length === 0 ? (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>No new notifications.</Typography>
+        ) : (
+          <List sx={{ mt: 1 }}>
+            {filteredNotifications.map((n) => (
+              <ListItem key={n._id} alignItems="flex-start" sx={{ bgcolor: n.read ? '#fff' : '#E3F2FD', borderRadius: 1, mb: 1, py: 1 }}>
+                <ListItemText
+                  primary={<Typography variant="body2" fontWeight={600}>{n.title}</Typography>}
+                  secondary={<>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{n.message?.substring(0, 60)}{n.message?.length > 60 ? '...' : ''}</Typography>
+                    <Typography variant="caption" color="text.secondary">{new Date(n.createdAt).toLocaleString()}</Typography>
+                  </>}
+                />
+                {!n.read && (
+                  <Button size="small" onClick={(e) => { e.stopPropagation(); onMarkRead(n._id); }} sx={{ ml: 1, fontSize: '0.7rem' }}>Read</Button>
+                )}
+              </ListItem>
+            ))}
+          </List>
+        )}
+      </Collapse>
     </Paper>
   );
 }

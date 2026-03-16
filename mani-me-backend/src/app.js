@@ -56,12 +56,15 @@ app.use(compression({
 const cors = require('cors');
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
   'http://localhost:4000',
   'http://localhost:8081',
   'http://localhost:19006',
   'https://mani-me-admin.vercel.app',
   'https://mani-me.vercel.app',
   'https://manime.co.uk',
+  'https://www.manime.co.uk',
   'https://admin.manime.co.uk',
   'https://mani-me.onrender.com',
   'https://mani-me-app.web.app',

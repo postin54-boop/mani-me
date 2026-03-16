@@ -131,11 +131,23 @@ export default function ShopOrderDetailScreen({ route, navigation }) {
 
   const status = orderType === 'grocery' ? order.order_status : order.status;
   const items = order.items || [];
-  const address = orderType === 'grocery' ? order.delivery_address : {
-    street: order.delivery_address,
-    city: order.delivery_city,
-    phone: order.delivery_phone,
+  
+  // Handle delivery_address whether it's an object or string
+  const getAddress = () => {
+    if (orderType === 'grocery') {
+      return order.delivery_address || {};
+    }
+    // For packaging orders, delivery_address might be object or string
+    if (typeof order.delivery_address === 'object' && order.delivery_address !== null) {
+      return order.delivery_address;
+    }
+    return {
+      street: order.delivery_address || '',
+      city: order.delivery_city || '',
+      phone: order.delivery_phone || '',
+    };
   };
+  const address = getAddress();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -280,10 +292,10 @@ export default function ShopOrderDetailScreen({ route, navigation }) {
                   </Text>
                 )}
                 <Text style={[styles.addressLine, { color: colors.text }]}>
-                  {address?.street || order.delivery_address || 'N/A'}
+                  {address?.street || (typeof order.delivery_address === 'string' ? order.delivery_address : '') || 'N/A'}
                 </Text>
                 <Text style={[styles.addressLine, { color: colors.textSecondary }]}>
-                  {address?.city || order.delivery_city || 'N/A'}
+                  {address?.city || order.delivery_city || 'N/A'}{address?.postcode ? `, ${address.postcode}` : ''}
                 </Text>
                 {(address?.phone || order.delivery_phone) && (
                   <View style={styles.phoneRow}>

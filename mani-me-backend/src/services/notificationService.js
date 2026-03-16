@@ -457,8 +457,8 @@ async function sendPromoNotification(promoCode, discount, message, expiresAt) {
   const User = require('../models/user');
   
   const users = await User.find({
-    role: 'user',
-    push_token: { $exists: true, $ne: null }
+    role: 'CUSTOMER',
+    push_token: { $exists: true, $ne: null, $ne: '' }
   }).select('push_token _id fullName');
   
   const title = '🎉 Special Offer!';
@@ -483,8 +483,8 @@ async function sendMarketingNotification(title, message, targetScreen = 'Home') 
   const User = require('../models/user');
   
   const users = await User.find({
-    role: 'user',
-    push_token: { $exists: true, $ne: null }
+    role: 'CUSTOMER',
+    push_token: { $exists: true, $ne: null, $ne: '' }
   }).select('push_token _id fullName');
   
   return sendBroadcastNotification(users, title, message, {

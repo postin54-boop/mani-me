@@ -1,7 +1,7 @@
 const QRCode = require('qrcode');
 
 // Website base URL for tracking
-const TRACKING_BASE_URL = 'https://maniime.com/track';
+const TRACKING_BASE_URL = 'https://www.manime.co.uk/track';
 
 /**
  * Generate unique parcel IDs

@@ -726,7 +726,6 @@ function Orders() {
             onClick={handleUpdateStatus} 
             variant="contained"
             sx={{ 
-              bgcolor: '#0B1A33',
               textTransform: 'none',
               px: 4,
               py: 1.5,

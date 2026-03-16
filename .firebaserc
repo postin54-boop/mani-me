@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "mani-me-app"
-  }
+  },
+  "targets": {
+    "mani-me-app": {
+      "hosting": {
+        "website": [
+          "mani-me-app"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

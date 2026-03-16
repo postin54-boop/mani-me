@@ -76,8 +76,8 @@ export default {
       stripePublishableKey: process.env.STRIPE_KEY || process.env.EXPO_PUBLIC_STRIPE_KEY || "",
       environment: process.env.NODE_ENV || "development",
       // App Store required URLs
-      privacyPolicyUrl: "https://manime.co.uk/privacy",
-      termsOfServiceUrl: "https://manime.co.uk/terms",
+      privacyPolicyUrl: "https://www.manime.co.uk/privacy.html",
+      termsOfServiceUrl: "https://www.manime.co.uk/terms.html",
       eas: {
         projectId: "3638c63b-4837-422f-a329-b7e169066774"
       }

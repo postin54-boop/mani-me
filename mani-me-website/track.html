@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Your Parcel | Mani Me</title>
+    <meta name="description" content="Track your UK to Ghana parcel delivery in real-time with Mani Me.">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #0B1A33;
+            --sky: #83C5FA;
+            --white: #FFFFFF;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-400: #9ca3af;
+            --gray-600: #4b5563;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--navy) 0%, #162d4d 100%);
+            min-height: 100vh;
+            color: var(--white);
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--sky), #5BA3E0);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .logo-text {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--white), var(--sky));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            color: var(--gray-400);
+            font-size: 14px;
+        }
+        
+        /* Search Box */
+        .search-box {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .search-input-wrapper {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 14px 18px;
+            font-size: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--white);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .search-input::placeholder {
+            color: var(--gray-400);
+        }
+        
+        .search-input:focus {
+            border-color: var(--sky);
+        }
+        
+        .search-btn {
+            padding: 14px 24px;
+            background: linear-gradient(135deg, var(--sky), #5BA3E0);
+            color: var(--navy);
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(131, 197, 250, 0.3);
+        }
+        
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+        
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(131, 197, 250, 0.2);
+            border-top-color: var(--sky);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Results */
+        .results {
+            display: none;
+        }
+        
+        .tracking-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        .tracking-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tracking-number {
+            font-size: 12px;
+            color: var(--gray-400);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        
+        .tracking-id {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--sky);
+            font-family: monospace;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 12px;
+        }
+        
+        .status-pending { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .status-booked { background: rgba(131, 197, 250, 0.15); color: var(--sky); }
+        .status-picked_up, .status-in_transit { background: rgba(59, 130, 246, 0.15); color: #3B82F6; }
+        .status-customs { background: rgba(168, 85, 247, 0.15); color: #A855F7; }
+        .status-out_for_delivery { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .status-delivered { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        
+        .tracking-body {
+            padding: 24px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            color: var(--gray-400);
+            font-size: 14px;
+        }
+        
+        .info-value {
+            font-weight: 500;
+            font-size: 14px;
+            text-align: right;
+        }
+        
+        /* Timeline */
+        .timeline {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .timeline h3 {
+            font-size: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .timeline-item {
+            display: flex;
+            gap: 16px;
+            padding: 12px 0;
+        }
+        
+        .timeline-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--gray-400);
+            margin-top: 4px;
+            flex-shrink: 0;
+        }
+        
+        .timeline-dot.active {
+            background: var(--success);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+        
+        .timeline-content h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .timeline-content p {
+            font-size: 12px;
+            color: var(--gray-400);
+        }
+        
+        /* Error State */
+        .error-box {
+            display: none;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .error-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        
+        .error-box h3 {
+            color: var(--error);
+            margin-bottom: 8px;
+        }
+        
+        .error-box p {
+            color: var(--gray-400);
+            font-size: 14px;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .footer p {
+            color: var(--gray-400);
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        
+        .footer a {
+            color: var(--sky);
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .app-badges {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .app-badge {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--white);
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        
+        .app-badge:hover {
+            background: rgba(255, 255, 255, 0.15);
+            text-decoration: none;
+        }
+        
+        @media (max-width: 480px) {
+            .search-input-wrapper {
+                flex-direction: column;
+            }
+            
+            .search-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <a href="/" class="logo" style="text-decoration: none;">
+                <div class="logo-icon">📦</div>
+                <span class="logo-text">Mani Me</span>
+            </a>
+            <h1>Track Your Parcel</h1>
+            <p>Enter your tracking number to see real-time updates</p>
+        </div>
+        
+        <!-- Search Box -->
+        <div class="search-box">
+            <div class="search-input-wrapper">
+                <input type="text" id="trackingInput" class="search-input" 
+                       placeholder="e.g. MM-ABC12345" autocomplete="off">
+                <button id="trackBtn" class="search-btn">Track</button>
+            </div>
+        </div>
+        
+        <!-- Loading State -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Looking up your parcel...</p>
+        </div>
+        
+        <!-- Error State -->
+        <div class="error-box" id="errorBox">
+            <div class="error-icon">📭</div>
+            <h3>Parcel Not Found</h3>
+            <p>We couldn't find a parcel with that tracking number. Please check and try again.</p>
+        </div>
+        
+        <!-- Results -->
+        <div class="results" id="results">
+            <div class="tracking-card">
+                <div class="tracking-header">
+                    <div class="tracking-number">Tracking Number</div>
+                    <div class="tracking-id" id="resultTrackingId">MM-ABC12345</div>
+                    <div class="status-badge status-in_transit" id="statusBadge">
+                        <span>🚚</span> In Transit
+                    </div>
+                </div>
+                <div class="tracking-body">
+                    <div class="info-row">
+                        <span class="info-label">From</span>
+                        <span class="info-value" id="fromLocation">London, UK</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">To</span>
+                        <span class="info-value" id="toLocation">Accra, Ghana</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Weight</span>
+                        <span class="info-value" id="weight">2.5 kg</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Booked On</span>
+                        <span class="info-value" id="bookedDate">12 Mar 2026</span>
+                    </div>
+                    
+                    <!-- Timeline -->
+                    <div class="timeline" id="timeline">
+                        <h3>Tracking History</h3>
+                        <!-- Timeline items will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>Need help? <a href="mailto:support@manime.co.uk">Contact Support</a></p>
+            <p>Download our app for real-time notifications</p>
+            <div class="app-badges">
+                <a href="#" class="app-badge">📱 iOS App</a>
+                <a href="#" class="app-badge">🤖 Android App</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // API Configuration
+        const API_BASE = 'https://mani-me.onrender.com/api';
+        
+        // DOM Elements
+        const trackingInput = document.getElementById('trackingInput');
+        const trackBtn = document.getElementById('trackBtn');
+        const loading = document.getElementById('loading');
+        const errorBox = document.getElementById('errorBox');
+        const results = document.getElementById('results');
+        
+        // Status configurations
+        const statusConfig = {
+            pending: { label: 'Pending', icon: '⏳', class: 'status-pending' },
+            booked: { label: 'Booked', icon: '📋', class: 'status-booked' },
+            picked_up: { label: 'Picked Up', icon: '📦', class: 'status-picked_up' },
+            in_transit: { label: 'In Transit', icon: '🚚', class: 'status-in_transit' },
+            customs: { label: 'In Customs', icon: '🛃', class: 'status-customs' },
+            out_for_delivery: { label: 'Out for Delivery', icon: '🛵', class: 'status-out_for_delivery' },
+            delivered: { label: 'Delivered', icon: '✅', class: 'status-delivered' }
+        };
+        
+        // Status order for timeline
+        const statusOrder = ['pending', 'booked', 'picked_up', 'in_transit', 'customs', 'out_for_delivery', 'delivered'];
+        
+        // Check URL for tracking number
+        function checkURLForTracking() {
+            const path = window.location.pathname;
+            const match = path.match(/\/track\/(.+)/);
+            if (match && match[1]) {
+                trackingInput.value = decodeURIComponent(match[1]);
+                trackParcel();
+            }
+            
+            // Also check query params
+            const params = new URLSearchParams(window.location.search);
+            const trackingNum = params.get('tracking') || params.get('t');
+            if (trackingNum) {
+                trackingInput.value = trackingNum;
+                trackParcel();
+            }
+        }
+        
+        // Track parcel
+        async function trackParcel() {
+            const trackingNumber = trackingInput.value.trim().toUpperCase();
+            
+            if (!trackingNumber) {
+                trackingInput.focus();
+                return;
+            }
+            
+            // Show loading
+            loading.style.display = 'block';
+            errorBox.style.display = 'none';
+            results.style.display = 'none';
+            trackBtn.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_BASE}/shipments/track/${trackingNumber}`);
+                
+                if (!response.ok) {
+                    throw new Error('Parcel not found');
+                }
+                
+                const data = await response.json();
+                displayResults(data);
+                
+            } catch (error) {
+                console.error('Tracking error:', error);
+                errorBox.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+                trackBtn.disabled = false;
+            }
+        }
+        
+        // Display tracking results
+        function displayResults(shipment) {
+            // Update tracking ID
+            document.getElementById('resultTrackingId').textContent = shipment.tracking_number;
+            
+            // Update status badge
+            const status = shipment.status || 'pending';
+            const config = statusConfig[status] || statusConfig.pending;
+            const statusBadge = document.getElementById('statusBadge');
+            statusBadge.className = `status-badge ${config.class}`;
+            statusBadge.innerHTML = `<span>${config.icon}</span> ${config.label}`;
+            
+            // Update info
+            document.getElementById('fromLocation').textContent = 
+                `${shipment.pickup_city || 'UK'}, ${shipment.pickup_postcode || ''}`.trim();
+            document.getElementById('toLocation').textContent = 
+                shipment.ghana_destination || shipment.delivery_city || 'Ghana';
+            document.getElementById('weight').textContent = 
+                shipment.weight_kg ? `${shipment.weight_kg} kg` : 'N/A';
+            document.getElementById('bookedDate').textContent = 
+                shipment.booked_at ? new Date(shipment.booked_at).toLocaleDateString('en-GB', {
+                    day: 'numeric', month: 'short', year: 'numeric'
+                }) : 'N/A';
+            
+            // Build timeline
+            const timeline = document.getElementById('timeline');
+            const currentStatusIndex = statusOrder.indexOf(status);
+            
+            let timelineHTML = '<h3>Tracking History</h3>';
+            
+            // Add status history if available
+            if (shipment.status_history && shipment.status_history.length > 0) {
+                shipment.status_history.forEach((item, index) => {
+                    const itemConfig = statusConfig[item.status] || { label: item.status, icon: '📍' };
+                    const isActive = index === shipment.status_history.length - 1;
+                    
+                    timelineHTML += `
+                        <div class="timeline-item">
+                            <div class="timeline-dot ${isActive ? 'active' : ''}"></div>
+                            <div class="timeline-content">
+                                <h4>${itemConfig.icon} ${itemConfig.label}</h4>
+                                <p>${new Date(item.timestamp).toLocaleString('en-GB', {
+                                    day: 'numeric', month: 'short', year: 'numeric',
+                                    hour: '2-digit', minute: '2-digit'
+                                })}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                // Generate simple timeline based on current status
+                statusOrder.slice(0, currentStatusIndex + 1).forEach((s, index) => {
+                    const itemConfig = statusConfig[s];
+                    const isActive = index === currentStatusIndex;
+                    
+                    timelineHTML += `
+                        <div class="timeline-item">
+                            <div class="timeline-dot ${isActive ? 'active' : ''}"></div>
+                            <div class="timeline-content">
+                                <h4>${itemConfig.icon} ${itemConfig.label}</h4>
+                                <p>${isActive ? 'Current status' : 'Completed'}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            timeline.innerHTML = timelineHTML;
+            
+            // Show results
+            results.style.display = 'block';
+        }
+        
+        // Event listeners
+        trackBtn.addEventListener('click', trackParcel);
+        trackingInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') trackParcel();
+        });
+        
+        // Check URL on load
+        checkURLForTracking();
+    </script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 const QRCode = require('qrcode');
 
 // Website base URL for tracking
-const TRACKING_BASE_URL = 'https://maniime.com/track';
+const TRACKING_BASE_URL = 'https://www.manime.co.uk/track';
 
 function generateQRCodeData(shipmentData) {
   // Generate a tracking URL instead of raw JSON

@@ -14,14 +14,13 @@ import GhanaDrivers from './pages/GhanaDrivers';
 import GroceryShop from './pages/GroceryShop';
 import PackagingShop from './pages/PackagingShop';
 import PackagingOrders from './pages/PackagingOrders';
-import PromoCodes from './pages/PromoCodes';
 import Settings from './pages/Settings';
 import Layout from './components/Layout';
 import ParcelPrices from './pages/ParcelPrices';
 import ParcelItems from './pages/ParcelItems';
 import CashReconciliation from './pages/CashReconciliation';
 import SupportChat from './pages/SupportChat';
-import Broadcasts from './pages/Broadcasts';
+import Marketing from './pages/Marketing';
 import theme from './theme';
 import api from './api';
 import { ENDPOINTS, APP_CONFIG } from './config';
@@ -220,11 +219,11 @@ function App() {
             }
           />
           <Route
-            path="/promo-codes"
+            path="/marketing"
             element={
               isAuthenticated ? 
               <Layout onLogout={handleLogout}>
-                <PromoCodes />
+                <Marketing />
               </Layout> : 
               <Navigate to="/login" replace />
             }
@@ -279,16 +278,7 @@ function App() {
               <Navigate to="/login" replace />
             }
           />
-          <Route
-            path="/broadcasts"
-            element={
-              isAuthenticated ?
-              <Layout onLogout={handleLogout}>
-                <Broadcasts />
-              </Layout> :
-              <Navigate to="/login" replace />
-            }
-          />
+
         </Routes>
       </Router>
     </ThemeProvider>

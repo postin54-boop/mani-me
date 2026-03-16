@@ -14,4 +14,11 @@ export default defineConfig({
   define: {
     'process.env': {},
   },
+  optimizeDeps: {
+    esbuildOptions: {
+      loader: {
+        '.js': 'jsx',
+      },
+    },
+  },
 });

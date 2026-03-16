@@ -204,7 +204,7 @@ exports.sendBroadcast = async (req, res) => {
     
     // Also save to notification history for all users
     const User = require('../models/user');
-    const users = await User.find({ role: 'user' }).select('_id');
+    const users = await User.find({ role: 'CUSTOMER' }).select('_id');
     
     const notificationDocs = users.map(user => ({
       userId: user._id,

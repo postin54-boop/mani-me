@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "mani-me-admin/build",
+    "public": "mani-me-website",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -8,10 +8,19 @@
     ],
     "rewrites": [
       {
-        "source": "**",
-        "destination": "/index.html"
+        "source": "/track",
+        "destination": "/track.html"
+      },
+      {
+        "source": "/track/",
+        "destination": "/track.html"
+      },
+      {
+        "source": "/track/**",
+        "destination": "/track.html"
       }
-    ]
+    ],
+    "cleanUrls": true
   },
   "functions": [
     {

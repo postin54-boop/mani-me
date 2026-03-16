@@ -38,7 +38,7 @@ export default function OrdersScreen({ navigation }) {
       setError(null);
       // Use AbortController for timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout (Render cold start can take 30s+)
       
       const url = `${API_BASE_URL}/api/shipments/user/${userId}`;
       // Only log in debug builds to reduce spam
@@ -78,7 +78,7 @@ export default function OrdersScreen({ navigation }) {
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout (Render cold start can take 30s+)
       
       const url = `${API_BASE_URL}/api/shipments/stats/${userId}`;
       // Only log in debug builds to reduce spam

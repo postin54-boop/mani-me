@@ -18,6 +18,12 @@ export default function TrackingSearchScreen({ navigation }) {
   const [recentParcels, setRecentParcels] = useState([]);
 
   const fetchRecentParcels = useCallback(async () => {
+    // Don't fetch if user is not logged in
+    if (!user?.id || !token) {
+      setLoadingRecent(false);
+      return;
+    }
+    
     try {
       setLoadingRecent(true);
       setRecentError(null);
@@ -41,7 +47,7 @@ export default function TrackingSearchScreen({ navigation }) {
     } finally {
       setLoadingRecent(false);
     }
-  }, [user?.id]);
+  }, [user?.id, token]);
 
   useEffect(() => {
     fetchRecentParcels();

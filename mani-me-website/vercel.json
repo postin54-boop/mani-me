@@ -2,7 +2,16 @@
   "buildCommand": null,
   "outputDirectory": ".",
   "framework": null,
-  "rewrites": [],
+  "rewrites": [
+    {
+      "source": "/track",
+      "destination": "/track.html"
+    },
+    {
+      "source": "/track/:tracking*",
+      "destination": "/track.html"
+    }
+  ],
   "redirects": [],
   "headers": [
     {
