@@ -433,8 +433,9 @@
                 const res = await fetch(`${API_BASE}/shipments/track/${trackingNumber}`);
                 if (!res.ok) throw new Error('Not found');
                 
-                const data = await res.json();
-                displayResult(data);
+                const json = await res.json();
+                // API returns { shipment: {...} }
+                displayResult(json.shipment || json);
             } catch (e) {
                 errorBox.style.display = 'block';
             } finally {
@@ -454,20 +455,20 @@
             badge.className = 'status-badge ' + config.class;
             badge.innerHTML = config.icon + ' ' + config.label;
             
-            // Route
-            document.getElementById('fromCity').textContent = data.sender_city || 'UK';
-            document.getElementById('toCity').textContent = data.receiver_city || 'Ghana';
+            // Route - use pickup_city and delivery_city from model
+            document.getElementById('fromCity').textContent = data.pickup_city || 'UK';
+            document.getElementById('toCity').textContent = data.delivery_city || 'Ghana';
             
             // Sender
             document.getElementById('senderName').textContent = data.sender_name || '—';
             document.getElementById('senderPhone').textContent = data.sender_phone || '';
-            const senderLoc = [data.sender_city, data.sender_postcode].filter(Boolean).join(', ') || 'UK';
+            const senderLoc = [data.pickup_city, data.pickup_postcode].filter(Boolean).join(', ') || 'UK';
             document.getElementById('senderLocation').textContent = senderLoc;
             
             // Receiver
             document.getElementById('receiverName').textContent = data.receiver_name || '—';
             document.getElementById('receiverPhone').textContent = data.receiver_phone || '';
-            const receiverLoc = [data.receiver_city, data.receiver_region].filter(Boolean).join(', ') || 'Ghana';
+            const receiverLoc = [data.delivery_city, data.delivery_region].filter(Boolean).join(', ') || 'Ghana';
             document.getElementById('receiverLocation').textContent = receiverLoc;
             
             // Estimated delivery
