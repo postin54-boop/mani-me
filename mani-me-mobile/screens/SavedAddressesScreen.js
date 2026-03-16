@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, Alert, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TextInput, Alert, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, RefreshControl, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getAddresses, createAddress, updateAddress, deleteAddress } from '../src/api';
 import { useUser } from '../context/UserContext';
@@ -15,17 +15,23 @@ export default function SavedAddressesScreen({ navigation }) {
   const [editingId, setEditingId] = useState(null);
 
   const fetchAddresses = async () => {
-    if (!user?.id) {
+    // Get user ID - handle both 'id' and '_id' formats
+    const userId = user?.id || user?._id;
+    if (!userId) {
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      const res = await getAddresses(user.id);
+      const res = await getAddresses(userId.toString());
       const data = res?.data;
       setAddresses(Array.isArray(data) ? data : []);
     } catch (e) {
-      Alert.alert('Error', 'Failed to fetch addresses');
+      console.error('Fetch addresses error:', e.response?.data || e.message);
+      // Don't show error alert for empty list (404)
+      if (e.response?.status !== 404) {
+        Alert.alert('Error', 'Failed to fetch addresses');
+      }
       setAddresses([]);
     } finally {
       setLoading(false);
@@ -35,22 +41,36 @@ export default function SavedAddressesScreen({ navigation }) {
   useEffect(() => { fetchAddresses(); }, []);
 
   const handleSave = async () => {
+    Keyboard.dismiss();
+    
     if (!form.label || !form.addressLine || !form.city || !form.country) {
       Alert.alert('Validation', 'Label, Address, City and Country are required');
       return;
     }
+    
+    // Get user ID - handle both 'id' and '_id' formats
+    const userId = user?.id || user?._id;
+    if (!userId && !editingId) {
+      Alert.alert('Error', 'Please log in again to save addresses');
+      return;
+    }
+    
     setLoading(true);
     try {
       if (editingId) {
         await updateAddress(editingId, form);
+        Alert.alert('Success', 'Address updated!');
       } else {
-        await createAddress({ ...form, userId: user?.id });
+        await createAddress({ ...form, userId: userId.toString() });
+        Alert.alert('Success', 'Address saved!');
       }
       setForm({ label: '', addressLine: '', city: '', country: 'UK', phone: '' });
       setEditingId(null);
       fetchAddresses();
     } catch (e) {
-      Alert.alert('Error', 'Failed to save address');
+      console.error('Save address error:', e.response?.data || e.message);
+      const errorMsg = e.response?.data?.message || e.response?.data?.error || 'Failed to save address';
+      Alert.alert('Error', errorMsg);
     } finally {
       setLoading(false);
     }
@@ -103,7 +123,8 @@ export default function SavedAddressesScreen({ navigation }) {
           value={form.label} 
           onChangeText={t => setForm(f => ({ ...f, label: t }))} 
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]} 
-          placeholderTextColor={colors.textLight} 
+          placeholderTextColor={colors.textLight}
+          returnKeyType="next"
         />
         <TextInput 
           placeholder="Address Line (House No., Street)" 
@@ -111,13 +132,15 @@ export default function SavedAddressesScreen({ navigation }) {
           onChangeText={t => setForm(f => ({ ...f, addressLine: t }))} 
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]} 
           placeholderTextColor={colors.textLight}
+          returnKeyType="next"
         />
         <TextInput 
           placeholder="City" 
           value={form.city} 
           onChangeText={t => setForm(f => ({ ...f, city: t }))} 
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]} 
-          placeholderTextColor={colors.textLight} 
+          placeholderTextColor={colors.textLight}
+          returnKeyType="next"
         />
         <View style={styles.countryRow}>
           <TouchableOpacity 
@@ -152,6 +175,8 @@ export default function SavedAddressesScreen({ navigation }) {
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]} 
           placeholderTextColor={colors.textLight}
           keyboardType="phone-pad"
+          returnKeyType="done"
+          onSubmitEditing={Keyboard.dismiss}
         />
         <View style={styles.buttonRow}>
           {editingId && (
@@ -243,15 +268,16 @@ export default function SavedAddressesScreen({ navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <ScrollView
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="always"
-          keyboardDismissMode="none"
-          refreshControl={
-            <RefreshControl refreshing={loading} onRefresh={fetchAddresses} />
-          }
-        >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            refreshControl={
+              <RefreshControl refreshing={loading} onRefresh={fetchAddresses} />
+            }
+          >
           {renderHeader()}
           
           {(!Array.isArray(addresses) || addresses.length === 0) ? (
@@ -271,7 +297,8 @@ export default function SavedAddressesScreen({ navigation }) {
               </View>
             ))
           )}
-        </ScrollView>
+          </ScrollView>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
