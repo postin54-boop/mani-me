@@ -191,27 +191,49 @@
             font-size: 20px;
         }
         
-        /* Receiver */
-        .receiver-section {
+        /* People Cards */
+        .people-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
             margin-bottom: 20px;
         }
         
+        .person-card {
+            padding: 14px;
+            border-radius: 10px;
+        }
+        
+        .person-card.sender {
+            background: rgba(131, 197, 250, 0.1);
+        }
+        
+        .person-card.receiver {
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
         .section-label {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--gray-400);
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
         
-        .receiver-name {
-            font-size: 18px;
+        .person-name {
+            font-size: 15px;
             font-weight: 600;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
         
-        .receiver-location {
-            font-size: 14px;
+        .person-phone {
+            font-size: 12px;
+            color: var(--sky);
+            margin-bottom: 2px;
+        }
+        
+        .person-location {
+            font-size: 12px;
             color: var(--gray-400);
         }
         
@@ -328,10 +350,19 @@
                     </div>
                 </div>
                 
-                <div class="receiver-section">
-                    <div class="section-label">📥 Delivering To</div>
-                    <div class="receiver-name" id="receiverName">—</div>
-                    <div class="receiver-location" id="receiverLocation">—</div>
+                <div class="people-row">
+                    <div class="person-card sender">
+                        <div class="section-label">📤 From</div>
+                        <div class="person-name" id="senderName">—</div>
+                        <div class="person-phone" id="senderPhone"></div>
+                        <div class="person-location" id="senderLocation">UK</div>
+                    </div>
+                    <div class="person-card receiver">
+                        <div class="section-label">📥 To</div>
+                        <div class="person-name" id="receiverName">—</div>
+                        <div class="person-phone" id="receiverPhone"></div>
+                        <div class="person-location" id="receiverLocation">Ghana</div>
+                    </div>
                 </div>
                 
                 <div class="delivery-box">
@@ -427,10 +458,17 @@
             document.getElementById('fromCity').textContent = data.sender_city || 'UK';
             document.getElementById('toCity').textContent = data.receiver_city || 'Ghana';
             
+            // Sender
+            document.getElementById('senderName').textContent = data.sender_name || '—';
+            document.getElementById('senderPhone').textContent = data.sender_phone || '';
+            const senderLoc = [data.sender_city, data.sender_postcode].filter(Boolean).join(', ') || 'UK';
+            document.getElementById('senderLocation').textContent = senderLoc;
+            
             // Receiver
             document.getElementById('receiverName').textContent = data.receiver_name || '—';
-            const location = [data.receiver_city, data.receiver_region].filter(Boolean).join(', ') || 'Ghana';
-            document.getElementById('receiverLocation').textContent = location;
+            document.getElementById('receiverPhone').textContent = data.receiver_phone || '';
+            const receiverLoc = [data.receiver_city, data.receiver_region].filter(Boolean).join(', ') || 'Ghana';
+            document.getElementById('receiverLocation').textContent = receiverLoc;
             
             // Estimated delivery
             let estDate = '4-5 weeks from pickup';
