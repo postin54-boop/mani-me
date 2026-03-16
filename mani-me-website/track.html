@@ -4,10 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Track Your Parcel | Mani Me</title>
-    <meta name="description" content="Track your UK to Ghana parcel delivery in real-time with Mani Me.">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -16,133 +13,91 @@
             --white: #FFFFFF;
             --success: #10B981;
             --warning: #F59E0B;
-            --error: #EF4444;
-            --purple: #A855F7;
-            --gray-100: #f3f4f6;
-            --gray-200: #e5e7eb;
             --gray-400: #9ca3af;
-            --gray-600: #4b5563;
         }
         
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, var(--navy) 0%, #162d4d 100%);
             min-height: 100vh;
             color: var(--white);
         }
         
         .container {
-            max-width: 600px;
+            max-width: 420px;
             margin: 0 auto;
-            padding: 40px 20px;
+            padding: 32px 20px;
         }
         
         /* Header */
         .header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 24px;
         }
         
         .logo {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
-            margin-bottom: 16px;
+            gap: 10px;
+            margin-bottom: 12px;
+            text-decoration: none;
         }
         
         .logo-img {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
-            object-fit: cover;
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
         }
         
         .logo-text {
-            font-size: 28px;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--white), var(--sky));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .header h1 {
             font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 8px;
+            font-weight: 700;
+            color: var(--white);
         }
         
-        .header p {
-            color: var(--gray-400);
-            font-size: 14px;
-        }
-        
-        /* Search Box */
+        /* Search */
         .search-box {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 20px;
         }
         
-        .search-input-wrapper {
+        .search-row {
             display: flex;
-            gap: 12px;
+            gap: 10px;
         }
         
         .search-input {
             flex: 1;
-            padding: 14px 18px;
-            font-size: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 14px;
+            font-size: 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
             color: var(--white);
             outline: none;
-            transition: border-color 0.2s;
         }
         
-        .search-input::placeholder {
-            color: var(--gray-400);
-        }
-        
-        .search-input:focus {
-            border-color: var(--sky);
-        }
+        .search-input::placeholder { color: var(--gray-400); }
         
         .search-btn {
-            padding: 14px 24px;
-            background: linear-gradient(135deg, var(--sky), #5BA3E0);
+            padding: 12px 18px;
+            background: var(--sky);
             color: var(--navy);
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
         }
         
-        .search-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(131, 197, 250, 0.3);
-        }
+        .search-btn:disabled { opacity: 0.5; }
         
-        .search-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        /* Loading State */
+        /* Loading */
         .loading {
             text-align: center;
             padding: 40px;
@@ -150,791 +105,293 @@
         }
         
         .spinner {
-            width: 48px;
-            height: 48px;
-            border: 4px solid rgba(131, 197, 250, 0.2);
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(131, 197, 250, 0.2);
             border-top-color: var(--sky);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
+            margin: 0 auto 12px;
         }
         
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         
         /* Results */
-        .results {
-            display: none;
-        }
+        .results { display: none; }
         
-        .tracking-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .card {
+            background: rgba(255, 255, 255, 0.08);
             border-radius: 16px;
-            overflow: hidden;
+            padding: 24px;
             margin-bottom: 16px;
         }
         
+        /* Tracking Header */
         .tracking-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             text-align: center;
+            margin-bottom: 20px;
         }
         
-        .tracking-number {
+        .tracking-label {
             font-size: 11px;
             color: var(--gray-400);
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 4px;
         }
         
         .tracking-id {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 700;
             color: var(--sky);
             font-family: monospace;
-            letter-spacing: 1px;
+            margin-top: 4px;
         }
         
+        /* Status Badge */
         .status-badge {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-size: 15px;
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-size: 14px;
             font-weight: 600;
-            margin-top: 16px;
+            margin-top: 12px;
         }
         
-        .status-pending { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
-        .status-booked { background: rgba(131, 197, 250, 0.15); color: var(--sky); }
-        .status-pickup_scheduled { background: rgba(131, 197, 250, 0.15); color: var(--sky); }
-        .status-picked_up { background: rgba(59, 130, 246, 0.15); color: #3B82F6; }
-        .status-in_uk_warehouse { background: rgba(59, 130, 246, 0.2); color: #3B82F6; }
-        .status-in_transit { background: rgba(168, 85, 247, 0.15); color: var(--purple); }
-        .status-in_ghana_warehouse { background: rgba(168, 85, 247, 0.2); color: var(--purple); }
-        .status-customs { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
-        .status-out_for_delivery { background: rgba(16, 185, 129, 0.15); color: var(--success); }
-        .status-delivered { background: rgba(16, 185, 129, 0.25); color: var(--success); }
+        .status-pending { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .status-booked { background: rgba(131, 197, 250, 0.2); color: var(--sky); }
+        .status-picked_up { background: rgba(59, 130, 246, 0.2); color: #3B82F6; }
+        .status-in_transit { background: rgba(168, 85, 247, 0.2); color: #A855F7; }
+        .status-customs { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .status-out_for_delivery { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .status-delivered { background: rgba(16, 185, 129, 0.3); color: var(--success); }
         
-        .tracking-body {
-            padding: 24px;
-        }
-        
-        /* Route Visual */
-        .route-visual {
-            background: linear-gradient(135deg, rgba(131, 197, 250, 0.1), rgba(16, 185, 129, 0.1));
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 24px;
-            text-align: center;
-        }
-        
-        .route-visual .route-row {
+        /* Route */
+        .route {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 16px;
+            gap: 12px;
+            padding: 16px;
+            background: rgba(131, 197, 250, 0.1);
+            border-radius: 12px;
+            margin-bottom: 20px;
         }
         
         .route-point {
             text-align: center;
         }
         
-        .route-point .flag {
-            font-size: 32px;
-            margin-bottom: 4px;
-        }
+        .route-point .flag { font-size: 28px; }
+        .route-point .city { font-size: 13px; font-weight: 600; margin-top: 2px; }
         
-        .route-point .city {
-            font-weight: 600;
-            font-size: 15px;
-        }
-        
-        .route-point .country {
-            font-size: 12px;
-            color: var(--gray-400);
-        }
-        
-        .route-line {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .route-arrow {
             color: var(--sky);
+            font-size: 20px;
         }
         
-        .route-line .plane {
-            font-size: 24px;
-            animation: fly 2s ease-in-out infinite;
+        /* Receiver */
+        .receiver-section {
+            margin-bottom: 20px;
         }
         
-        @keyframes fly {
-            0%, 100% { transform: translateX(0); }
-            50% { transform: translateX(10px); }
-        }
-        
-        .route-line .dots {
-            width: 60px;
-            height: 2px;
-            background: linear-gradient(90deg, var(--sky), var(--success));
-            border-radius: 2px;
-        }
-        
-        /* Person Cards */
-        .person-cards {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        
-        .person-card {
-            border-radius: 12px;
-            padding: 16px;
-        }
-        
-        .person-card.sender {
-            background: rgba(131, 197, 250, 0.1);
-            border: 1px solid rgba(131, 197, 250, 0.2);
-        }
-        
-        .person-card.receiver {
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-        }
-        
-        .person-card .card-title {
+        .section-label {
             font-size: 11px;
             color: var(--gray-400);
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .person-card .name {
-            font-weight: 600;
-            font-size: 16px;
             margin-bottom: 8px;
         }
         
-        .person-card .detail {
-            font-size: 13px;
-            color: var(--gray-400);
-            margin-bottom: 4px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .person-card .detail.phone {
-            color: var(--sky);
-        }
-        
-        /* Parcel Details Card */
-        .details-card {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
-        }
-        
-        .details-card .card-title {
-            font-size: 14px;
+        .receiver-name {
+            font-size: 18px;
             font-weight: 600;
-            margin-bottom: 16px;
-            color: var(--white);
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            margin-bottom: 4px;
         }
         
-        .details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-        
-        .detail-item {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        
-        .detail-item .label {
-            font-size: 12px;
+        .receiver-location {
+            font-size: 14px;
             color: var(--gray-400);
         }
         
-        .detail-item .value {
-            font-weight: 500;
-            font-size: 14px;
-        }
-        
-        /* Estimated Delivery */
-        .delivery-estimate {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05));
+        /* Delivery Estimate */
+        .delivery-box {
+            background: rgba(16, 185, 129, 0.15);
             border: 1px solid rgba(16, 185, 129, 0.3);
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
+            padding: 16px;
             text-align: center;
         }
         
-        .delivery-estimate .label {
-            font-size: 12px;
+        .delivery-label {
+            font-size: 11px;
             color: var(--gray-400);
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 8px;
         }
         
-        .delivery-estimate .date {
-            font-size: 20px;
+        .delivery-date {
+            font-size: 18px;
             font-weight: 700;
             color: var(--success);
+            margin-top: 4px;
         }
         
-        .delivery-estimate .note {
+        .delivery-note {
             font-size: 12px;
             color: var(--gray-400);
-            margin-top: 8px;
+            margin-top: 6px;
         }
         
-        /* Timeline */
-        .timeline-section {
-            margin-bottom: 24px;
-        }
-        
-        .timeline-section h3 {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .timeline {
-            position: relative;
-            padding-left: 30px;
-        }
-        
-        .timeline::before {
-            content: '';
-            position: absolute;
-            left: 8px;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .timeline-item {
-            position: relative;
-            padding-bottom: 20px;
-        }
-        
-        .timeline-item:last-child {
-            padding-bottom: 0;
-        }
-        
-        .timeline-dot {
-            position: absolute;
-            left: -22px;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: var(--gray-600);
-            border: 3px solid var(--navy);
+        /* Support */
+        .support-link {
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-        
-        .timeline-dot.completed {
-            background: var(--success);
-        }
-        
-        .timeline-dot.current {
-            background: var(--sky);
-            box-shadow: 0 0 12px rgba(131, 197, 250, 0.5);
-        }
-        
-        .timeline-dot.pending {
-            background: var(--gray-600);
-        }
-        
-        .timeline-content h4 {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        
-        .timeline-content p {
-            font-size: 12px;
-            color: var(--gray-400);
-        }
-        
-        .timeline-item.completed .timeline-content h4 {
-            color: var(--success);
-        }
-        
-        .timeline-item.current .timeline-content h4 {
-            color: var(--sky);
-        }
-        
-        .timeline-item.pending .timeline-content h4 {
-            color: var(--gray-400);
-        }
-        
-        /* Parcel Photo */
-        .photo-section {
-            margin-bottom: 24px;
-        }
-        
-        .photo-section h3 {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
             gap: 8px;
-        }
-        
-        .photo-container {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 14px;
+            background: linear-gradient(135deg, #25D366, #128C7E);
             border-radius: 12px;
-            overflow: hidden;
-        }
-        
-        .photo-container img {
-            width: 100%;
-            max-height: 250px;
-            object-fit: cover;
-        }
-        
-        .no-photo {
-            padding: 40px;
-            text-align: center;
-            color: var(--gray-400);
-        }
-        
-        .no-photo .icon {
-            font-size: 40px;
-            margin-bottom: 8px;
-        }
-        
-        /* Support Section */
-        .support-section {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 24px;
-            text-align: center;
-        }
-        
-        .support-section h3 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        
-        .support-section p {
-            font-size: 13px;
-            color: var(--gray-400);
-            margin-bottom: 16px;
-        }
-        
-        .support-buttons {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-        }
-        
-        .support-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 20px;
-            border-radius: 10px;
-            font-size: 14px;
+            color: var(--white);
             font-weight: 600;
             text-decoration: none;
-            transition: transform 0.2s, box-shadow 0.2s;
+            font-size: 15px;
         }
         
-        .support-btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .support-btn.email {
-            background: linear-gradient(135deg, var(--sky), #5BA3E0);
-            color: var(--navy);
-        }
-        
-        .support-btn.whatsapp {
-            background: linear-gradient(135deg, #25D366, #128C7E);
-            color: var(--white);
-        }
-        
-        /* Error State */
+        /* Error */
         .error-box {
             display: none;
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            border-radius: 12px;
-            padding: 32px 20px;
             text-align: center;
+            padding: 40px 20px;
         }
         
-        .error-icon {
-            font-size: 56px;
-            margin-bottom: 16px;
-        }
-        
-        .error-box h3 {
-            color: var(--error);
-            margin-bottom: 8px;
-            font-size: 18px;
-        }
-        
-        .error-box p {
-            color: var(--gray-400);
-            font-size: 14px;
-        }
+        .error-icon { font-size: 48px; margin-bottom: 12px; }
+        .error-box h3 { color: #EF4444; margin-bottom: 6px; }
+        .error-box p { color: var(--gray-400); font-size: 14px; }
         
         /* Footer */
         .footer {
             text-align: center;
-            margin-top: 40px;
-            padding-top: 24px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .footer p {
+            margin-top: 24px;
             color: var(--gray-400);
-            font-size: 14px;
-            margin-bottom: 12px;
+            font-size: 12px;
         }
         
-        .footer a {
-            color: var(--sky);
-            text-decoration: none;
-        }
-        
-        .footer a:hover {
-            text-decoration: underline;
-        }
-        
-        .app-badges {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-top: 16px;
-        }
-        
-        .app-badge {
-            padding: 12px 24px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            font-size: 13px;
-            color: var(--white);
-            text-decoration: none;
-            transition: background 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .app-badge:hover {
-            background: rgba(255, 255, 255, 0.15);
-            text-decoration: none;
-        }
-        
-        @media (max-width: 480px) {
-            .container {
-                padding: 24px 16px;
-            }
-            
-            .search-input-wrapper {
-                flex-direction: column;
-            }
-            
-            .search-btn {
-                width: 100%;
-            }
-            
-            .person-cards {
-                grid-template-columns: 1fr;
-            }
-            
-            .details-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .support-buttons {
-                flex-direction: column;
-            }
-            
-            .support-btn {
-                justify-content: center;
-            }
-            
-            .route-line .dots {
-                width: 40px;
-            }
-        }
+        .footer a { color: var(--sky); text-decoration: none; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <div class="header">
-            <a href="/" class="logo" style="text-decoration: none;">
+            <a href="/" class="logo">
                 <img src="/images/logo.png" alt="Mani Me" class="logo-img">
                 <span class="logo-text">Mani Me</span>
             </a>
-            <h1>Track Your Parcel</h1>
-            <p>Enter your tracking number to see real-time updates</p>
         </div>
         
-        <!-- Search Box -->
         <div class="search-box">
-            <div class="search-input-wrapper">
-                <input type="text" id="trackingInput" class="search-input" 
-                       placeholder="e.g. MMMMJO2YJ92258" autocomplete="off">
+            <div class="search-row">
+                <input type="text" id="trackingInput" class="search-input" placeholder="Enter tracking number">
                 <button id="trackBtn" class="search-btn">Track</button>
             </div>
         </div>
         
-        <!-- Loading State -->
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <p>Looking up your parcel...</p>
         </div>
         
-        <!-- Error State -->
         <div class="error-box" id="errorBox">
             <div class="error-icon">📭</div>
             <h3>Parcel Not Found</h3>
-            <p>We couldn't find a parcel with that tracking number.<br>Please check and try again.</p>
+            <p>Please check your tracking number and try again.</p>
         </div>
         
-        <!-- Results -->
         <div class="results" id="results">
-            <!-- Main Tracking Card -->
-            <div class="tracking-card">
+            <div class="card">
                 <div class="tracking-header">
-                    <div class="tracking-number">Tracking Number</div>
-                    <div class="tracking-id" id="resultTrackingId">MMMMJO2YJ92258</div>
-                    <div class="status-badge status-pending" id="statusBadge">
-                        <span>⏳</span> Pending
+                    <div class="tracking-label">Tracking Number</div>
+                    <div class="tracking-id" id="trackingId">—</div>
+                    <div class="status-badge status-pending" id="statusBadge">⏳ Pending</div>
+                </div>
+                
+                <div class="route">
+                    <div class="route-point">
+                        <div class="flag">🇬🇧</div>
+                        <div class="city" id="fromCity">UK</div>
+                    </div>
+                    <div class="route-arrow">✈️ →</div>
+                    <div class="route-point">
+                        <div class="flag">🇬🇭</div>
+                        <div class="city" id="toCity">Ghana</div>
                     </div>
                 </div>
                 
-                <div class="tracking-body">
-                    <!-- Route Visual -->
-                    <div class="route-visual">
-                        <div class="route-row">
-                            <div class="route-point">
-                                <div class="flag">🇬🇧</div>
-                                <div class="city" id="fromCity">London</div>
-                                <div class="country">United Kingdom</div>
-                            </div>
-                            <div class="route-line">
-                                <div class="dots"></div>
-                                <div class="plane">✈️</div>
-                                <div class="dots"></div>
-                            </div>
-                            <div class="route-point">
-                                <div class="flag">🇬🇭</div>
-                                <div class="city" id="toCity">Accra</div>
-                                <div class="country">Ghana</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Sender & Receiver Cards -->
-                    <div class="person-cards">
-                        <div class="person-card sender">
-                            <div class="card-title">📤 Sender</div>
-                            <div class="name" id="senderName">—</div>
-                            <div class="detail phone" id="senderPhone">—</div>
-                            <div class="detail" id="senderAddress">—</div>
-                        </div>
-                        <div class="person-card receiver">
-                            <div class="card-title">📥 Receiver</div>
-                            <div class="name" id="receiverName">—</div>
-                            <div class="detail phone" id="receiverPhone">—</div>
-                            <div class="detail" id="receiverAddress">—</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Parcel Details -->
-                    <div class="details-card">
-                        <div class="card-title">📦 Parcel Details</div>
-                        <div class="details-grid">
-                            <div class="detail-item">
-                                <span class="label">Item Type</span>
-                                <span class="value" id="itemType">—</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="label">Quantity</span>
-                                <span class="value" id="itemQuantity">—</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="label">Weight</span>
-                                <span class="value" id="weight">—</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="label">Declared Value</span>
-                                <span class="value" id="declaredValue">—</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="label">Booked On</span>
-                                <span class="value" id="bookedDate">—</span>
-                            </div>
-                            <div class="detail-item" id="pickupDateRow" style="display: none;">
-                                <span class="label">Picked Up</span>
-                                <span class="value" id="pickupDate">—</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Estimated Delivery -->
-                    <div class="delivery-estimate" id="deliveryEstimate">
-                        <div class="label">📅 Estimated Delivery</div>
-                        <div class="date" id="estimatedDate">—</div>
-                        <div class="note">Delivery typically takes 4-5 weeks</div>
-                    </div>
-                    
-                    <!-- Timeline -->
-                    <div class="timeline-section">
-                        <h3>📍 Tracking History</h3>
-                        <div class="timeline" id="timeline">
-                            <!-- Timeline items will be inserted here -->
-                        </div>
-                    </div>
-                    
-                    <!-- Parcel Photo -->
-                    <div class="photo-section" id="photoSection" style="display: none;">
-                        <h3>📷 Parcel Photo</h3>
-                        <div class="photo-container">
-                            <img id="parcelPhoto" src="" alt="Parcel Photo">
-                        </div>
-                    </div>
+                <div class="receiver-section">
+                    <div class="section-label">📥 Delivering To</div>
+                    <div class="receiver-name" id="receiverName">—</div>
+                    <div class="receiver-location" id="receiverLocation">—</div>
+                </div>
+                
+                <div class="delivery-box">
+                    <div class="delivery-label">📅 Estimated Delivery</div>
+                    <div class="delivery-date" id="estimatedDate">—</div>
+                    <div class="delivery-note">Typically 4-5 weeks from pickup</div>
                 </div>
             </div>
             
-            <!-- Support Section -->
-            <div class="support-section">
-                <h3>Need Help?</h3>
-                <p>Our support team is here to assist you</p>
-                <div class="support-buttons">
-                    <a href="mailto:manimeappinfo@gmail.com" class="support-btn email">
-                        📧 Email Support
-                    </a>
-                    <a href="https://wa.me/447400000000" class="support-btn whatsapp" target="_blank">
-                        💬 WhatsApp
-                    </a>
-                </div>
-            </div>
+            <a href="https://wa.me/447958086887" class="support-link" target="_blank">
+                💬 Need Help? WhatsApp Us
+            </a>
         </div>
         
-        <!-- Footer -->
         <div class="footer">
-            <p>Download our app for real-time notifications</p>
-            <div class="app-badges">
-                <a href="#" class="app-badge">📱 iOS App</a>
-                <a href="#" class="app-badge">🤖 Android App</a>
-            </div>
-            <p style="margin-top: 24px; font-size: 12px;">© 2026 Mani Me. UK to Ghana Parcel Delivery.</p>
+            <p>© 2026 <a href="/">Mani Me</a> · UK to Ghana Delivery</p>
         </div>
     </div>
     
     <script>
-        // API Configuration
         const API_BASE = 'https://mani-me.onrender.com/api';
-        
-        // DOM Elements
         const trackingInput = document.getElementById('trackingInput');
         const trackBtn = document.getElementById('trackBtn');
         const loading = document.getElementById('loading');
         const errorBox = document.getElementById('errorBox');
         const results = document.getElementById('results');
         
-        // Status configurations with full delivery journey
         const statusConfig = {
-            pending: { label: 'Parcel Booked', icon: '📋', class: 'status-pending' },
-            booked: { label: 'Parcel Booked', icon: '📋', class: 'status-booked' },
-            pickup_scheduled: { label: 'Pickup Scheduled', icon: '📅', class: 'status-pickup_scheduled' },
+            pending: { label: 'Booked', icon: '📋', class: 'status-pending' },
+            booked: { label: 'Booked', icon: '📋', class: 'status-booked' },
+            pickup_scheduled: { label: 'Pickup Scheduled', icon: '📅', class: 'status-booked' },
             picked_up: { label: 'Picked Up', icon: '📦', class: 'status-picked_up' },
-            in_uk_warehouse: { label: 'In UK Warehouse', icon: '🏭', class: 'status-in_uk_warehouse' },
-            in_transit: { label: 'Dispatched to Ghana', icon: '✈️', class: 'status-in_transit' },
+            in_uk_warehouse: { label: 'At UK Warehouse', icon: '🏭', class: 'status-picked_up' },
+            in_transit: { label: 'On Way to Ghana', icon: '✈️', class: 'status-in_transit' },
             customs: { label: 'In Customs', icon: '🛃', class: 'status-customs' },
-            in_ghana_warehouse: { label: 'In Ghana Warehouse', icon: '🏭', class: 'status-in_ghana_warehouse' },
+            in_ghana_warehouse: { label: 'In Ghana', icon: '🏭', class: 'status-in_transit' },
             out_for_delivery: { label: 'Out for Delivery', icon: '🛵', class: 'status-out_for_delivery' },
-            delivered: { label: 'Delivered', icon: '✅', class: 'status-delivered' }
+            delivered: { label: 'Delivered ✓', icon: '✅', class: 'status-delivered' }
         };
         
-        // Full delivery journey for timeline (ordered)
-        const deliveryJourney = [
-            { key: 'booked', label: 'Parcel Booked', icon: '📋' },
-            { key: 'picked_up', label: 'Picked Up', icon: '📦' },
-            { key: 'in_uk_warehouse', label: 'In UK Warehouse', icon: '🏭' },
-            { key: 'in_transit', label: 'Dispatched to Ghana', icon: '✈️' },
-            { key: 'in_ghana_warehouse', label: 'In Ghana Warehouse', icon: '🏭' },
-            { key: 'out_for_delivery', label: 'Out for Delivery', icon: '🛵' },
-            { key: 'delivered', label: 'Delivered', icon: '✅' }
-        ];
-        
-        // Map various API statuses to journey steps
-        const statusToJourneyIndex = {
-            'pending': 0,
-            'booked': 0,
-            'pickup_scheduled': 0,
-            'picked_up': 1,
-            'in_uk_warehouse': 2,
-            'in_transit': 3,
-            'customs': 3,
-            'in_ghana_warehouse': 4,
-            'out_for_delivery': 5,
-            'delivered': 6
-        };
-        
-        // Check URL for tracking number
-        function checkURLForTracking() {
+        // Check URL for tracking
+        function checkURL() {
             const path = window.location.pathname;
             const match = path.match(/\/track\/(.+)/);
-            if (match && match[1]) {
+            if (match) {
                 trackingInput.value = decodeURIComponent(match[1]);
                 trackParcel();
+                return;
             }
-            
             const params = new URLSearchParams(window.location.search);
-            const trackingNum = params.get('tracking') || params.get('t');
-            if (trackingNum) {
-                trackingInput.value = trackingNum;
+            const id = params.get('id') || params.get('tracking') || params.get('t');
+            if (id) {
+                trackingInput.value = id;
                 trackParcel();
             }
         }
         
-        // Track parcel
         async function trackParcel() {
             const trackingNumber = trackingInput.value.trim().toUpperCase();
-            
-            if (!trackingNumber) {
-                trackingInput.focus();
-                return;
-            }
+            if (!trackingNumber) return;
             
             loading.style.display = 'block';
             errorBox.style.display = 'none';
@@ -942,17 +399,12 @@
             trackBtn.disabled = true;
             
             try {
-                const response = await fetch(`${API_BASE}/shipments/track/${trackingNumber}`);
+                const res = await fetch(`${API_BASE}/shipments/track/${trackingNumber}`);
+                if (!res.ok) throw new Error('Not found');
                 
-                if (!response.ok) {
-                    throw new Error('Parcel not found');
-                }
-                
-                const data = await response.json();
-                displayResults(data);
-                
-            } catch (error) {
-                console.error('Tracking error:', error);
+                const data = await res.json();
+                displayResult(data);
+            } catch (e) {
                 errorBox.style.display = 'block';
             } finally {
                 loading.style.display = 'none';
@@ -960,155 +412,48 @@
             }
         }
         
-        // Format date helper
-        function formatDate(dateStr) {
-            if (!dateStr) return '—';
-            return new Date(dateStr).toLocaleDateString('en-GB', {
-                day: 'numeric', month: 'short', year: 'numeric'
-            });
-        }
-        
-        // Calculate estimated delivery (4-5 weeks from booking)
-        function getEstimatedDelivery(bookedAt) {
-            if (!bookedAt) return { date: '—', note: 'Typically 4-5 weeks' };
-            const booked = new Date(bookedAt);
-            const estimated = new Date(booked);
-            estimated.setDate(estimated.getDate() + 35); // 5 weeks
-            return {
-                date: estimated.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
-                note: 'Delivery typically takes 4-5 weeks'
-            };
-        }
-        
-        // Display tracking results
-        function displayResults(data) {
-            const shipment = data.shipment || data;
+        function displayResult(data) {
+            // Tracking ID
+            document.getElementById('trackingId').textContent = data.tracking_number || '—';
             
-            // Update tracking ID
-            document.getElementById('resultTrackingId').textContent = shipment.tracking_number || '—';
-            
-            // Update status badge
-            const status = shipment.status || 'pending';
+            // Status
+            const status = data.status || 'pending';
             const config = statusConfig[status] || statusConfig.pending;
-            const statusBadge = document.getElementById('statusBadge');
-            statusBadge.className = `status-badge ${config.class}`;
-            statusBadge.innerHTML = `<span>${config.icon}</span> ${config.label}`;
+            const badge = document.getElementById('statusBadge');
+            badge.className = 'status-badge ' + config.class;
+            badge.innerHTML = config.icon + ' ' + config.label;
             
-            // Update route cities
-            document.getElementById('fromCity').textContent = shipment.pickup_city || 'UK';
-            document.getElementById('toCity').textContent = shipment.ghana_destination || shipment.delivery_city || 'Ghana';
+            // Route
+            document.getElementById('fromCity').textContent = data.sender_city || 'UK';
+            document.getElementById('toCity').textContent = data.receiver_city || 'Ghana';
             
-            // Update sender info
-            document.getElementById('senderName').textContent = shipment.sender_name || 'Customer';
-            document.getElementById('senderPhone').textContent = shipment.sender_phone ? `📞 ${shipment.sender_phone}` : '—';
-            document.getElementById('senderAddress').textContent = 
-                `📍 ${shipment.pickup_city || ''}${shipment.pickup_postcode ? ', ' + shipment.pickup_postcode : ''}` || '—';
-            
-            // Update receiver info
-            document.getElementById('receiverName').textContent = shipment.receiver_name || '—';
-            document.getElementById('receiverPhone').textContent = shipment.receiver_phone ? `📞 ${shipment.receiver_phone}` : '—';
-            document.getElementById('receiverAddress').textContent = 
-                `📍 ${shipment.delivery_city || shipment.ghana_destination || ''}${shipment.delivery_region ? ', ' + shipment.delivery_region : ''}` || '—';
-            
-            // Update parcel details
-            document.getElementById('itemType').textContent = shipment.parcel_description || shipment.description || 'General Items';
-            document.getElementById('itemQuantity').textContent = shipment.item_count ? `${shipment.item_count} items` : '—';
-            document.getElementById('weight').textContent = shipment.weight_kg ? `${shipment.weight_kg} kg` : '—';
-            document.getElementById('declaredValue').textContent = shipment.declared_value ? `£${shipment.declared_value}` : '—';
-            document.getElementById('bookedDate').textContent = formatDate(shipment.booked_at || shipment.createdAt);
-            
-            // Show pickup date if available
-            if (shipment.picked_up_at || shipment.pickup_date) {
-                document.getElementById('pickupDateRow').style.display = 'flex';
-                document.getElementById('pickupDate').textContent = formatDate(shipment.picked_up_at || shipment.pickup_date);
-            }
+            // Receiver
+            document.getElementById('receiverName').textContent = data.receiver_name || '—';
+            const location = [data.receiver_city, data.receiver_region].filter(Boolean).join(', ') || 'Ghana';
+            document.getElementById('receiverLocation').textContent = location;
             
             // Estimated delivery
-            if (status === 'delivered') {
-                document.getElementById('deliveryEstimate').style.display = 'none';
-            } else {
-                const estimate = getEstimatedDelivery(shipment.booked_at || shipment.createdAt);
-                document.getElementById('estimatedDate').textContent = estimate.date;
+            let estDate = '4-5 weeks from pickup';
+            if (data.estimated_delivery) {
+                estDate = new Date(data.estimated_delivery).toLocaleDateString('en-GB', {
+                    day: 'numeric', month: 'short', year: 'numeric'
+                });
+            } else if (data.pickup_date || data.createdAt) {
+                const start = new Date(data.pickup_date || data.createdAt);
+                const est = new Date(start);
+                est.setDate(est.getDate() + 28);
+                estDate = est.toLocaleDateString('en-GB', {
+                    day: 'numeric', month: 'short', year: 'numeric'
+                });
             }
+            document.getElementById('estimatedDate').textContent = estDate;
             
-            // Build enhanced timeline
-            buildTimeline(shipment);
-            
-            // Show parcel photo if available
-            if (shipment.parcel_photo || shipment.photo_url) {
-                document.getElementById('photoSection').style.display = 'block';
-                document.getElementById('parcelPhoto').src = shipment.parcel_photo || shipment.photo_url;
-            } else {
-                document.getElementById('photoSection').style.display = 'none';
-            }
-            
-            // Show results
             results.style.display = 'block';
-            
-            // Scroll to results
-            results.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         
-        // Build timeline with all delivery stages
-        function buildTimeline(shipment) {
-            const timeline = document.getElementById('timeline');
-            const currentStatus = shipment.status || 'pending';
-            const currentIndex = statusToJourneyIndex[currentStatus] ?? 0;
-            
-            let timelineHTML = '';
-            
-            // Check if we have status history
-            const hasHistory = shipment.status_history && shipment.status_history.length > 0;
-            
-            deliveryJourney.forEach((step, index) => {
-                let state = 'pending';
-                let timestamp = '';
-                
-                if (index < currentIndex) {
-                    state = 'completed';
-                    // Try to get timestamp from history
-                    if (hasHistory) {
-                        const historyItem = shipment.status_history.find(h => 
-                            statusToJourneyIndex[h.status] === index
-                        );
-                        if (historyItem) {
-                            timestamp = new Date(historyItem.timestamp).toLocaleString('en-GB', {
-                                day: 'numeric', month: 'short', year: 'numeric',
-                                hour: '2-digit', minute: '2-digit'
-                            });
-                        }
-                    }
-                    if (!timestamp) timestamp = 'Completed';
-                } else if (index === currentIndex) {
-                    state = 'current';
-                    timestamp = 'Current status';
-                } else {
-                    state = 'pending';
-                    timestamp = 'Pending';
-                }
-                
-                timelineHTML += `
-                    <div class="timeline-item ${state}">
-                        <div class="timeline-dot ${state}"></div>
-                        <div class="timeline-content">
-                            <h4>${step.icon} ${step.label}</h4>
-                            <p>${timestamp}</p>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            timeline.innerHTML = timelineHTML;
-        }
-        
-        // Event listeners
         trackBtn.addEventListener('click', trackParcel);
-        trackingInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') trackParcel();
-        });
-        
-        // Check URL on load
-        checkURLForTracking();
+        trackingInput.addEventListener('keypress', e => { if (e.key === 'Enter') trackParcel(); });
+        window.addEventListener('load', checkURL);
     </script>
 </body>
 </html>

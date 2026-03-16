@@ -24,7 +24,8 @@ export default function SavedAddressesScreen({ navigation }) {
     setLoading(true);
     try {
       const res = await getAddresses(userId.toString());
-      const data = res?.data;
+      // API response format: { success: true, data: [...] }
+      const data = res?.data?.data;
       setAddresses(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error('Fetch addresses error:', e.response?.data || e.message);
