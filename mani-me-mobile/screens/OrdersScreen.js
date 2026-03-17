@@ -61,11 +61,13 @@ export default function OrdersScreen({ navigation }) {
       setParcels(data.shipments || []);
     } catch (err) {
       if (err.name === 'AbortError') {
-        logger.error('Error fetching parcels: Request timed out. API_BASE_URL:', API_BASE_URL);
-        setError(`Connection timed out. Make sure your phone and computer are on the same WiFi network. Server: ${API_BASE_URL}`);
+        // Use warn for expected timeout issues (Render cold start)
+        logger.warn('Parcels fetch timed out - server may be waking up');
+        setError(`Connection timed out. The server may be waking up - please try again in a moment.`);
       } else if (err.message === 'Network request failed') {
-        logger.error('Network request failed. API_BASE_URL:', API_BASE_URL);
-        setError(`Cannot reach server. Check if backend is running at ${API_BASE_URL}`);
+        // Use warn for network issues - common during cold starts
+        logger.warn('Network request failed - server may be starting');
+        setError(`Cannot reach server. Please check your internet connection and try again.`);
       } else {
         logger.error('Error fetching parcels:', err.message || err);
         setError('Failed to load parcels');

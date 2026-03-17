@@ -133,22 +133,35 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check endpoint (before rate limiting)
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+// Health check endpoint with dependency status (before rate limiting)
+const mongoose = require('mongoose');
+app.get('/health', async (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const dbStatus = dbState === 1 ? 'connected' : dbState === 2 ? 'connecting' : 'disconnected';
+  const isHealthy = dbState === 1;
+  
+  res.status(isHealthy ? 200 : 503).json({ 
+    status: isHealthy ? 'ok' : 'degraded', 
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
+    uptime: Math.floor(process.uptime()),
+    memory: {
+      heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+      heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB',
+    },
+    services: {
+      database: dbStatus,
+    }
   });
 });
 
 // Also support /api/health for consistency
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+app.get('/api/health', async (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const isHealthy = dbState === 1;
+  res.status(isHealthy ? 200 : 503).json({ 
+    status: isHealthy ? 'ok' : 'degraded', 
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
+    uptime: Math.floor(process.uptime()),
   });
 });
 
