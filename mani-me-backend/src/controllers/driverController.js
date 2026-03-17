@@ -471,3 +471,123 @@ exports.updateLocation = async (req, res) => {
 		res.status(500).json({ error: 'Server error' });
 	}
 };
+
+/**
+ * POST /drivers/documents/:documentType - Upload a driver document
+ * Accepts: driving_license, vehicle_insurance, vehicle_registration, profile_photo, dbs_check
+ */
+exports.uploadDocument = async (req, res) => {
+	try {
+		const { documentType } = req.params;
+		const { url, expiry } = req.body;
+		const driverId = req.userId;
+
+		const validDocTypes = ['driving_license', 'vehicle_insurance', 'vehicle_registration', 'profile_photo', 'dbs_check'];
+		if (!validDocTypes.includes(documentType)) {
+			return res.status(400).json({ error: `Invalid document type. Must be one of: ${validDocTypes.join(', ')}` });
+		}
+
+		if (!url) {
+			return res.status(400).json({ error: 'Document URL is required' });
+		}
+
+		const updateData = {
+			[`documents.${documentType}.url`]: url,
+			[`documents.${documentType}.status`]: 'pending',
+			[`documents.${documentType}.uploaded_at`]: new Date(),
+		};
+
+		if (expiry) {
+			updateData[`documents.${documentType}.expiry`] = new Date(expiry);
+		}
+
+		const user = await User.findByIdAndUpdate(
+			driverId,
+			{ $set: updateData },
+			{ new: true }
+		).select('documents');
+
+		if (!user) {
+			return res.status(404).json({ error: 'Driver not found' });
+		}
+
+		logger.info('Driver document uploaded', { driverId, documentType });
+
+		res.json({
+			success: true,
+			message: 'Document uploaded successfully. Pending admin review.',
+			document: user.documents[documentType],
+		});
+	} catch (error) {
+		logger.error('Error uploading driver document', { error: error.message, driverId: req.userId });
+		res.status(500).json({ error: 'Server error', details: error.message });
+	}
+};
+
+/**
+ * GET /drivers/documents - Get all documents for current driver
+ */
+exports.getDocuments = async (req, res) => {
+	try {
+		const driverId = req.userId;
+
+		const user = await User.findById(driverId).select('documents');
+		if (!user) {
+			return res.status(404).json({ error: 'Driver not found' });
+		}
+
+		res.json({
+			success: true,
+			documents: user.documents || {},
+		});
+	} catch (error) {
+		logger.error('Error fetching driver documents', { error: error.message, driverId: req.userId });
+		res.status(500).json({ error: 'Server error', details: error.message });
+	}
+};
+
+/**
+ * PUT /admin/drivers/:driverId/documents/:documentType/status - Admin approve/reject document
+ */
+exports.updateDocumentStatus = async (req, res) => {
+	try {
+		const { driverId, documentType } = req.params;
+		const { status } = req.body;
+
+		const validStatuses = ['pending', 'approved', 'rejected'];
+		if (!validStatuses.includes(status)) {
+			return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+		}
+
+		const user = await User.findByIdAndUpdate(
+			driverId,
+			{ $set: { [`documents.${documentType}.status`]: status } },
+			{ new: true }
+		).select('documents fullName email');
+
+		if (!user) {
+			return res.status(404).json({ error: 'Driver not found' });
+		}
+
+		// Check if all required documents are approved
+		const requiredDocs = ['driving_license', 'vehicle_insurance', 'vehicle_registration', 'profile_photo'];
+		const allApproved = requiredDocs.every(doc => user.documents?.[doc]?.status === 'approved');
+
+		if (allApproved) {
+			await User.findByIdAndUpdate(driverId, { is_verified: true });
+			logger.info('Driver fully verified', { driverId, email: user.email });
+		}
+
+		logger.info('Document status updated', { driverId, documentType, status });
+
+		res.json({
+			success: true,
+			message: `Document ${status}`,
+			document: user.documents[documentType],
+			is_verified: allApproved,
+		});
+	} catch (error) {
+		logger.error('Error updating document status', { error: error.message });
+		res.status(500).json({ error: 'Server error', details: error.message });
+	}
+};

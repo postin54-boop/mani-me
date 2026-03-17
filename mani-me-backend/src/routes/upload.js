@@ -2,7 +2,7 @@
 const router = express.Router();
 const multer = require('multer');
 const uploadController = require('../controllers/uploadController');
-const { verifyAdmin } = require('../middleware/auth');
+const { verifyAdmin, verifyToken } = require('../middleware/auth');
 
 // SECURITY: Allowed image MIME types and extensions
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -43,7 +43,16 @@ const handleUploadError = (err, req, res, next) => {
   next();
 };
 
+const verifyDriverOrAdmin = (req, res, next) => {
+  const role = String(req.user?.role || '').toUpperCase();
+  if (role === 'UK_DRIVER' || role === 'GH_DRIVER' || role === 'ADMIN' || role === 'DRIVER') {
+    return next();
+  }
+  return res.status(403).json({ message: 'Driver or admin access required' });
+};
+
 router.post('/image', verifyAdmin, upload.single('image'), handleUploadError, uploadController.uploadImage);
+router.post('/image/driver', verifyToken, verifyDriverOrAdmin, upload.single('image'), handleUploadError, uploadController.uploadImage);
 router.delete('/image', verifyAdmin, uploadController.deleteImage);
 
 module.exports = router;

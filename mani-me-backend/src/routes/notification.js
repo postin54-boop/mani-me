@@ -1,13 +1,13 @@
 ﻿const express = require('express');
 const router = express.Router();
 const notificationController = require('../controllers/notificationController');
-const { verifyToken, verifyAdmin, optionalAuth } = require('../middleware/auth');
+const { verifyToken, verifyAdmin } = require('../middleware/auth');
 
 // Create a notification (admin)
-router.post('/', verifyToken, notificationController.createNotification);
+router.post('/', verifyAdmin, notificationController.createNotification);
 
 // Get all notifications (admin) or user's notifications
-router.get('/', optionalAuth, notificationController.getNotifications);
+router.get('/', verifyToken, notificationController.getNotifications);
 
 // Get notifications for the currently logged-in user
 router.get('/user', verifyToken, notificationController.getUserNotifications);

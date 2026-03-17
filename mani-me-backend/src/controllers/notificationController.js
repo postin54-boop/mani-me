@@ -2,6 +2,18 @@
 const { sendPushNotification } = require('../services/notificationService');
 const User = require('../models/user');
 const Shipment = require('../models/shipment');
+const logger = require('../utils/logger');
+
+const getRequestContext = (req) => {
+  const userId = req.userId || req.user?.user_id || req.user?._id || req.user?.id;
+  const role = String(req.user?.role || '').toUpperCase();
+  const isAdmin = req.user?.isAdmin === true || role === 'ADMIN';
+
+  return {
+    userId: userId ? String(userId) : null,
+    isAdmin,
+  };
+};
 
 // Admin: Notify user about upcoming pickup date
 exports.notifyUserPickupNear = async (req, res) => {
@@ -26,6 +38,7 @@ exports.notifyUserPickupNear = async (req, res) => {
     });
     res.json({ success: true, message: 'Notification sent' });
   } catch (err) {
+    logger.error('Error sending pickup reminder', { error: err.message });
     res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -36,6 +49,11 @@ const Notification = require('../models/notification');
 exports.createNotification = async (req, res) => {
   try {
     const { userId, title, message, data } = req.body;
+
+    if (!userId || !title || !message) {
+      return res.status(400).json({ success: false, error: 'userId, title, and message are required' });
+    }
+
     const notification = new Notification({
       userId,
       title,
@@ -47,6 +65,7 @@ exports.createNotification = async (req, res) => {
     await notification.save();
     res.status(201).json({ success: true, notification });
   } catch (err) {
+    logger.error('Error creating notification', { error: err.message });
     res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -74,12 +93,25 @@ exports.sendNotification = async (req, res) => {
 // Get notifications for a user
 exports.getNotifications = async (req, res) => {
   try {
-    const { userId } = req.query;
-    // If no userId provided (admin request), get all notifications
-    const query = userId ? { userId } : {};
-    const notifications = await Notification.find(query).sort({ createdAt: -1 }).limit(50);
+    const { userId: queryUserId, limit } = req.query;
+    const { userId, isAdmin } = getRequestContext(req);
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const safeLimit = Math.min(parseInt(limit, 10) || 50, 200);
+    const query = isAdmin
+      ? (queryUserId ? { userId: queryUserId } : {})
+      : { userId };
+
+    const notifications = await Notification.find(query)
+      .sort({ createdAt: -1 })
+      .limit(safeLimit);
+
     res.json({ success: true, notifications });
   } catch (err) {
+    logger.error('Error fetching notifications', { error: err.message });
     res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -88,9 +120,27 @@ exports.getNotifications = async (req, res) => {
 exports.markAsRead = async (req, res) => {
   try {
     const { notificationId } = req.body;
-    await Notification.findByIdAndUpdate(notificationId, { read: true });
+    if (!notificationId) {
+      return res.status(400).json({ success: false, error: 'notificationId is required' });
+    }
+
+    const { userId, isAdmin } = getRequestContext(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const query = isAdmin
+      ? { _id: notificationId }
+      : { _id: notificationId, userId };
+
+    const updated = await Notification.findOneAndUpdate(query, { read: true }, { new: true });
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'Notification not found' });
+    }
+
     res.json({ success: true });
   } catch (err) {
+    logger.error('Error marking notification as read', { error: err.message });
     res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -107,7 +157,7 @@ exports.getUserNotifications = async (req, res) => {
       .limit(50);
     res.json({ success: true, notifications });
   } catch (err) {
-    console.error('Error fetching user notifications:', err);
+    logger.error('Error fetching user notifications', { error: err.message });
     res.json({ success: true, notifications: [] });
   }
 };
@@ -116,9 +166,23 @@ exports.getUserNotifications = async (req, res) => {
 exports.markAsReadById = async (req, res) => {
   try {
     const { notificationId } = req.params;
-    await Notification.findByIdAndUpdate(notificationId, { read: true });
+    const { userId, isAdmin } = getRequestContext(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const query = isAdmin
+      ? { _id: notificationId }
+      : { _id: notificationId, userId };
+
+    const updated = await Notification.findOneAndUpdate(query, { read: true }, { new: true });
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'Notification not found' });
+    }
+
     res.json({ success: true });
   } catch (err) {
+    logger.error('Error marking notification by ID as read', { error: err.message });
     res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -127,11 +191,16 @@ exports.markAsReadById = async (req, res) => {
 exports.getDriverNotifications = async (req, res) => {
   try {
     const { driverId } = req.params;
-    // IDOR Protection: Ensure driver can only access their own notifications
-    const requestingUserId = req.userId || req.user?.user_id || req.user?._id || req.user?.id;
-    if (driverId !== requestingUserId && driverId !== String(requestingUserId)) {
+    const { userId: requestingUserId, isAdmin } = getRequestContext(req);
+    if (!requestingUserId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    // IDOR Protection: Ensure driver can only access their own notifications unless admin
+    if (!isAdmin && driverId !== requestingUserId) {
       return res.status(403).json({ success: false, error: 'You can only view your own notifications' });
     }
+
     const notifications = await Notification.find({
       $or: [
         { userId: driverId },
@@ -151,7 +220,7 @@ exports.getDriverNotifications = async (req, res) => {
     });
     res.json({ success: true, notifications, unreadCount });
   } catch (err) {
-    console.error('Error fetching driver notifications:', err);
+    logger.error('Error fetching driver notifications', { error: err.message });
     res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -160,11 +229,16 @@ exports.getDriverNotifications = async (req, res) => {
 exports.markAllDriverRead = async (req, res) => {
   try {
     const { driverId } = req.params;
-    // IDOR Protection: Ensure driver can only mark their own notifications
-    const requestingUserId = req.userId || req.user?.user_id || req.user?._id || req.user?.id;
-    if (driverId !== requestingUserId && driverId !== String(requestingUserId)) {
+    const { userId: requestingUserId, isAdmin } = getRequestContext(req);
+    if (!requestingUserId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    // IDOR Protection: Ensure driver can only mark their own notifications unless admin
+    if (!isAdmin && driverId !== requestingUserId) {
       return res.status(403).json({ success: false, error: 'You can only modify your own notifications' });
     }
+
     await Notification.updateMany(
       {
         $or: [
@@ -178,7 +252,7 @@ exports.markAllDriverRead = async (req, res) => {
     );
     res.json({ success: true });
   } catch (err) {
-    console.error('Error marking notifications as read:', err);
+    logger.error('Error marking driver notifications as read', { error: err.message });
     res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -223,7 +297,7 @@ exports.sendBroadcast = async (req, res) => {
       results 
     });
   } catch (err) {
-    console.error('Error sending broadcast:', err);
+    logger.error('Error sending broadcast notification', { error: err.message });
     res.status(500).json({ success: false, error: err.message });
   }
 };

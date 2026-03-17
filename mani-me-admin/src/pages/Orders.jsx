@@ -142,11 +142,9 @@ function Orders() {
   const handleUpdateStatus = async () => {
     try {
       const orderId = selectedOrder._id || selectedOrder.id;
-      console.log('Updating order status:', orderId, 'to', newStatus);
       const response = await api.put(`/api/admin/orders/${orderId}/status`, {
         status: newStatus,
       });
-      console.log('Update response:', response.data);
       alert('Order status updated successfully!');
       // Update local state instead of re-fetching all orders
       setOrders(prev => prev.map(o => 
@@ -163,11 +161,9 @@ function Orders() {
   const handleUpdateWarehouseStatus = async (warehouseStatus) => {
     try {
       const parcelId = selectedOrder.parcel_id || selectedOrder._id || selectedOrder.id;
-      console.log('Updating warehouse status:', parcelId, 'to', warehouseStatus);
       const response = await api.put(`/api/shipments/warehouse/${parcelId}/status`, {
         warehouse_status: warehouseStatus,
       });
-      console.log('Warehouse update response:', response.data);
       setSelectedOrder({ ...selectedOrder, warehouse_status: warehouseStatus });
       alert('Warehouse status updated successfully!');
       // Update local state instead of re-fetching all orders

@@ -20,6 +20,7 @@ import { AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Google from "expo-auth-session/providers/google";
+import Constants from 'expo-constants';
 import api from "../src/api";
 import { useUser } from '../context/UserContext';
 import logger from '../utils/logger';
@@ -77,11 +78,13 @@ export default function LoginScreen({ navigation }) {
     }
   }, [sessionExpired, setSessionExpired]);
 
-  // Google Auth - iOS only until Android client ID is configured
+  const googleConfig = Constants.expoConfig?.extra || {};
+
+  // Google Auth
   const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: "508869526140-uc5k1lo5o20vkcr6jnnlqf0q4f8t5m0s.apps.googleusercontent.com",
-    // TODO: Add Android client ID from Google Cloud Console
-    // androidClientId: "YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com",
+    iosClientId: googleConfig.googleIosClientId || "508869526140-uc5k1lo5o20vkcr6jnnlqf0q4f8t5m0s.apps.googleusercontent.com",
+    androidClientId: googleConfig.googleAndroidClientId,
+    expoClientId: googleConfig.googleExpoClientId,
   });
 
   useEffect(() => {

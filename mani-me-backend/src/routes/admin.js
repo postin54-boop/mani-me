@@ -63,6 +63,10 @@ router.put('/users/:id/status', verifyAdmin, adminController.updateUserStatus);
 router.get('/drivers/uk', verifyAdmin, adminController.getUkDrivers);
 router.get('/drivers/ghana', verifyAdmin, adminController.getGhanaDrivers);
 
+// Driver Document Management
+const driverController = require('../controllers/driverController');
+router.put('/drivers/:driverId/documents/:documentType/status', verifyAdmin, driverController.updateDocumentStatus);
+
 // Pickups & Deliveries
 router.get('/pickups/pending', verifyAdmin, adminController.getPendingPickups);
 router.get('/pickups/assigned', verifyAdmin, adminController.getAssignedPickups);

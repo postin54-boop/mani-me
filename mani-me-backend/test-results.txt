@@ -1,0 +1,85 @@
+﻿npx : PASS src/tests/shipmentService.test.js (6.78 s)
+At line:1 char:1
++ npx jest --runInBand 2>&1 | Out-File -Encoding utf8 test-results.txt; ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PASS src/tests/...est.js (6.78 s):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  Shipment Service
+    Shipment Creation
+      ΓêÜ should generate valid tracking number format (31 ms)
+      ΓêÜ should calculate correct pricing for parcel sizes (9 ms)
+      ΓêÜ should validate required fields (11 ms)
+    Status Transitions
+      ΓêÜ should have valid status enum values (26 ms)
+      ΓêÜ should allow valid status transitions (21 ms)
+    Warehouse Status
+      ΓêÜ should have valid warehouse status values (15 ms)
+    Size Adjustment
+      ΓêÜ should calculate extra charge correctly (12 ms)
+      ΓêÜ should validate size adjustment statuses (8 ms)
+    Tracking Number Validation
+      ΓêÜ should accept valid tracking formats (8 ms)
+      ΓêÜ should reject invalid tracking formats (11 ms)
+
+PASS src/tests/paymentService.test.js
+  Payment Service
+    Payment Amount Validation
+      ΓêÜ should convert pounds to pence correctly (18 ms)
+      ΓêÜ should handle decimal precision (11 ms)
+      ΓêÜ should reject negative amounts (12 ms)
+      ΓêÜ should reject zero amount (7 ms)
+    Payment Status
+      ΓêÜ should have valid payment status values (21 ms)
+      ΓêÜ should track pre-authorization status (16 ms)
+    Payment Methods
+      ΓêÜ should support valid payment methods (6 ms)
+    Pre-Authorization Flow
+      ΓêÜ should hold funds without capturing (31 ms)
+      ΓêÜ should allow capture within 7 days (6 ms)
+      ΓêÜ should calculate refund amount correctly (13 ms)
+    Stripe Payment Intent
+      ΓêÜ should format payment intent correctly (10 ms)
+      ΓêÜ should validate payment intent ID format (9 ms)
+
+PASS src/tests/authService.test.js (6.891 s)
+  Auth Service
+    User Registration
+      ΓêÜ should hash password before saving (285 ms)
+      ΓêÜ should generate valid JWT token (36 ms)
+      ΓêÜ should reject invalid email format (7 ms)
+      ΓêÜ should accept valid email format (9 ms)
+    Password Validation
+      ΓêÜ should require minimum 8 characters (6 ms)
+      ΓêÜ should verify password correctly (576 ms)
+    JWT Token
+      ΓêÜ should expire after 7 days (16 ms)
+      ΓêÜ should reject expired tokens (58 ms)
+      ΓêÜ should reject tokens with wrong secret (12 ms)
+
+PASS src/tests/bookingService.test.js
+  Booking Service
+    ΓêÜ creates a booking with hierarchical ID and user linkage (42 ms)
+
+PASS src/tests/parcelService.test.js
+  Parcel Service
+    ΓêÜ should create a parcel item with hierarchical ID (40 ms)
+
+PASS src/tests/trackingService.test.js
+  Tracking Service
+    ΓêÜ should add a tracking event (32 ms)
+
+PASS src/tests/driverService.test.js
+  Driver Service
+    ΓêÜ should be implemented (10 ms)
+
+PASS src/tests/notificationService.test.js
+  Notification Service
+    ΓêÜ returns null for invalid Expo push token (18 ms)
+    ΓêÜ sends notification for valid Expo token (8 ms)
+
+Test Suites: 8 passed, 8 total
+Tests:       37 passed, 37 total
+Snapshots:   0 total
+Time:        28.629 s
+Ran all test suites.

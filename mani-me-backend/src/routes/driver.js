@@ -31,4 +31,8 @@ router.post('/location', verifyToken, verifyDriver, validate(driver.updateLocati
 router.post('/pickups/:id/size-adjustment', verifyToken, verifyDriver, driverController.reportSizeMismatch);
 router.get('/pickups/:id/size-adjustment', verifyToken, verifyDriver, driverController.getSizeAdjustmentStatus);
 
+// Document management - Driver uploads documents for verification
+router.get('/documents', verifyToken, verifyDriver, driverController.getDocuments);
+router.post('/documents/:documentType', verifyToken, verifyDriver, driverController.uploadDocument);
+
 module.exports = router;

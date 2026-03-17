@@ -8,7 +8,7 @@ const isDev = import.meta.env.MODE === 'development';
 
 // API Configuration
 // Set USE_LOCAL_BACKEND to true when running local backend, false to use production
-const USE_LOCAL_BACKEND = true;
+const USE_LOCAL_BACKEND = false;
 const DEV_API_URL = 'http://localhost:4000';
 const PROD_API_URL = import.meta.env.VITE_API_URL || 'https://mani-me.onrender.com';
 

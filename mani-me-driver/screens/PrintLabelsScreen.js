@@ -13,6 +13,7 @@ export default function PrintLabelsScreen({ navigation }) {
   const { user, isUKDriver } = useAuth();
   const [parcelId, setParcelId] = useState('');
   const [printing, setPrinting] = useState(false);
+  const [validatingParcel, setValidatingParcel] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [selectedParcel, setSelectedParcel] = useState(null);
   const [recentPickups, setRecentPickups] = useState([]);
@@ -149,7 +150,7 @@ export default function PrintLabelsScreen({ navigation }) {
         [{ text: 'OK' }]
       );
     } catch (error) {
-      console.error('Print error:', error);
+      logger.error('Print error', error);
       if (error.message !== 'Cancelled') {
         Alert.alert('Print Error', 'Failed to print label. Please try again.');
       }
@@ -184,7 +185,7 @@ export default function PrintLabelsScreen({ navigation }) {
         Alert.alert('Sharing not available', 'Sharing is not available on this device');
       }
     } catch (error) {
-      console.error('Share error:', error);
+      logger.error('Share label PDF error', error);
       Alert.alert('Error', 'Failed to generate PDF. Please try again.');
     } finally {
       setPrinting(false);
@@ -234,7 +235,7 @@ export default function PrintLabelsScreen({ navigation }) {
         setRecentPickups([]);
       }
     } catch (error) {
-      console.error('Error fetching assignments:', error);
+      logger.error('Error fetching assignments for label printing', error);
       Alert.alert('Error', 'Failed to load assignments. Pull to refresh.');
     } finally {
       setLoading(false);
@@ -257,6 +258,50 @@ export default function PrintLabelsScreen({ navigation }) {
     setPreviewVisible(true);
   };
 
+  const mapParcelForLabel = (shipment, fallbackId) => {
+    const resolvedId = shipment.parcel_id_short || shipment.parcel_id || shipment.tracking_number || fallbackId;
+    const pickupAddress = shipment.pickup_address
+      ? `${shipment.pickup_address || ''}, ${shipment.pickup_city || ''} ${shipment.pickup_postcode || ''}`.trim()
+      : '';
+    const receiverAddress = shipment.delivery_address
+      ? `${shipment.delivery_address || ''}, ${shipment.delivery_city || ''}`.trim()
+      : '';
+
+    return {
+      id: resolvedId,
+      sender: shipment.sender_name || shipment.customer?.name || 'Customer',
+      pickupAddress: pickupAddress || shipment.customer?.address || 'UK Address',
+      destination: shipment.ghana_destination || shipment.delivery_city || shipment.destination?.city || 'Ghana',
+      receiverName: shipment.receiver_name || shipment.destination?.receiver_name || 'Receiver',
+      receiverAddress: receiverAddress || shipment.destination?.address || 'Ghana',
+      receiverPhone: shipment.receiver_phone || shipment.destination?.receiver_phone,
+      weight: shipment.weight_kg || shipment.parcel?.weight_kg,
+      tracking_number: shipment.tracking_number,
+      status: shipment.status || shipment.shipment_status,
+    };
+  };
+
+  const validateParcelForLabel = async (inputId) => {
+    const parcelKey = inputId.trim().toUpperCase();
+
+    try {
+      const warehouseResponse = await apiClient.get(`/shipments/warehouse/${encodeURIComponent(parcelKey)}`);
+      return mapParcelForLabel(warehouseResponse.data, parcelKey);
+    } catch (warehouseError) {
+      if (warehouseError.response?.status !== 404) {
+        throw warehouseError;
+      }
+    }
+
+    const trackResponse = await apiClient.get(`/shipments/track/${encodeURIComponent(parcelKey)}`);
+    const shipment = trackResponse.data?.shipment;
+    if (!shipment) {
+      return null;
+    }
+
+    return mapParcelForLabel(shipment, parcelKey);
+  };
+
   const confirmPrint = () => {
     if (selectedParcel) {
       printLabel(selectedParcel);
@@ -270,32 +315,46 @@ export default function PrintLabelsScreen({ navigation }) {
   };
 
   const handleScanAndPrint = () => {
-    if (!parcelId.trim()) {
+    const normalizedParcelId = parcelId.trim();
+
+    if (!normalizedParcelId) {
       Alert.alert('Error', 'Please enter a parcel ID');
       return;
     }
 
-    // TODO: Verify parcel exists in system and fetch details
-    Alert.alert(
-      'Print Label with QR Code',
-      `Ready to print label for ${parcelId}?\n\nLabel will include QR code for Ghana driver scanning.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Print', 
-          onPress: () => {
-            handlePrintLabel({ 
-              id: parcelId, 
-              sender: 'Customer', 
-              pickupAddress: 'UK Address',
-              destination: 'Ghana',
-              receiverName: 'Receiver'
-            });
-            setParcelId('');
-          }
+    const runValidation = async () => {
+      setValidatingParcel(true);
+      try {
+        const parcel = await validateParcelForLabel(normalizedParcelId);
+        if (!parcel) {
+          Alert.alert('Parcel Not Found', `No parcel found for ${normalizedParcelId}.`);
+          return;
         }
-      ]
-    );
+
+        Alert.alert(
+          'Print Label with QR Code',
+          `Ready to print label for ${parcel.id}?\n\nReceiver: ${parcel.receiverName}\nDestination: ${parcel.destination}`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Print',
+              onPress: () => {
+                handlePrintLabel(parcel);
+                setParcelId('');
+              }
+            }
+          ]
+        );
+      } catch (error) {
+        logger.error('Parcel validation failed for label print', error);
+        const message = error.response?.data?.error || 'Failed to validate parcel. Please try again.';
+        Alert.alert('Validation Error', message);
+      } finally {
+        setValidatingParcel(false);
+      }
+    };
+
+    runValidation();
   };
 
   return (
@@ -338,11 +397,11 @@ export default function PrintLabelsScreen({ navigation }) {
           <TouchableOpacity 
             style={styles.printButton}
             onPress={handleScanAndPrint}
-            disabled={printing || !parcelId.trim()}
+            disabled={printing || validatingParcel || !parcelId.trim()}
           >
             <Ionicons name="print" size={20} color="#fff" style={{ marginRight: 8 }} />
             <Text style={styles.printButtonText}>
-              {printing ? 'Printing...' : 'Print Label'}
+              {validatingParcel ? 'Validating...' : printing ? 'Printing...' : 'Print Label'}
             </Text>
           </TouchableOpacity>
         </View>

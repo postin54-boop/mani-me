@@ -36,25 +36,23 @@ jobs:
 
       - name: Run linter
         run: npm run lint --if-present
-        continue-on-error: true
 
       - name: Run tests
-        run: npm test
+        run: npx jest --runInBand
         env:
           NODE_ENV: test
           JWT_SECRET: test-jwt-secret-for-ci
           MONGODB_URI: mongodb://localhost:27017/mani-me-test
-        continue-on-error: true
 
       - name: Security audit
         run: npm audit --audit-level=high
-        continue-on-error: true
 
       - name: Check for critical vulnerabilities
         run: |
           CRITICAL=$(npm audit --json 2>/dev/null | jq '.metadata.vulnerabilities.critical // 0')
           if [ "$CRITICAL" -gt 0 ]; then
-            echo "::warning::Found $CRITICAL critical vulnerabilities"
+            echo "::error::Found $CRITICAL critical vulnerabilities"
+            exit 1
           fi
 
   # Admin Dashboard Build
@@ -86,7 +84,6 @@ jobs:
 
       - name: Security audit
         run: npm audit --audit-level=high
-        continue-on-error: true
 
   # Mobile App Type Check & Build
   mobile:
@@ -111,11 +108,9 @@ jobs:
 
       - name: Type check
         run: npx tsc --noEmit --skipLibCheck
-        continue-on-error: true
 
       - name: Security audit
         run: npm audit --audit-level=high
-        continue-on-error: true
 
   # Driver App Type Check & Build
   driver:
@@ -140,11 +135,9 @@ jobs:
 
       - name: Type check
         run: npx tsc --noEmit --skipLibCheck
-        continue-on-error: true
 
       - name: Security audit
         run: npm audit --audit-level=high
-        continue-on-error: true
 
   # Firebase Functions
   functions:
@@ -169,11 +162,9 @@ jobs:
 
       - name: Lint
         run: npm run lint --if-present
-        continue-on-error: true
 
       - name: Security audit
         run: npm audit --audit-level=high
-        continue-on-error: true
 
   # Summary job that depends on all others
   ci-complete:

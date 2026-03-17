@@ -15,6 +15,9 @@ import { useThemeColors } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
 import logger from '../utils/logger';
+import api from '../utils/api';
+import { API_BASE_URL } from '../utils/config';
+import secureStorage from '../utils/secureStorage';
 
 export default function DocumentsScreen({ navigation }) {
   const { colors, isDark } = useThemeColors();
@@ -116,6 +119,49 @@ export default function DocumentsScreen({ navigation }) {
     }
   };
 
+  const uploadImageToBackend = async (uri, documentId) => {
+    try {
+      // Create form data for image upload
+      const formData = new FormData();
+      const filename = uri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+      
+      formData.append('image', {
+        uri,
+        name: `${documentId}_${Date.now()}.${match ? match[1] : 'jpg'}`,
+        type,
+      });
+
+      const token = await secureStorage.getItem('token');
+      
+      // Upload image first
+      const uploadResponse = await fetch(`${API_BASE_URL}/api/upload/image/driver`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const uploadResult = await uploadResponse.json();
+      
+      // Then save document reference
+      const docResponse = await api.post(`/drivers/documents/${documentId}`, {
+        url: uploadResult.url,
+      });
+
+      return docResponse.data;
+    } catch (error) {
+      logger.error('Error uploading document:', error);
+      throw error;
+    }
+  };
+
   const handleUploadDocument = async (documentId) => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -131,11 +177,9 @@ export default function DocumentsScreen({ navigation }) {
 
       if (!result.canceled && result.assets[0]) {
         setLoading(true);
-        // TODO: Upload document to backend
-        logger.log('Uploading document:', documentId, result.assets[0].uri);
+        logger.log('Uploading document:', documentId);
         
-        // Simulate upload delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await uploadImageToBackend(result.assets[0].uri, documentId);
         
         Alert.alert(
           'Document Uploaded',
@@ -166,10 +210,9 @@ export default function DocumentsScreen({ navigation }) {
 
       if (!result.canceled && result.assets[0]) {
         setLoading(true);
-        // TODO: Upload document to backend
-        logger.log('Uploading photo:', documentId, result.assets[0].uri);
+        logger.log('Uploading photo:', documentId);
         
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await uploadImageToBackend(result.assets[0].uri, documentId);
         
         Alert.alert(
           'Photo Uploaded',

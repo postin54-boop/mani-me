@@ -9,6 +9,7 @@ import { storage } from '../firebaseConfig';
 import { useUser } from '../context/UserContext';
 import { useThemeColors, SIZES, FONTS, SHADOWS } from '../constants/theme';
 import { API_BASE_URL } from '../utils/config';
+import logger from '../utils/logger';
 
 export default function ProfileScreen({ navigation }) {
   const { colors, isDark } = useThemeColors();
@@ -26,10 +27,8 @@ export default function ProfileScreen({ navigation }) {
   });
 
   const pickProfileImage = async () => {
-    console.log('pickProfileImage called');
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      console.log('Media library permission status:', status);
       
       if (status !== 'granted') {
         Alert.alert(
@@ -40,13 +39,11 @@ export default function ProfileScreen({ navigation }) {
         return;
       }
 
-      console.log('Launching image library...');
       const result = await ImagePicker.launchImageLibraryAsync({
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
       });
-      console.log('Image picker result:', result);
 
       if (!result.canceled) {
         setProfileImage(result.assets[0].uri);
@@ -97,7 +94,6 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const showImageOptions = () => {
-    console.log('showImageOptions called');
     const options = [
       { text: 'Take Photo', onPress: takeProfilePhoto },
       { text: 'Choose from Gallery', onPress: pickProfileImage },
@@ -114,7 +110,6 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const handleSave = async () => {
-    console.log('handleSave called');
     if (!editedUser.name || !editedUser.email) {
       Alert.alert('Error', 'Name and email are required');
       return;
@@ -126,7 +121,6 @@ export default function ProfileScreen({ navigation }) {
 
       // Upload new profile image to Firebase Storage if changed
       if (profileImage && profileImage !== user?.profileImage && !profileImage.startsWith('http')) {
-        console.log('Uploading new profile image...');
         try {
           // Convert local file URI to blob using XMLHttpRequest (more reliable in React Native)
           const blob = await new Promise((resolve, reject) => {
@@ -142,15 +136,12 @@ export default function ProfileScreen({ navigation }) {
           const storageRef = ref(storage, filename);
           await uploadBytes(storageRef, blob);
           imageUrl = await getDownloadURL(storageRef);
-          console.log('Profile image uploaded:', imageUrl);
         } catch (uploadError) {
-          console.error('Image upload error:', uploadError);
+          logger.error('Image upload error:', uploadError);
           Alert.alert('Warning', 'Could not upload profile picture, but other changes will be saved');
         }
       }
 
-      console.log('Saving profile to backend...', { userId: user?.id, name: editedUser.name });
-      
       // Update backend MongoDB profile
       const response = await fetch(`${API_BASE_URL}/api/auth/update-profile`, {
         method: 'PUT',
@@ -167,26 +158,22 @@ export default function ProfileScreen({ navigation }) {
         }),
       });
 
-      console.log('Backend response status:', response.status);
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Backend error:', errorData);
+        logger.error('Backend error:', errorData);
         throw new Error(errorData.error || 'Failed to update profile');
       }
 
       const data = await response.json();
-      console.log('Backend response data:', data);
       
       // Update local user context with response data including new image URL
       const updatedUserData = { ...user, ...data.user, profileImage: imageUrl };
-      console.log('Updating user context with:', updatedUserData);
       await updateUser(updatedUserData);
       setProfileImage(imageUrl);
       setIsEditing(false);
       Alert.alert('Success', 'Profile updated successfully');
     } catch (error) {
-      console.error('handleSave error:', error);
+      logger.error('handleSave error:', error);
       Alert.alert('Error', error.message || 'Failed to update profile');
     } finally {
       setIsSaving(false);

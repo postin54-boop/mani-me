@@ -136,24 +136,16 @@ export default function GroceryShop() {
         ? `/api/grocery/admin/items/${editingItem._id}`
         : '/api/grocery/admin/items';
       
-      console.log('=== GROCERY SAVE DEBUG ===');
-      console.log('URL:', url);
-      console.log('FormData:', JSON.stringify(formData, null, 2));
-      console.log('image_url specifically:', formData.image_url);
-      
       if (editingItem) {
-        const response = await api.put(url, formData);
-        console.log('Update response:', response.data);
+        await api.put(url, formData);
       } else {
-        const response = await api.post(url, formData);
-        console.log('Create response:', response.data);
+        await api.post(url, formData);
       }
 
       setAlert({ show: true, message: `Item ${editingItem ? 'updated' : 'added'} successfully`, severity: 'success' });
       setDialogOpen(false);
       fetchItems();
     } catch (error) {
-      console.error('Save error:', error.response?.data || error.message);
       logger.error('Error saving item:', error);
       setAlert({ show: true, message: getErrorMessage(error), severity: 'error' });
     }

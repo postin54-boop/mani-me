@@ -3,7 +3,10 @@
  * Only logs in development mode to prevent console leaks in production
  */
 
-const isDev = process.env.NODE_ENV === 'development';
+import * as Sentry from '@sentry/react';
+
+const isDev = import.meta.env.MODE === 'development';
+const sentryEnabled = !isDev && Boolean(import.meta.env.VITE_SENTRY_DSN);
 
 /**
  * Development-safe logger
@@ -35,6 +38,9 @@ const logger = {
     if (isDev) {
       console.warn('[Admin WARN]', ...args);
     }
+    if (sentryEnabled) {
+      Sentry.captureMessage(args[0]?.toString() || 'Admin warning', 'warning');
+    }
   },
 
   /**
@@ -45,10 +51,18 @@ const logger = {
     if (isDev) {
       console.error('[Admin ERROR]', ...args);
     }
-    // TODO: In production, send to error tracking service like Sentry
-    // if (!isDev) {
-    //   Sentry.captureException(args[0]);
-    // }
+
+    if (sentryEnabled) {
+      if (args[0] instanceof Error) {
+        Sentry.captureException(args[0], {
+          extra: { args: args.slice(1) },
+        });
+      } else {
+        Sentry.captureException(new Error(args[0]?.toString() || 'Admin error'), {
+          extra: { args },
+        });
+      }
+    }
   },
 
   /**
@@ -67,6 +81,14 @@ const logger = {
     if (isDev) {
       console.log(`[Admin API] ${method} ${url}`, data || '');
     }
+    if (sentryEnabled) {
+      Sentry.addBreadcrumb({
+        category: 'api',
+        message: `${method} ${url}`,
+        level: 'info',
+        data: data || {},
+      });
+    }
   },
 
   /**
@@ -75,6 +97,14 @@ const logger = {
   action: (component, action, data) => {
     if (isDev) {
       console.log(`[Admin ${component}] ${action}`, data || '');
+    }
+    if (sentryEnabled) {
+      Sentry.addBreadcrumb({
+        category: 'ui.action',
+        message: `${component}: ${action}`,
+        level: 'info',
+        data: data || {},
+      });
     }
   },
 };

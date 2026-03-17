@@ -29,6 +29,39 @@ const userSchema = new mongoose.Schema({
 	is_verified: { type: Boolean, default: false },
 	is_active: { type: Boolean, default: true },
 
+	// Driver documents (for verification)
+	documents: {
+		driving_license: {
+			url: { type: String },
+			status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+			expiry: { type: Date },
+			uploaded_at: { type: Date },
+		},
+		vehicle_insurance: {
+			url: { type: String },
+			status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+			expiry: { type: Date },
+			uploaded_at: { type: Date },
+		},
+		vehicle_registration: {
+			url: { type: String },
+			status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+			expiry: { type: Date },
+			uploaded_at: { type: Date },
+		},
+		profile_photo: {
+			url: { type: String },
+			status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+			uploaded_at: { type: Date },
+		},
+		dbs_check: {
+			url: { type: String },
+			status: { type: String, enum: ['pending', 'approved', 'rejected', 'not_required'], default: 'not_required' },
+			expiry: { type: Date },
+			uploaded_at: { type: Date },
+		},
+	},
+
 	// Profile
 	profileImage: { type: String }, // Firebase Storage URL
 	address: { type: String },

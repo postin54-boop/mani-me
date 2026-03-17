@@ -5,7 +5,7 @@
  */
 const { Expo } = require('expo-server-sdk');
 const logger = require('../utils/logger');
-const { addJob, registerProcessor, QUEUE_NAMES } = require('../utils/jobQueue');
+const { addJob, registerProcessor, createQueue, QUEUE_NAMES } = require('../utils/jobQueue');
 
 // Create a new Expo SDK client
 const expo = new Expo();
@@ -59,6 +59,12 @@ async function queueNotification(pushToken, title, body, data = {}) {
 
 // Register notification processor
 registerProcessor(QUEUE_NAMES.NOTIFICATIONS, async (data) => {
+  const { pushToken, title, body, data: notifData } = data;
+  return sendPushNotification(pushToken, title, body, notifData);
+});
+
+// Initialize queue when Redis is configured; gracefully falls back to immediate mode otherwise.
+createQueue(QUEUE_NAMES.NOTIFICATIONS, async (data) => {
   const { pushToken, title, body, data: notifData } = data;
   return sendPushNotification(pushToken, title, body, notifData);
 });
@@ -423,7 +429,7 @@ async function sendBroadcastNotification(users, title, body, data = {}) {
     }
     
     try {
-      await sendPushNotification(user.push_token, title, body, {
+      await queueNotification(user.push_token, title, body, {
         ...data,
         userId: user._id,
       });

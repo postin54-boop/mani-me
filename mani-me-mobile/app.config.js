@@ -74,6 +74,9 @@ export default {
       // apiUrl is now controlled by src/api.js USE_LOCAL_BACKEND flag
       apiUrl: null,
       stripePublishableKey: process.env.STRIPE_KEY || process.env.EXPO_PUBLIC_STRIPE_KEY || "",
+      googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || "508869526140-uc5k1lo5o20vkcr6jnnlqf0q4f8t5m0s.apps.googleusercontent.com",
+      googleAndroidClientId: process.env.GOOGLE_ANDROID_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || "",
+      googleExpoClientId: process.env.GOOGLE_EXPO_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID || "",
       environment: process.env.NODE_ENV || "development",
       // App Store required URLs
       privacyPolicyUrl: "https://www.manime.co.uk/privacy.html",

@@ -1,6 +1,7 @@
 const ExternalProduct = require('../models/externalProduct');
 const ShippingBox = require('../models/shippingBox');
 const ShopShipOrder = require('../models/shopShipOrder');
+const logger = require('../utils/logger');
 
 /**
  * Shop & Ship Service
@@ -240,7 +241,7 @@ const seedShippingBoxes = async () => {
     );
   }
   
-  console.log('Shipping boxes seeded');
+  logger.info('Shipping boxes seeded');
 };
 
 // ============ ORDERS ============

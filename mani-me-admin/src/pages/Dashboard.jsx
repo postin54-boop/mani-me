@@ -151,9 +151,11 @@ function Dashboard() {
     // Mark notification as read
     const handleMarkRead = async (notificationId) => {
       try {
-        await api.post('/notification/read', { notificationId });
+        await api.post('/api/notifications/read', { notificationId });
         setNotifications((prev) => prev.map(n => n._id === notificationId ? { ...n, read: true } : n));
-      } catch (e) {}
+      } catch (e) {
+        logger.error('Failed to mark notification as read:', e);
+      }
     };
   const [stats, setStats] = useState({
     totalOrders: 0,
@@ -181,20 +183,58 @@ function Dashboard() {
     validUntil: '',
   });
   
-  const [activePromos, setActivePromos] = useState([
-    { id: 1, code: 'WELCOME10', discount: '10%', description: 'New user discount', validUntil: '2025-12-31' },
-    { id: 2, code: 'SHIP20', discount: '20%', description: 'Free shipping promo', validUntil: '2025-11-30' },
-  ]);
+  const [activePromos, setActivePromos] = useState([]);
+  const [promosLoading, setPromosLoading] = useState(true);
   
   const [systemSettings, setSystemSettings] = useState({
     deliveryFee: '5.99',
     minOrderValue: '10.00',
     customsClearanceTime: '2-3 days',
   });
+  const [settingsLoading, setSettingsLoading] = useState(true);
 
   useEffect(() => {
     fetchDashboardData();
+    fetchPromos();
+    fetchSettings();
   }, []);
+
+  const fetchPromos = async () => {
+    try {
+      setPromosLoading(true);
+      const res = await api.get('/api/promo-codes');
+      const promos = res.data.promoCodes || res.data || [];
+      setActivePromos(promos.map(p => ({
+        id: p._id,
+        code: p.code,
+        discount: p.type === 'percentage' ? `${p.value}%` : `£${p.value}`,
+        description: p.description,
+        validUntil: p.expiryDate?.split('T')[0] || '',
+        status: p.status,
+      })));
+    } catch (e) {
+      logger.error('Error fetching promos:', e);
+    } finally {
+      setPromosLoading(false);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      setSettingsLoading(true);
+      const res = await api.get('/api/settings');
+      const settings = res.data || {};
+      setSystemSettings({
+        deliveryFee: String(settings.deliveryFee ?? '5.99'),
+        minOrderValue: String(settings.minOrderValue ?? '10.00'),
+        customsClearanceTime: String(settings.customsClearanceTime ?? '2-3 days'),
+      });
+    } catch (e) {
+      logger.error('Error fetching settings:', e);
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -207,36 +247,82 @@ function Dashboard() {
     }
   };
   
-  const handleSendNotification = () => {
-    logger.action('Notification', 'Sending', notification);
-    // TODO: API call to send push notification
-    alert(`Notification sent to ${notification.target}: ${notification.title}`);
-    setPushNotificationDialog(false);
-    setNotification({ title: '', message: '', target: 'all' });
+  const handleSendNotification = async () => {
+    try {
+      logger.action('Notification', 'Sending', notification);
+      await api.post('/api/notifications/broadcast', {
+        title: notification.title,
+        message: notification.message,
+        type: 'marketing',
+        targetScreen: 'Home',
+      });
+      alert(`Notification sent to ${notification.target}: ${notification.title}`);
+      setPushNotificationDialog(false);
+      setNotification({ title: '', message: '', target: 'all' });
+    } catch (e) {
+      logger.error('Error sending notification:', e);
+      alert('Failed to send notification: ' + (e.response?.data?.error || e.message));
+    }
   };
   
-  const handleCreatePromo = () => {
-    const newPromo = {
-      id: activePromos.length + 1,
-      ...promo,
-    };
-    setActivePromos([...activePromos, newPromo]);
-    logger.action('Promo', 'Creating', newPromo);
-    // TODO: API call to create promo
-    setPromoDialog(false);
-    setPromo({ code: '', discount: '', description: '', validUntil: '' });
+  const handleCreatePromo = async () => {
+    try {
+      const discountValue = promo.discount.replace(/[%£]/g, '');
+      const isPercentage = promo.discount.includes('%');
+      
+      const promoData = {
+        code: promo.code.toUpperCase(),
+        type: isPercentage ? 'percentage' : 'fixed',
+        value: parseFloat(discountValue),
+        description: promo.description,
+        expiryDate: promo.validUntil,
+        usageLimit: 1000,
+        status: 'active',
+      };
+      
+      logger.action('Promo', 'Creating', promoData);
+      const res = await api.post('/api/promo-codes', promoData);
+      
+      // Refresh promo list
+      await fetchPromos();
+      
+      setPromoDialog(false);
+      setPromo({ code: '', discount: '', description: '', validUntil: '' });
+      alert('Promo code created successfully!');
+    } catch (e) {
+      logger.error('Error creating promo:', e);
+      alert('Failed to create promo: ' + (e.response?.data?.error || e.message));
+    }
   };
   
-  const handleDeletePromo = (id) => {
-    setActivePromos(activePromos.filter(p => p.id !== id));
-    // TODO: API call to delete promo
+  const handleDeletePromo = async (id) => {
+    try {
+      await api.delete(`/api/promo-codes/${id}`);
+      setActivePromos(activePromos.filter(p => p.id !== id));
+      logger.action('Promo', 'Deleted', { id });
+    } catch (e) {
+      logger.error('Error deleting promo:', e);
+      alert('Failed to delete promo: ' + (e.response?.data?.error || e.message));
+    }
   };
   
-  const handleSaveSettings = () => {
-    logger.action('Settings', 'Saving', systemSettings);
-    // TODO: API call to save settings
-    alert('Settings saved successfully!');
-    setSettingsDialog(false);
+  const handleSaveSettings = async () => {
+    try {
+      logger.action('Settings', 'Saving', systemSettings);
+      
+      // Save each setting individually
+      await Promise.all([
+        api.put('/api/settings/deliveryFee', { value: systemSettings.deliveryFee }),
+        api.put('/api/settings/minOrderValue', { value: systemSettings.minOrderValue }),
+        api.put('/api/settings/customsClearanceTime', { value: systemSettings.customsClearanceTime }),
+      ]);
+      
+      alert('Settings saved successfully!');
+      setSettingsDialog(false);
+    } catch (e) {
+      logger.error('Error saving settings:', e);
+      alert('Failed to save settings: ' + (e.response?.data?.error || e.message));
+    }
   };
 
   const revenueData = [

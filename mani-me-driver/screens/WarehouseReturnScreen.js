@@ -3,10 +3,17 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCashTracking } from '../context/CashTrackingContext';
+import { useAuth } from '../context/AuthContext';
+import apiClient from '../utils/api';
+import logger from '../utils/logger';
 
 export default function WarehouseReturnScreen({ navigation }) {
   const { totalCash, cashCount } = useCashTracking();
+  const { user } = useAuth();
   const [checkingIn, setCheckingIn] = useState(false);
+  const [endingDay, setEndingDay] = useState(false);
+
+  const getDriverId = () => user?._id || user?.id || user?.user_id;
 
   const handleWarehouseCheckIn = () => {
     Alert.alert(
@@ -16,15 +23,30 @@ export default function WarehouseReturnScreen({ navigation }) {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Check In',
-          onPress: () => {
+          onPress: async () => {
+            const driverId = getDriverId();
+            if (!driverId) {
+              Alert.alert('Error', 'Driver profile not available. Please log in again.');
+              return;
+            }
+
             setCheckingIn(true);
-            // TODO: Call API to check in at warehouse
-            setTimeout(() => {
-              setCheckingIn(false);
+            try {
+              await apiClient.post('/drivers/clock-in', {
+                driver_id: driverId,
+                clock_in_time: new Date().toISOString(),
+              });
+
               Alert.alert('Success', 'Checked in at warehouse successfully!', [
                 { text: 'OK', onPress: () => navigation.goBack() }
               ]);
-            }, 1500);
+            } catch (error) {
+              logger.error('Warehouse check-in failed', error);
+              const message = error.response?.data?.error || 'Failed to check in at warehouse. Please try again.';
+              Alert.alert('Error', message);
+            } finally {
+              setCheckingIn(false);
+            }
           }
         }
       ]
@@ -55,11 +77,53 @@ export default function WarehouseReturnScreen({ navigation }) {
         {
           text: 'End Day',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Call API to end shift
-            Alert.alert('Success', 'Shift ended successfully! See you tomorrow.', [
-              { text: 'OK', onPress: () => navigation.navigate('Main') }
-            ]);
+          onPress: async () => {
+            const driverId = getDriverId();
+            if (!driverId) {
+              Alert.alert('Error', 'Driver profile not available. Please log in again.');
+              return;
+            }
+
+            setEndingDay(true);
+            try {
+              const now = new Date();
+              let hoursWorked = 0.1;
+
+              try {
+                const shiftResponse = await apiClient.get(`/drivers/shifts/${driverId}`);
+                const activeShift = (shiftResponse.data?.shifts || []).find((shift) => shift.status === 'active');
+
+                if (activeShift?.clock_in_time) {
+                  const startedAt = new Date(activeShift.clock_in_time);
+                  const elapsedHours = (now.getTime() - startedAt.getTime()) / (1000 * 60 * 60);
+                  hoursWorked = Math.max(0.1, elapsedHours);
+                }
+              } catch (shiftError) {
+                logger.warn('Could not fetch active shift before clock-out', shiftError);
+              }
+
+              await apiClient.post('/drivers/clock-out', {
+                driver_id: driverId,
+                clock_out_time: now.toISOString(),
+                hours_worked: Number(hoursWorked.toFixed(2)),
+              });
+
+              Alert.alert('Success', 'Shift ended successfully! See you tomorrow.', [
+                { text: 'OK', onPress: () => navigation.navigate('Main') }
+              ]);
+            } catch (error) {
+              if (error.response?.status === 404) {
+                Alert.alert('Shift Closed', 'No active shift found. You are already clocked out.', [
+                  { text: 'OK', onPress: () => navigation.navigate('Main') }
+                ]);
+              } else {
+                logger.error('Clock-out failed', error);
+                const message = error.response?.data?.error || 'Failed to end shift. Please try again.';
+                Alert.alert('Error', message);
+              }
+            } finally {
+              setEndingDay(false);
+            }
           }
         }
       ]
@@ -120,7 +184,7 @@ export default function WarehouseReturnScreen({ navigation }) {
         <TouchableOpacity 
           style={styles.primaryButton}
           onPress={handleWarehouseCheckIn}
-          disabled={checkingIn}
+          disabled={checkingIn || endingDay}
         >
           <Ionicons name="location" size={24} color="#fff" style={{ marginRight: 8 }} />
           <Text style={styles.primaryButtonText}>
@@ -141,9 +205,10 @@ export default function WarehouseReturnScreen({ navigation }) {
         <TouchableOpacity 
           style={[styles.endDayButton, cashCount > 0 && { opacity: 0.5 }]}
           onPress={handleEndDay}
+          disabled={endingDay}
         >
           <Ionicons name="moon" size={24} color="#fff" style={{ marginRight: 8 }} />
-          <Text style={styles.endDayButtonText}>End Day & Clock Out</Text>
+          <Text style={styles.endDayButtonText}>{endingDay ? 'Ending Shift...' : 'End Day & Clock Out'}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 

@@ -388,14 +388,10 @@ export default function OrdersScreen({ navigation }) {
           onPress: async () => {
             try {
               const parcelId = parcel._id || parcel.id;
-              console.log('Dismiss URL:', `${API_BASE_URL}/api/shipments/dismiss/${parcelId}`);
-              console.log('Token present:', !!token);
               const response = await fetch(`${API_BASE_URL}/api/shipments/dismiss/${parcelId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               });
-              
-              console.log('Dismiss response status:', response.status);
               
               if (response.ok) {
                 // Remove from local state immediately for snappy UI
