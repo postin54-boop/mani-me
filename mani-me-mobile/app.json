@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.manime.app",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "icon": "./assets/adaptive-icon.png",
       "entitlements": {
         "com.apple.developer.in-app-payments": ["merchant.manime.delivery"]
