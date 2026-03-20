@@ -21,7 +21,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.manime.app",
-      buildNumber: "5",
+      buildNumber: "12",
       icon: "./assets/adaptive-icon.png",
       infoPlist: {
         NSPhotoLibraryUsageDescription: "Allow Mani Me to access your photos to set a profile picture.",
@@ -65,6 +65,13 @@ export default {
           merchantIdentifier: "merchant.manime.delivery",
           enableGooglePay: true
         }
+      ],
+      [
+        "sentry-expo",
+        {
+          organization: "manime",
+          project: "mani-me-mobile"
+        }
       ]
     ],
     extra: {
@@ -73,7 +80,8 @@ export default {
       // For production, use the deployed API URL
       // apiUrl is now controlled by src/api.js USE_LOCAL_BACKEND flag
       apiUrl: null,
-      stripePublishableKey: process.env.STRIPE_KEY || process.env.EXPO_PUBLIC_STRIPE_KEY || "",
+      // Stripe publishable key - safe for client (not secret key)
+      stripePublishableKey: process.env.STRIPE_KEY || process.env.EXPO_PUBLIC_STRIPE_KEY || "pk_test_51SkMiJRx556lxcckTLrW8xVroC3TflDIKMBfSdat6KAoaLXO4MQPBkUNi4F0pLizmMp6lmHjhxQJGoXu6Iq3PrnB00QfalR70y",
       googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || "508869526140-uc5k1lo5o20vkcr6jnnlqf0q4f8t5m0s.apps.googleusercontent.com",
       googleAndroidClientId: process.env.GOOGLE_ANDROID_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || "",
       googleExpoClientId: process.env.GOOGLE_EXPO_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID || "",

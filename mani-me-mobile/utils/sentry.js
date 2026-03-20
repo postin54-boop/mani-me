@@ -1,18 +1,13 @@
 /**
  * Sentry Configuration for Mani Me Customer App
- * 
- * To complete setup:
- * 1. Create a Sentry account at https://sentry.io
- * 2. Create a new React Native project
- * 3. Copy your DSN and replace the placeholder below
- * 4. The app will automatically report crashes in production
+ * Using sentry-expo for Expo compatibility
  */
 
-import * as Sentry from '@sentry/react-native';
+import * as Sentry from 'sentry-expo';
 import Constants from 'expo-constants';
 
-// Set EXPO_PUBLIC_SENTRY_DSN in your .env or eas.json build config
-const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN || '';
+// Sentry DSN - configured for Mani Me
+const SENTRY_DSN = 'https://ca92ece6e715e60ecf6f698cf29f375b@o4511077071060992.ingest.de.sentry.io/4511077087445072';
 
 const isDev = __DEV__;
 
@@ -20,34 +15,14 @@ const isDev = __DEV__;
  * Initialize Sentry - call this at app startup
  */
 export const initSentry = () => {
-  // Skip initialization if no valid DSN or in development
-  if (isDev || !SENTRY_DSN) {
-    console.log('[Sentry] Skipped - development mode or no DSN configured');
-    return;
-  }
-
   Sentry.init({
     dsn: SENTRY_DSN,
-    environment: Constants.expoConfig?.extra?.environment || 'production',
+    enableInExpoDevelopment: false, // Don't send errors in dev mode
+    debug: isDev, // Show debug logs in dev
+    environment: isDev ? 'development' : 'production',
     release: `com.manime.app@${Constants.expoConfig?.version || '1.0.0'}`,
-    dist: Constants.expoConfig?.version || '1.0.0',
-    
-    // Performance monitoring
-    tracesSampleRate: 0.2, // 20% of transactions
-    
-    // Only send errors in production
-    enabled: !isDev,
-    
-    // Additional configuration
-    enableAutoSessionTracking: true,
-    sessionTrackingIntervalMillis: 30000,
-    
-    // Attach user info when available
-    beforeSend: (event) => {
-      // You can modify or filter events here
-      return event;
-    },
   });
+  console.log('[Sentry] Initialized');
 };
 
 /**
@@ -55,11 +30,11 @@ export const initSentry = () => {
  */
 export const setUserContext = (user) => {
   if (!user) {
-    Sentry.setUser(null);
+    Sentry.Native.setUser(null);
     return;
   }
   
-  Sentry.setUser({
+  Sentry.Native.setUser({
     id: user.id || user._id,
     email: user.email,
     username: user.name,
@@ -70,7 +45,7 @@ export const setUserContext = (user) => {
  * Clear user context on logout
  */
 export const clearUserContext = () => {
-  Sentry.setUser(null);
+  Sentry.Native.setUser(null);
 };
 
 /**
@@ -82,7 +57,7 @@ export const captureException = (error, context = {}) => {
     return;
   }
   
-  Sentry.captureException(error, {
+  Sentry.Native.captureException(error, {
     extra: context,
   });
 };
@@ -96,7 +71,7 @@ export const captureMessage = (message, level = 'info', context = {}) => {
     return;
   }
   
-  Sentry.captureMessage(message, {
+  Sentry.Native.captureMessage(message, {
     level,
     extra: context,
   });
@@ -106,7 +81,7 @@ export const captureMessage = (message, level = 'info', context = {}) => {
  * Add breadcrumb for debugging
  */
 export const addBreadcrumb = (category, message, data = {}) => {
-  Sentry.addBreadcrumb({
+  Sentry.Native.addBreadcrumb({
     category,
     message,
     data,

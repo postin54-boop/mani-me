@@ -31,13 +31,10 @@ SplashScreen.preventAutoHideAsync();
 // Get Stripe key from environment - ensure it's properly configured
 const STRIPE_PUBLISHABLE_KEY = Constants.expoConfig?.extra?.stripePublishableKey || 
   process.env.EXPO_PUBLIC_STRIPE_KEY || 
-  '';
+  'pk_test_51SkMiJRx556lxcckTLrW8xVroC3TflDIKMBfSdat6KAoaLXO4MQPBkUNi4F0pLizmMp6lmHjhxQJGoXu6Iq3PrnB00QfalR70y';
 
 if (__DEV__) {
   logger.log('App initialized with environment:', Constants.expoConfig?.extra?.environment);
-  if (!STRIPE_PUBLISHABLE_KEY || STRIPE_PUBLISHABLE_KEY.length < 20) {
-    logger.warn('Warning: Stripe publishable key may not be properly configured');
-  }
 }
 
 // Create React Query client
@@ -315,14 +312,9 @@ export default function App() {
         <SafeAreaProvider>
           <UnifiedCartProvider>
             <ShopShipCartProvider>
-              <StripeProvider 
-                publishableKey={STRIPE_PUBLISHABLE_KEY}
-                merchantIdentifier="merchant.manime.delivery"
-              >
-                <UserProvider>
-                  <AppNavigator />
-                </UserProvider>
-              </StripeProvider>
+              <UserProvider>
+                <AppNavigator />
+              </UserProvider>
             </ShopShipCartProvider>
           </UnifiedCartProvider>
         </SafeAreaProvider>
