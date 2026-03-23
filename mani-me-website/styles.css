@@ -151,6 +151,7 @@ h4 { font-size: 1.25rem; }
 
 .section-title {
     margin-bottom: var(--spacing-md);
+    text-align: center;
 }
 
 .section-title.light {
@@ -161,11 +162,25 @@ h4 { font-size: 1.25rem; }
     color: var(--gray-500);
     font-size: 1.125rem;
     max-width: 600px;
-    margin: 0 auto;
+    margin: 0 auto var(--spacing-2xl);
+    text-align: center;
 }
 
 .section-subtitle.light {
     color: var(--gray-300);
+}
+
+/* Emoji Feature Icons */
+.feature-icon {
+    width: 64px;
+    height: 64px;
+    background: rgba(131, 197, 250, 0.15);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--spacing-lg);
+    font-size: 1.75rem;
 }
 
 /* Buttons */
@@ -1458,6 +1473,339 @@ h4 { font-size: 1.25rem; }
 .dept-item a:hover {
     color: var(--secondary);
 }
+
+/* Responsive */
+@media (max-width: 1024px) {
+
+/* ===================================
+   Grocery Shop & Services Section
+   =================================== */
+
+/* Grocery Shop Section */
+.grocery-section {
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+}
+
+.grocery-section .section-title,
+.grocery-section .section-subtitle {
+    color: white;
+}
+
+.grocery-section .section-subtitle {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Category Cards Grid */
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-xl);
+    max-width: 1200px;
+    margin: 0 auto var(--spacing-2xl);
+}
+
+/* Category Card */
+.category-card {
+    background: var(--accent);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    transition: all 0.3s ease;
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-xl);
+}
+
+.category-card .emoji {
+    font-size: 3.5rem;
+    display: block;
+    margin-bottom: var(--spacing-md);
+}
+
+.category-card h3 {
+    color: var(--primary);
+    margin-bottom: var(--spacing-sm);
+    font-size: 1.25rem;
+}
+
+.category-card > p {
+    color: var(--gray-500);
+    margin-bottom: var(--spacing-md);
+    font-size: 0.9375rem;
+}
+
+.category-card ul {
+    text-align: left;
+    color: var(--gray-600);
+    padding-left: var(--spacing-xl);
+    margin: 0;
+}
+
+.category-card li {
+    margin-bottom: var(--spacing-xs);
+    list-style-type: disc;
+}
+
+/* Shipping Info Cards */
+.shipping-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-xl);
+    max-width: 700px;
+    margin: 0 auto var(--spacing-2xl);
+}
+
+.shipping-info-card {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    text-align: center;
+}
+
+.shipping-info-card .emoji {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: var(--spacing-sm);
+}
+
+.shipping-info-card h4 {
+    color: var(--accent);
+    margin-bottom: var(--spacing-xs);
+}
+
+.shipping-info-card .price {
+    color: var(--accent);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: var(--spacing-xs);
+}
+
+.shipping-info-card .note {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+}
+
+/* Shop CTA Button */
+.shop-cta {
+    text-align: center;
+}
+
+.btn-shop {
+    background: var(--accent);
+    color: var(--success);
+    font-weight: 600;
+    padding: var(--spacing-md) var(--spacing-2xl);
+    border-radius: var(--radius-lg);
+}
+
+.btn-shop:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    color: var(--success);
+}
+
+/* Service Options Grid */
+.service-options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-xl);
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Service Option Card */
+.service-option {
+    background: var(--accent);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+}
+
+.service-option:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-xl);
+}
+
+.service-option-header {
+    padding: var(--spacing-xl);
+    text-align: center;
+}
+
+.service-option-header.green {
+    background: var(--success);
+}
+
+.service-option-header.blue {
+    background: #3B82F6;
+}
+
+.service-option-header .emoji {
+    font-size: 3rem;
+    display: block;
+}
+
+.service-option-header h3 {
+    color: var(--accent);
+    margin-top: var(--spacing-md);
+    font-size: 1.25rem;
+}
+
+.service-option-body {
+    padding: var(--spacing-xl);
+}
+
+.service-option-body > p {
+    color: var(--gray-500);
+    margin-bottom: var(--spacing-md);
+}
+
+.service-option-body ul {
+    color: var(--gray-700);
+    margin-bottom: var(--spacing-lg);
+    padding-left: var(--spacing-lg);
+}
+
+.service-option-body li {
+    margin-bottom: var(--spacing-sm);
+    list-style-type: disc;
+}
+
+.service-option-body .note {
+    color: var(--gray-400);
+    font-size: 0.875rem;
+}
+
+/* Timeline Section */
+.timeline {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.timeline-item {
+    display: flex;
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+    align-items: flex-start;
+}
+
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-number {
+    min-width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.timeline-number.green { background: var(--success); }
+.timeline-number.blue { background: #3B82F6; }
+.timeline-number.purple { background: #8B5CF6; }
+.timeline-number.pink { background: #EC4899; }
+
+.timeline-content h3 {
+    margin-bottom: var(--spacing-xs);
+    font-size: 1.125rem;
+}
+
+.timeline-content p {
+    color: var(--gray-500);
+    margin: 0;
+}
+
+/* CTA Section */
+.cta-section {
+    background: var(--primary);
+    padding: var(--spacing-3xl) 0;
+    text-align: center;
+}
+
+.cta-section h2 {
+    color: var(--accent);
+    margin-bottom: var(--spacing-md);
+}
+
+.cta-section > .container > p {
+    color: var(--gray-400);
+    margin-bottom: var(--spacing-xl);
+}
+
+.cta-buttons {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-cta-primary {
+    background: var(--secondary);
+    color: var(--primary);
+}
+
+.btn-cta-outline {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.btn-cta-outline:hover {
+    background: var(--accent);
+    color: var(--primary);
+}
+
+/* Footer Grid Fix */
+.footer-grid {
+    display: grid;
+    grid-template-columns: 2fr repeat(3, 1fr);
+    gap: var(--spacing-2xl);
+    margin-bottom: var(--spacing-2xl);
+    padding-bottom: var(--spacing-2xl);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 1024px) {
+    .footer-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .footer-grid {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    
+    .category-grid,
+    .service-options-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .timeline-item {
+        flex-direction: column;
+        text-align: center;
+        align-items: center;
+    }
+    
+    .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+/* ===================================
+   End Grocery Shop & Services Section
+   =================================== */
 
 /* Responsive */
 @media (max-width: 1024px) {

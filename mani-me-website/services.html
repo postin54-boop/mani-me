@@ -92,19 +92,18 @@
     </section>
 
     <!-- Grocery Shop Section -->
-    <section class="how-it-works" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
+    <section class="how-it-works grocery-section">
         <div class="container">
-            <h2 class="section-title" style="color: white;">🛒 Grocery Shop</h2>
-            <p class="section-subtitle" style="color: rgba(255,255,255,0.9);">Shop from the UK, delivered to Ghana - or order locally in Ghana</p>
+            <h2 class="section-title">🛒 Grocery Shop</h2>
+            <p class="section-subtitle">Shop from the UK, delivered to Ghana - or order locally in Ghana</p>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; max-width: 1200px; margin: 32px auto;">
-                
+            <div class="category-grid">
                 <!-- Grocery -->
-                <div style="background: white; border-radius: 16px; padding: 32px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-                    <span style="font-size: 56px; display: block; margin-bottom: 16px;">🥘</span>
-                    <h3 style="color: #0B1A33; margin-bottom: 12px;">Grocery Items</h3>
-                    <p style="color: #6B7280; margin-bottom: 16px;">Rice, oil, flour, gari, spices, and more essentials.</p>
-                    <ul style="text-align: left; color: #374151; padding-left: 24px; margin-bottom: 0;">
+                <div class="category-card">
+                    <span class="emoji">🥘</span>
+                    <h3>Grocery Items</h3>
+                    <p>Rice, oil, flour, gari, spices, and more essentials.</p>
+                    <ul>
                         <li>Rice (5kg, 10kg, 25kg bags)</li>
                         <li>Cooking oils</li>
                         <li>Flour & baking items</li>
@@ -113,11 +112,11 @@
                 </div>
 
                 <!-- Electronics -->
-                <div style="background: white; border-radius: 16px; padding: 32px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-                    <span style="font-size: 56px; display: block; margin-bottom: 16px;">💻</span>
-                    <h3 style="color: #0B1A33; margin-bottom: 12px;">Electronics</h3>
-                    <p style="color: #6B7280; margin-bottom: 16px;">Quality electronics at great prices.</p>
-                    <ul style="text-align: left; color: #374151; padding-left: 24px; margin-bottom: 0;">
+                <div class="category-card">
+                    <span class="emoji">💻</span>
+                    <h3>Electronics</h3>
+                    <p>Quality electronics at great prices.</p>
+                    <ul>
                         <li>LED bulbs & lighting</li>
                         <li>Phone chargers & cables</li>
                         <li>Fans & cooling</li>
@@ -126,11 +125,11 @@
                 </div>
 
                 <!-- Household -->
-                <div style="background: white; border-radius: 16px; padding: 32px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-                    <span style="font-size: 56px; display: block; margin-bottom: 16px;">🏠</span>
-                    <h3 style="color: #0B1A33; margin-bottom: 12px;">Household Items</h3>
-                    <p style="color: #6B7280; margin-bottom: 16px;">Everything for your home needs.</p>
-                    <ul style="text-align: left; color: #374151; padding-left: 24px; margin-bottom: 0;">
+                <div class="category-card">
+                    <span class="emoji">🏠</span>
+                    <h3>Household Items</h3>
+                    <p>Everything for your home needs.</p>
+                    <ul>
                         <li>Detergent & cleaning</li>
                         <li>Bedsheets & linens</li>
                         <li>Buckets & containers</li>
@@ -140,23 +139,23 @@
             </div>
 
             <!-- Shipping Info -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; max-width: 800px; margin: 40px auto 0;">
-                <div style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 24px; text-align: center; backdrop-filter: blur(10px);">
-                    <div style="font-size: 40px; margin-bottom: 12px;">🇬🇭</div>
-                    <h4 style="color: white; margin-bottom: 8px;">Ghana Residents</h4>
-                    <p style="color: rgba(255,255,255,0.9); font-size: 24px; font-weight: bold;">FREE Delivery</p>
-                    <p style="color: rgba(255,255,255,0.7); font-size: 14px;">Local delivery at no extra cost</p>
+            <div class="shipping-info-grid">
+                <div class="shipping-info-card">
+                    <span class="emoji">🇬🇭</span>
+                    <h4>Ghana Residents</h4>
+                    <p class="price">FREE Delivery</p>
+                    <p class="note">Local delivery at no extra cost</p>
                 </div>
-                <div style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 24px; text-align: center; backdrop-filter: blur(10px);">
-                    <div style="font-size: 40px; margin-bottom: 12px;">🇬🇧</div>
-                    <h4 style="color: white; margin-bottom: 8px;">UK Residents</h4>
-                    <p style="color: rgba(255,255,255,0.9); font-size: 24px; font-weight: bold;">£15 Flat Rate</p>
-                    <p style="color: rgba(255,255,255,0.7); font-size: 14px;">Ship groceries to family in Ghana</p>
+                <div class="shipping-info-card">
+                    <span class="emoji">🇬🇧</span>
+                    <h4>UK Residents</h4>
+                    <p class="price">£15 Flat Rate</p>
+                    <p class="note">Ship groceries to family in Ghana</p>
                 </div>
             </div>
 
-            <div style="text-align: center; margin-top: 40px;">
-                <a href="index.html#download" class="btn btn-lg" style="background: white; color: #059669; font-weight: 600; padding: 16px 40px; border-radius: 12px; text-decoration: none; display: inline-block;">
+            <div class="shop-cta">
+                <a href="index.html#download" class="btn btn-lg btn-shop">
                     🛒 Shop Now in the App
                 </a>
             </div>
@@ -166,45 +165,44 @@
     <!-- Shipping Options -->
     <section class="how-it-works">
         <div class="container">
-            <h2 class="section-title">Shipping Options</h2>
-            <p class="section-subtitle">Choose the option that works best for you</p>
+            <h2 class="section-title light">Shipping Options</h2>
+            <p class="section-subtitle light">Choose the option that works best for you</p>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; max-width: 1000px; margin: 0 auto;">
-                
+            <div class="service-options-grid">
                 <!-- Box Packages -->
-                <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <div style="background: #10B981; padding: 24px; text-align: center;">
-                        <span style="font-size: 48px;">📦</span>
-                        <h3 style="color: white; margin-top: 16px;">Box Packages</h3>
+                <div class="service-option">
+                    <div class="service-option-header green">
+                        <span class="emoji">📦</span>
+                        <h3>Box Packages</h3>
                     </div>
-                    <div style="padding: 24px;">
-                        <p style="color: #6B7280; margin-bottom: 16px;">Pre-packaged boxes with fixed prices. Simple and straightforward.</p>
-                        <ul style="color: #374151; margin-bottom: 24px; padding-left: 20px;">
-                            <li style="margin-bottom: 8px;">Small Box (30×30×30cm) - from £45</li>
-                            <li style="margin-bottom: 8px;">Medium Box (45×45×45cm) - from £75</li>
-                            <li style="margin-bottom: 8px;">Large Box (60×60×60cm) - from £105</li>
-                            <li style="margin-bottom: 8px;">Barrel/Drum - from £180</li>
+                    <div class="service-option-body">
+                        <p>Pre-packaged boxes with fixed prices. Simple and straightforward.</p>
+                        <ul>
+                            <li>Small Box (30×30×30cm) - from £45</li>
+                            <li>Medium Box (45×45×45cm) - from £75</li>
+                            <li>Large Box (60×60×60cm) - from £105</li>
+                            <li>Barrel/Drum - from £180</li>
                         </ul>
-                        <p style="color: #9CA3AF; font-size: 14px;">*Prices may vary. Check app for current rates.</p>
+                        <p class="note">*Prices may vary. Check app for current rates.</p>
                     </div>
                 </div>
 
                 <!-- Individual Items -->
-                <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <div style="background: #3B82F6; padding: 24px; text-align: center;">
-                        <span style="font-size: 48px;">🧺</span>
-                        <h3 style="color: white; margin-top: 16px;">Individual Items</h3>
+                <div class="service-option">
+                    <div class="service-option-header blue">
+                        <span class="emoji">🧺</span>
+                        <h3>Individual Items</h3>
                     </div>
-                    <div style="padding: 24px;">
-                        <p style="color: #6B7280; margin-bottom: 16px;">Ship specific items with per-item pricing.</p>
-                        <ul style="color: #374151; margin-bottom: 24px; padding-left: 20px;">
-                            <li style="margin-bottom: 8px;">TVs, Electronics</li>
-                            <li style="margin-bottom: 8px;">Appliances (Washing Machine, Fridge)</li>
-                            <li style="margin-bottom: 8px;">Furniture (Mattress, Sofa)</li>
-                            <li style="margin-bottom: 8px;">Food Items (Rice, Oil, etc.)</li>
-                            <li style="margin-bottom: 8px;">Suitcases & Luggage</li>
+                    <div class="service-option-body">
+                        <p>Ship specific items with per-item pricing.</p>
+                        <ul>
+                            <li>TVs, Electronics</li>
+                            <li>Appliances (Washing Machine, Fridge)</li>
+                            <li>Furniture (Mattress, Sofa)</li>
+                            <li>Food Items (Rice, Oil, etc.)</li>
+                            <li>Suitcases & Luggage</li>
                         </ul>
-                        <p style="color: #9CA3AF; font-size: 14px;">*Prices based on item size and weight.</p>
+                        <p class="note">*Prices based on item size and weight.</p>
                     </div>
                 </div>
             </div>
@@ -217,33 +215,33 @@
             <h2 class="section-title">Delivery Timeline</h2>
             <p class="section-subtitle">What to expect after you book</p>
             
-            <div style="max-width: 800px; margin: 0 auto;">
-                <div style="display: flex; gap: 24px; margin-bottom: 24px; align-items: flex-start;">
-                    <div style="min-width: 60px; height: 60px; background: #10B981; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;">1</div>
-                    <div>
-                        <h3 style="margin-bottom: 8px;">Day 1-2: Pickup</h3>
-                        <p style="color: #6B7280;">Our driver collects your parcel from your UK address.</p>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-number green">1</div>
+                    <div class="timeline-content">
+                        <h3>Day 1-2: Pickup</h3>
+                        <p>Our driver collects your parcel from your UK address.</p>
                     </div>
                 </div>
-                <div style="display: flex; gap: 24px; margin-bottom: 24px; align-items: flex-start;">
-                    <div style="min-width: 60px; height: 60px; background: #3B82F6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;">2</div>
-                    <div>
-                        <h3 style="margin-bottom: 8px;">Week 1: Processing</h3>
-                        <p style="color: #6B7280;">Parcel is processed at our UK warehouse, packed, and prepared for shipping.</p>
+                <div class="timeline-item">
+                    <div class="timeline-number blue">2</div>
+                    <div class="timeline-content">
+                        <h3>Week 1: Processing</h3>
+                        <p>Parcel is processed at our UK warehouse, packed, and prepared for shipping.</p>
                     </div>
                 </div>
-                <div style="display: flex; gap: 24px; margin-bottom: 24px; align-items: flex-start;">
-                    <div style="min-width: 60px; height: 60px; background: #8B5CF6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;">3</div>
-                    <div>
-                        <h3 style="margin-bottom: 8px;">Week 2-3: In Transit</h3>
-                        <p style="color: #6B7280;">Parcel is shipped to Ghana via sea freight. Track progress in real-time.</p>
+                <div class="timeline-item">
+                    <div class="timeline-number purple">3</div>
+                    <div class="timeline-content">
+                        <h3>Week 2-3: In Transit</h3>
+                        <p>Parcel is shipped to Ghana via sea freight. Track progress in real-time.</p>
                     </div>
                 </div>
-                <div style="display: flex; gap: 24px; align-items: flex-start;">
-                    <div style="min-width: 60px; height: 60px; background: #EC4899; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;">4</div>
-                    <div>
-                        <h3 style="margin-bottom: 8px;">Week 3-4: Delivery</h3>
-                        <p style="color: #6B7280;">Customs cleared and delivered to your recipient's address in Ghana.</p>
+                <div class="timeline-item">
+                    <div class="timeline-number pink">4</div>
+                    <div class="timeline-content">
+                        <h3>Week 3-4: Delivery</h3>
+                        <p>Customs cleared and delivered to your recipient's address in Ghana.</p>
                     </div>
                 </div>
             </div>
@@ -251,13 +249,13 @@
     </section>
 
     <!-- CTA Section -->
-    <section style="background: #0B1A33; padding: 64px 0; text-align: center;">
+    <section class="cta-section">
         <div class="container">
-            <h2 style="color: white; margin-bottom: 16px;">Ready to Ship?</h2>
-            <p style="color: #9CA3AF; margin-bottom: 32px;">Download our app and book your pickup in minutes.</p>
-            <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-                <a href="index.html#download" class="btn btn-primary btn-lg" style="background: #83C5FA; color: #0B1A33;">Download App</a>
-                <a href="contact.html" class="btn btn-outline btn-lg" style="border-color: white; color: white;">Contact Us</a>
+            <h2>Ready to Ship?</h2>
+            <p>Download our app and book your pickup in minutes.</p>
+            <div class="cta-buttons">
+                <a href="index.html#download" class="btn btn-lg btn-cta-primary">Download App</a>
+                <a href="contact.html" class="btn btn-lg btn-outline btn-cta-outline">Contact Us</a>
             </div>
         </div>
     </section>
