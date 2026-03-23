@@ -1474,9 +1474,6 @@ h4 { font-size: 1.25rem; }
     color: var(--secondary);
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
-
 /* ===================================
    Grocery Shop & Services Section
    =================================== */
