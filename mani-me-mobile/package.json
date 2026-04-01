@@ -17,6 +17,7 @@
     "@react-navigation/bottom-tabs": "^7.8.5",
     "@react-navigation/native": "^7.1.20",
     "@react-navigation/native-stack": "^7.6.3",
+    "@sentry/react-native": "~7.2.0",
     "@stripe/stripe-react-native": "0.50.3",
     "@tanstack/react-query": "^5.90.12",
     "axios": "^1.13.6",
@@ -40,13 +41,13 @@
     "prop-types": "^15.8.1",
     "punycode": "^2.3.1",
     "react": "19.1.0",
-    "sentry-expo": "~7.0.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
     "react-native-safe-area-context": "^5.6.2",
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
-    "react-native-web": "^0.21.0"
+    "react-native-web": "^0.21.0",
+    "sentry-expo": "~7.0.0"
   },
   "private": true,
   "devDependencies": {

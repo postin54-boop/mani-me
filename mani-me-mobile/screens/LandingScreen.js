@@ -9,6 +9,7 @@ import {
   Animated,
   StatusBar,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -239,14 +240,14 @@ export default function LandingScreen({ navigation }) {
             By signing up, you agree to our{' '}
             <Text 
               style={styles.footerLink}
-              onPress={() => navigation.navigate('Terms')}
+              onPress={() => Linking.openURL('https://www.manime.co.uk/terms.html')}
             >
               Terms of Service
             </Text>
             {' '}and{' '}
             <Text 
               style={styles.footerLink}
-              onPress={() => navigation.navigate('Privacy')}
+              onPress={() => Linking.openURL('https://www.manime.co.uk/privacy.html')}
             >
               Privacy Policy
             </Text>

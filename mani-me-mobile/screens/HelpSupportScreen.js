@@ -168,7 +168,7 @@ export default function HelpSupportScreen({ navigation }) {
           
           <TouchableOpacity
             style={[styles.linkItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onPress={() => navigation.navigate('Terms')}
+            onPress={() => Linking.openURL('https://www.manime.co.uk/terms.html')}
           >
             <Ionicons name="document-text-outline" size={20} color={colors.primary} />
             <Text style={[styles.linkText, { color: colors.text }]}>Terms & Conditions</Text>
@@ -177,7 +177,7 @@ export default function HelpSupportScreen({ navigation }) {
           
           <TouchableOpacity
             style={[styles.linkItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onPress={() => navigation.navigate('Privacy')}
+            onPress={() => Linking.openURL('https://www.manime.co.uk/privacy.html')}
           >
             <Ionicons name="shield-checkmark-outline" size={20} color={colors.primary} />
             <Text style={[styles.linkText, { color: colors.text }]}>Privacy Policy</Text>

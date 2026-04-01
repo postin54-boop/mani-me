@@ -177,7 +177,7 @@ function TabNavigator() {
 }
 
 function AppNavigator() {
-  const { user } = useUser();
+  const { user, token: authToken } = useUser();
   const notificationListener = useRef();
   const responseListener = useRef();
   const [initialRoute, setInitialRoute] = useState(null);
@@ -201,10 +201,10 @@ function AppNavigator() {
 
   useEffect(() => {
     // Register for push notifications when user logs in
-    if (user?.id) {
-      registerForPushNotificationsAsync().then(token => {
-        if (token) {
-          updatePushToken(user.id, token);
+    if (user?.id && authToken) {
+      registerForPushNotificationsAsync().then(pushToken => {
+        if (pushToken) {
+          updatePushToken(user.id, pushToken, authToken);
         }
       });
 

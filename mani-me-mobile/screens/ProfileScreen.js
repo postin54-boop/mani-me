@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, StatusBar, TextInput, ActivityIndicator, Image, Platform, KeyboardAvoidingView, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, StatusBar, TextInput, ActivityIndicator, Image, Platform, KeyboardAvoidingView, Keyboard, TouchableWithoutFeedback, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -405,10 +405,10 @@ export default function ProfileScreen({ navigation }) {
         {!isEditing && (
           <>
             {/* Legal Section */}
-            <View style={[styles.legalSection, { backgroundColor: colors.surface, marginHorizontal: SIZES.lg, borderRadius: 12, marginBottom: SIZES.md }]}>
+            <View style={[styles.legalSection, { backgroundColor: colors.surface, marginHorizontal: SIZES.lg, borderRadius: 12, marginTop: SIZES.xl, marginBottom: SIZES.md }]}>
               <TouchableOpacity 
                 style={[styles.legalItem, { borderBottomColor: colors.border }]}
-                onPress={() => navigation.navigate('Privacy')}
+                onPress={() => Linking.openURL('https://www.manime.co.uk/privacy.html')}
                 activeOpacity={0.7}
               >
                 <View style={styles.legalItemContent}>
@@ -420,7 +420,7 @@ export default function ProfileScreen({ navigation }) {
               
               <TouchableOpacity 
                 style={styles.legalItem}
-                onPress={() => navigation.navigate('Terms')}
+                onPress={() => Linking.openURL('https://www.manime.co.uk/terms.html')}
                 activeOpacity={0.7}
               >
                 <View style={styles.legalItemContent}>
@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: SIZES.md,
+    paddingVertical: SIZES.lg,
     paddingHorizontal: SIZES.md,
     borderBottomWidth: 1,
   },

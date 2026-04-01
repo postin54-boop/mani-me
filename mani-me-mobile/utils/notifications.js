@@ -65,11 +65,15 @@ export async function registerForPushNotificationsAsync() {
  * Update user's push token on the backend
  * @param {string} userId - User ID
  * @param {string} pushToken - Expo push token
+ * @param {string} [providedToken] - JWT auth token (preferred over storage lookup)
  */
-export async function updatePushToken(userId, pushToken) {
+export async function updatePushToken(userId, pushToken, providedToken) {
   try {
-    // Try SecureStore first (new method), fallback to AsyncStorage (legacy)
-    let token = await SecureStore.getItemAsync('authToken');
+    // Use provided token first, then fall back to SecureStore/AsyncStorage
+    let token = providedToken;
+    if (!token) {
+      token = await SecureStore.getItemAsync('authToken');
+    }
     if (!token) {
       token = await AsyncStorage.getItem('token');
     }

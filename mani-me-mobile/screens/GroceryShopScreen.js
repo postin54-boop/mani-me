@@ -51,7 +51,7 @@ export default function GroceryShopScreen({ navigation }) {
         );
         
         if (mounted) {
-          setItems(response.data);
+          setItems(response.data.items || []);
           setLoading(false);
         }
       } catch (error) {
@@ -88,7 +88,7 @@ export default function GroceryShopScreen({ navigation }) {
       const response = await api.get(
         `/grocery/items?category=${selectedCategory}`
       );
-      setItems(response.data);
+      setItems(response.data.items || []);
     } catch (error) {
       logger.error('Error fetching items:', error);
       Alert.alert('Error', 'Failed to load items. Please try again.');

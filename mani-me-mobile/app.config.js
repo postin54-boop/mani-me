@@ -51,6 +51,7 @@ export default {
       favicon: "./assets/favicon.png"
     },
     plugins: [
+      "@sentry/react-native",
       "expo-secure-store",
       [
         "expo-image-picker",
