@@ -4,10 +4,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '../context/UserContext';
 import { useThemeColors, SIZES, FONTS, SHADOWS } from '../constants/theme';
+import { useCart } from '../context/UnifiedCartContext';
+import { useShopShipCart } from '../context/ShopShipCartContext';
 
 export default function MoreScreen({ navigation }) {
   const { colors, isDark } = useThemeColors();
   const { user, logout } = useUser();
+  const { clearCart } = useCart();
+  const { clearCart: clearShopShipCart } = useShopShipCart();
 
   const openURL = async (url) => {
     const supported = await Linking.canOpenURL(url);
@@ -29,7 +33,9 @@ export default function MoreScreen({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            navigation.navigate('Login');
+            clearCart();
+            clearShopShipCart();
+            navigation.reset({ index: 0, routes: [{ name: 'Landing' }] });
           }
         }
       ]

@@ -4,8 +4,18 @@
  */
 
 const Product = require('../models/product');
+const Joi = require('joi');
 const { escapeRegex } = require('../utils/sanitize');
 const logger = require('../utils/logger');
+
+const productSchema = Joi.object({
+  name: Joi.string().trim().max(200).required(),
+  description: Joi.string().trim().max(2000).optional().allow(''),
+  image: Joi.string().uri().optional().allow('', null),
+  price: Joi.number().positive().required(),
+  discount: Joi.number().min(0).max(100).optional(),
+  inStock: Joi.boolean().optional(),
+});
 
 exports.getProducts = async (req, res) => {
   try {
@@ -31,7 +41,11 @@ exports.getProducts = async (req, res) => {
 
 exports.createProduct = async (req, res) => {
   try {
-    const product = new Product(req.body);
+    const { error, value } = productSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
+    if (error) {
+      return res.status(400).json({ message: 'Validation error', errors: error.details.map(d => d.message) });
+    }
+    const product = new Product(value);
     await product.save();
     res.status(201).json(product);
   } catch (error) {

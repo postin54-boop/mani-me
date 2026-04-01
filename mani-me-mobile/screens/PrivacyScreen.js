@@ -193,11 +193,33 @@ export default function PrivacyScreen({ navigation }) {
           </Text>
 
           <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
-            To exercise these rights, contact us at privacy@manimeapp.com or through the app's settings.
+            To exercise these rights, contact us at manimeappinfo@gmail.com or through the app's settings.
           </Text>
 
-          {/* Section 6 */}
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>6. Cookies and Tracking</Text>
+          {/* Section 6 - Location */}
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>6. Location Data</Text>
+          <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
+            We collect your location data to provide our delivery services:
+          </Text>
+          <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
+            • We use your location to match you with nearby drivers for parcel pickups
+          </Text>
+          <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
+            • Location data helps us provide accurate delivery estimates
+          </Text>
+          <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
+            • Driver locations are tracked during active deliveries for real-time updates
+          </Text>
+          <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
+            • You can disable location services in your device settings
+          </Text>
+          <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
+            We only access location when necessary for pickup and delivery coordination. 
+            Location data is not shared with third parties except delivery drivers assigned to your order.
+          </Text>
+
+          {/* Section 7 */}
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>7. Cookies and Tracking</Text>
           <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
             We use cookies and similar technologies to:
           </Text>
@@ -217,16 +239,16 @@ export default function PrivacyScreen({ navigation }) {
             You can manage tracking preferences in your device settings.
           </Text>
 
-          {/* Section 7 */}
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>7. Children's Privacy</Text>
+          {/* Section 8 */}
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>8. Children's Privacy</Text>
           <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
             Our services are not intended for users under 18 years of age. We do not knowingly 
             collect data from children. If we discover we have collected data from a minor, 
             we will delete it immediately.
           </Text>
 
-          {/* Section 8 */}
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>8. International Data Transfers</Text>
+          {/* Section 9 */}
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>9. International Data Transfers</Text>
           <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
             Your data may be transferred and processed in the UK, Ghana, or other countries where 
             our service providers operate. We ensure adequate protection through:
@@ -241,16 +263,16 @@ export default function PrivacyScreen({ navigation }) {
             • Encryption during transfer
           </Text>
 
-          {/* Section 9 */}
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>9. Push Notifications</Text>
+          {/* Section 10 */}
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>10. Push Notifications</Text>
           <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
             We use push notifications to send delivery updates and important alerts. 
             You can manage notification preferences in your device settings or the app's 
             notification settings.
           </Text>
 
-          {/* Section 10 */}
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>10. Changes to This Policy</Text>
+          {/* Section 11 */}
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>11. Changes to This Policy</Text>
           <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
             We may update this Privacy Policy periodically. Changes will be posted here with 
             an updated "Last Modified" date. Significant changes will be communicated via email 
@@ -263,16 +285,16 @@ export default function PrivacyScreen({ navigation }) {
             For privacy-related questions or to exercise your rights:
           </Text>
           <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
-            • Email: privacy@manimeapp.com
-          </Text>
-          <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
-            • Data Protection Officer: dpo@manimeapp.com
+            • Email: manimeappinfo@gmail.com
           </Text>
           <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
             • Phone: +44 7958 086887
           </Text>
           <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
-            • Live Chat: Available in the app 24/7
+            • WhatsApp: +44 7958 086887
+          </Text>
+          <Text style={[styles.bulletPoint, { color: colors.textSecondary }]}>
+            • Live Chat: Available in the app
           </Text>
 
           <Text style={[styles.paragraph, { color: colors.textSecondary, marginTop: 16 }]}>

@@ -236,7 +236,20 @@ export default function LandingScreen({ navigation }) {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            By signing up, you agree to our Terms of Service and Privacy Policy
+            By signing up, you agree to our{' '}
+            <Text 
+              style={styles.footerLink}
+              onPress={() => navigation.navigate('Terms')}
+            >
+              Terms of Service
+            </Text>
+            {' '}and{' '}
+            <Text 
+              style={styles.footerLink}
+              onPress={() => navigation.navigate('Privacy')}
+            >
+              Privacy Policy
+            </Text>
           </Text>
         </View>
       </ScrollView>
@@ -497,5 +510,10 @@ const styles = StyleSheet.create({
     color: '#6B7A90',
     textAlign: 'center',
     lineHeight: 16,
+  },
+  footerLink: {
+    color: '#83C5FA',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });

@@ -55,6 +55,7 @@ export default function ProfileScreen({ navigation }) {
     { icon: 'location-outline', label: 'Location Services', hasToggle: true, key: 'location' },
     { icon: 'document-text-outline', label: 'Documents', screen: 'Documents' },
     { icon: 'help-circle-outline', label: 'Help & Support', screen: 'HelpSupport' },
+    { icon: 'document-text-outline', label: 'Terms & Conditions', screen: 'Terms' },
     { icon: 'shield-checkmark-outline', label: 'Privacy Policy', screen: 'PrivacyPolicy' },
   ];
 

@@ -4,6 +4,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '../context/UserContext';
 import { useThemeColors } from '../constants/theme';
 
+const validatePhone = (phone) => {
+  const cleaned = phone.replace(/[\s-]/g, '');
+  return /^(\+44|0)[1-9]\d{8,9}$/.test(cleaned) || /^(\+233|0)[2-9]\d{7,8}$/.test(cleaned);
+};
+
 export default function ReceiverDetailsScreen({ route, navigation }) {
   const { senderData } = route?.params || {};
   const { user } = useUser();
@@ -26,6 +31,11 @@ export default function ReceiverDetailsScreen({ route, navigation }) {
     // Validate receiver details
     if (!receiverName || !receiverPhone || !deliveryAddress || !deliveryCity || !deliveryRegion) {
       Alert.alert('Error', 'Please fill in all required receiver details');
+      return;
+    }
+
+    if (!validatePhone(receiverPhone.trim())) {
+      Alert.alert('Invalid Phone', 'Please enter a valid receiver phone number');
       return;
     }
 

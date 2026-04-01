@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors, SIZES, FONTS, SHADOWS } from '../constants/theme';
 import { useUser } from '../context/UserContext';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
-import axios from 'axios';
+import api from '../src/api';
 import { API_BASE_URL } from '../utils/config';
 import OfflineNotice from '../components/OfflineNotice';
 
@@ -45,8 +45,8 @@ export default function GroceryShopScreen({ navigation }) {
     const fetchItems = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(
-          `${API_BASE_URL}/api/grocery/items?category=${selectedCategory}`,
+        const response = await api.get(
+          `/grocery/items?category=${selectedCategory}`,
           { signal: abortController.signal }
         );
         
@@ -85,8 +85,8 @@ export default function GroceryShopScreen({ navigation }) {
   const fetchItems = async (isRefreshing = false) => {
     try {
       if (!isRefreshing) setLoading(true);
-      const response = await axios.get(
-        `${API_BASE_URL}/api/grocery/items?category=${selectedCategory}`
+      const response = await api.get(
+        `/grocery/items?category=${selectedCategory}`
       );
       setItems(response.data);
     } catch (error) {

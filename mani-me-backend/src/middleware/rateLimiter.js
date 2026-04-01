@@ -1,7 +1,29 @@
 const rateLimit = require('express-rate-limit');
+const { RedisStore } = require('rate-limit-redis');
+const Redis = require('ioredis');
+
+// Shared Redis client for rate limiting across cluster workers
+// Falls back to in-memory store if REDIS_URL is not configured
+let redisClient = null;
+if (process.env.REDIS_URL) {
+  redisClient = new Redis(process.env.REDIS_URL, {
+    enableOfflineQueue: false,
+    maxRetriesPerRequest: 1,
+    lazyConnect: true,
+  });
+  redisClient.on('error', (err) => {
+    // Don't crash if Redis is temporarily unavailable — rate limiters fall back gracefully
+    console.error('Rate limiter Redis error:', err.message);
+  });
+}
+
+const makeStore = (prefix) => redisClient
+  ? new RedisStore({ sendCommand: (...args) => redisClient.call(...args), prefix })
+  : undefined; // undefined = default MemoryStore
 
 // Rate limiter for login attempts - 5 attempts per 15 minutes
 const loginLimiter = rateLimit({
+  store: makeStore('rl:login:'),
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // Limit each IP to 5 login requests per windowMs
   message: 'Too many login attempts from this IP, please try again after 15 minutes',
@@ -18,6 +40,7 @@ const loginLimiter = rateLimit({
 
 // Rate limiter for registration - 3 attempts per hour
 const registerLimiter = rateLimit({
+  store: makeStore('rl:register:'),
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 3, // Limit each IP to 3 registration requests per windowMs
   message: 'Too many accounts created from this IP, please try again after an hour',
@@ -34,6 +57,7 @@ const registerLimiter = rateLimit({
 
 // Rate limiter for password reset - 3 attempts per 30 minutes
 const passwordResetLimiter = rateLimit({
+  store: makeStore('rl:pwreset:'),
   windowMs: 30 * 60 * 1000, // 30 minutes
   max: 3,
   message: 'Too many password reset attempts from this IP',
@@ -49,6 +73,7 @@ const passwordResetLimiter = rateLimit({
 
 // General API rate limiter - 300 requests per 15 minutes per IP (increased for mobile apps)
 const apiLimiter = rateLimit({
+  store: makeStore('rl:api:'),
   windowMs: 15 * 60 * 1000,
   max: 300, // Increased from 100 for better mobile experience
   message: 'Too many requests from this IP',
@@ -68,6 +93,7 @@ const apiLimiter = rateLimit({
 
 // Stricter rate limiter for tracking endpoint (public, could be abused)
 const trackingLimiter = rateLimit({
+  store: makeStore('rl:track:'),
   windowMs: 15 * 60 * 1000,
   max: 50, // 50 tracking requests per 15 minutes
   message: 'Too many tracking requests',

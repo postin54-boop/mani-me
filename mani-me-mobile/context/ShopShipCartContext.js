@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import logger from '../utils/logger';
 
 const CART_STORAGE_KEY = 'shop_ship_cart';
 const DELIVERY_TYPE_KEY = 'shop_ship_delivery_type';
@@ -61,7 +62,7 @@ export function ShopShipCartProvider({ children }) {
         setDeliveryType(storedDeliveryType);
       }
     } catch (error) {
-      console.error('Error loading cart:', error);
+      logger.error('Error loading cart:', error);
     } finally {
       setLoading(false);
     }
@@ -71,7 +72,7 @@ export function ShopShipCartProvider({ children }) {
     try {
       await AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
     } catch (error) {
-      console.error('Error saving cart:', error);
+      logger.error('Error saving cart:', error);
     }
   };
 

@@ -31,7 +31,7 @@ SplashScreen.preventAutoHideAsync();
 // Get Stripe key from environment - ensure it's properly configured
 const STRIPE_PUBLISHABLE_KEY = Constants.expoConfig?.extra?.stripePublishableKey || 
   process.env.EXPO_PUBLIC_STRIPE_KEY || 
-  'pk_test_51SkMiJRx556lxcckTLrW8xVroC3TflDIKMBfSdat6KAoaLXO4MQPBkUNi4F0pLizmMp6lmHjhxQJGoXu6Iq3PrnB00QfalR70y';
+  '';
 
 if (__DEV__) {
   logger.log('App initialized with environment:', Constants.expoConfig?.extra?.environment);
@@ -227,7 +227,7 @@ function AppNavigator() {
         } else if (data?.shipmentId || data?.tracking_number) {
           // Navigate to tracking screen for general shipment notifications
           if (navigationRef.isReady()) {
-            navigationRef.navigate('TrackingSearch');
+            navigationRef.navigate('Home');
           }
         }
       });

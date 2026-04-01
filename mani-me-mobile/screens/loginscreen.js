@@ -89,9 +89,31 @@ export default function LoginScreen({ navigation }) {
 
   useEffect(() => {
     if (response?.type === "success") {
-      navigation.replace("Home");
+      const handleGoogleAuth = async () => {
+        setLoading(true);
+        try {
+          const accessToken = response.authentication?.accessToken;
+          if (!accessToken) {
+            Alert.alert("Login Error", "Failed to get Google access token");
+            return;
+          }
+          const res = await api.post("/auth/google", { accessToken });
+          if (res.data.token && res.data.user) {
+            await loginUser(res.data.user, res.data.token);
+            navigation.replace("Home");
+          } else {
+            Alert.alert("Login Error", "Invalid response from server");
+          }
+        } catch (error) {
+          logger.error("Google login error:", error);
+          Alert.alert("Login Error", error.response?.data?.error || "Google sign-in failed. Please try again.");
+        } finally {
+          setLoading(false);
+        }
+      };
+      handleGoogleAuth();
     }
-  }, [response, navigation]);
+  }, [response, navigation, loginUser]);
 
   const validateForm = () => {
     const newErrors = {};

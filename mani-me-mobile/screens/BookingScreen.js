@@ -1,7 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import logger from '../utils/logger';
+import OfflineNotice from '../components/OfflineNotice';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform, StatusBar, Modal, Keyboard, TouchableWithoutFeedback } from 'react-native';
+
+// Validation helpers
+const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const validatePhone = (phone) => {
+  const cleaned = phone.replace(/[\s-]/g, '');
+  return /^(\+44|0)[1-9]\d{8,9}$/.test(cleaned) || /^(\+233|0)[2-9]\d{7,8}$/.test(cleaned);
+};
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors, SIZES, SHADOWS, FONTS } from '../constants/theme';
@@ -121,7 +129,7 @@ export default function BookingScreen({ navigation, route }) {
         await AsyncStorage.setItem('lastBookingStep', bookingMode ? 'details' : 'mode');
       }
     } catch (e) {
-      console.log('Error saving booking progress:', e);
+      logger.error('Error saving booking progress:', e);
     }
   }, [bookingMode, senderName, senderPhone, senderEmail, pickupAddress, pickupCity, pickupPostcode, pickupDate, pickupTime, specialInstructions, selectedBoxes, selectedItems]);
 
@@ -154,7 +162,7 @@ export default function BookingScreen({ navigation, route }) {
       await AsyncStorage.removeItem('lastBookingData');
       await AsyncStorage.removeItem('lastBookingStep');
     } catch (e) {
-      console.log('Error clearing booking progress:', e);
+      logger.error('Error clearing booking progress:', e);
     }
   };
 
@@ -334,6 +342,16 @@ export default function BookingScreen({ navigation, route }) {
       return;
     }
 
+    if (!validateEmail(senderEmail.trim())) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
+      return;
+    }
+
+    if (!validatePhone(senderPhone.trim())) {
+      Alert.alert('Invalid Phone', 'Please enter a valid UK or Ghana phone number');
+      return;
+    }
+
     if (!pickupDate || !pickupTime) {
       Alert.alert('Missing Pickup Schedule', 'Please select a pickup date and time');
       return;
@@ -388,6 +406,7 @@ export default function BookingScreen({ navigation, route }) {
       style={{ flex: 1, backgroundColor: colors.background }} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <OfflineNotice />
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
         {/* Header with Gradient */}
@@ -897,7 +916,7 @@ export default function BookingScreen({ navigation, route }) {
                       }
                     ]}
                     onPress={() => {
-                      console.log('Size selected:', size.id, size.label);
+                      logger.log('Size selected:', size.id, size.label);
                       setSelectedCustomSize(size);
                     }}
                   >

@@ -174,7 +174,7 @@ exports.create = async (req, res) => {
     // Create items if provided
     let createdItems = [];
     if (Array.isArray(items) && items.length > 0) {
-      for (const item of items) {
+      const itemDocs = await Promise.all(items.map(async (item) => {
         const itemQRCodeData = JSON.stringify({
           shipment_id: shipment._id,
           item_type: item.parcel_type,
@@ -189,7 +189,7 @@ exports.create = async (req, res) => {
         if (typeof generateQRCodeImage === 'function') {
           itemQRCodeUrl = await generateQRCodeImage(itemQRCodeData);
         }
-        const newItem = new Item({
+        return {
           shipment_id: shipment._id,
           parcel_type: item.parcelType,
           description: item.description,
@@ -199,10 +199,9 @@ exports.create = async (req, res) => {
           qr_code_data: itemQRCodeData,
           qr_code_url: itemQRCodeUrl,
           special_instructions: item.specialInstructions
-        });
-        await newItem.save();
-        createdItems.push(newItem);
-      }
+        };
+      }));
+      createdItems = await Item.insertMany(itemDocs);
     }
 
     // Send booking confirmation email (non-blocking)

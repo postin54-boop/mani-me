@@ -50,7 +50,7 @@ export default function ProfileScreen({ navigation }) {
         setIsEditing(true); // Enter edit mode to show Save button
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      logger.error('Error picking image:', error);
       Alert.alert('Error', 'Failed to open photo library');
     }
   };
@@ -401,9 +401,36 @@ export default function ProfileScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
-        {/* Logout Button */}
+        {/* Legal Links & Actions */}
         {!isEditing && (
           <>
+            {/* Legal Section */}
+            <View style={[styles.legalSection, { backgroundColor: colors.surface, marginHorizontal: SIZES.lg, borderRadius: 12, marginBottom: SIZES.md }]}>
+              <TouchableOpacity 
+                style={[styles.legalItem, { borderBottomColor: colors.border }]}
+                onPress={() => navigation.navigate('Privacy')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.legalItemContent}>
+                  <Ionicons name="shield-checkmark-outline" size={20} color={colors.textSecondary} />
+                  <Text style={[styles.legalItemText, { color: colors.text }]}>Privacy Policy</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.legalItem}
+                onPress={() => navigation.navigate('Terms')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.legalItemContent}>
+                  <Ionicons name="document-text-outline" size={20} color={colors.textSecondary} />
+                  <Text style={[styles.legalItemText, { color: colors.text }]}>Terms & Conditions</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
             <TouchableOpacity 
               style={[styles.supportButton, { backgroundColor: colors.secondary + '15', borderColor: colors.secondary }]}
               onPress={() => navigation.navigate('Chat', { 
@@ -591,5 +618,25 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 16,
     ...FONTS.semiBold,
+  },
+  legalSection: {
+    overflow: 'hidden',
+  },
+  legalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: SIZES.md,
+    paddingHorizontal: SIZES.md,
+    borderBottomWidth: 1,
+  },
+  legalItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  legalItemText: {
+    fontSize: 16,
+    ...FONTS.medium,
   },
 });

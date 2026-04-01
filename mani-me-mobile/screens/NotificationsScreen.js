@@ -6,10 +6,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../src/api';
 import { useUser } from '../context/UserContext';
+import { useThemeColors } from '../constants/theme';
+import logger from '../utils/logger';
 
 export default function NotificationsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { user } = useUser();
+  const { colors, isDark } = useThemeColors();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -27,7 +30,7 @@ export default function NotificationsScreen({ navigation }) {
         setNotifications([]);
       }
     } catch (err) {
-      console.log('Error fetching notifications:', err);
+      logger.error('Error fetching notifications:', err);
       // If no notifications endpoint or error, show empty state
       setNotifications([]);
       if (err.response?.status !== 404) {
@@ -92,14 +95,14 @@ export default function NotificationsScreen({ navigation }) {
         prev.map(n => n._id === notificationId ? { ...n, read: true } : n)
       );
     } catch (err) {
-      console.log('Error marking notification as read:', err);
+      logger.error('Error marking notification as read:', err);
     }
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={['#0B1A33', '#071A2C']}
+        colors={isDark ? ['#071A2C', '#0B1A33'] : ['#0B1A33', '#071A2C']}
         style={StyleSheet.absoluteFill}
       />
       
@@ -155,19 +158,19 @@ export default function NotificationsScreen({ navigation }) {
           }
           renderItem={({ item: notif }) => (
             <TouchableOpacity 
-              style={[styles.card, !notif.read && styles.unreadCard]}
+              style={[styles.card, { backgroundColor: colors.surface }, !notif.read && styles.unreadCard]}
               onPress={() => markAsRead(notif._id || notif.id)}
               activeOpacity={0.7}
             >
-              <View style={[styles.iconBlock, { backgroundColor: notif.read ? '#F3F4F6' : '#83C5FA15' }]}>
+              <View style={[styles.iconBlock, { backgroundColor: notif.read ? colors.surfaceAlt : '#83C5FA15' }]}>
                 {getNotificationIcon(notif.type)}
               </View>
               <View style={styles.cardContent}>
                 <View style={styles.cardHeader}>
-                  <Text style={styles.title}>{notif.title}</Text>
+                  <Text style={[styles.title, { color: colors.text }]}>{notif.title}</Text>
                   {!notif.read && <View style={styles.unreadDot} />}
                 </View>
-                <Text style={styles.message}>{notif.message || notif.body}</Text>
+                <Text style={[styles.message, { color: colors.textSecondary }]}>{notif.message || notif.body}</Text>
                 <Text style={styles.time}>{formatTime(notif.createdAt || notif.created_at)}</Text>
               </View>
             </TouchableOpacity>

@@ -15,7 +15,7 @@ import { useStripe, CardField } from '@stripe/stripe-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors, SIZES, FONTS, SHADOWS } from '../constants/theme';
 import { useUser } from '../context/UserContext';
-import axios from 'axios';
+import api from '../src/api';
 import { API_BASE_URL } from '../utils/config';
 
 export default function GroceryPaymentScreen({ route, navigation }) {
@@ -62,16 +62,13 @@ export default function GroceryPaymentScreen({ route, navigation }) {
   const calculateShipping = async () => {
     try {
       const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-      const response = await axios.post(
-        `${API_BASE_URL}/api/grocery/calculate-shipping`,
+      const response = await api.post(
+        `/grocery/calculate-shipping`,
         {
           country: deliveryAddress.country,
           subtotal,
           itemCount,
           boxSize
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
         }
       );
       setShippingCost(response.data.shipping_cost);
@@ -106,14 +103,11 @@ export default function GroceryPaymentScreen({ route, navigation }) {
 
     try {
       // Create payment intent (amount must be in pence for Stripe)
-      const paymentResponse = await axios.post(
-        `${API_BASE_URL}/api/payments/create-intent`,
+      const paymentResponse = await api.post(
+        `/payments/create-intent`,
         {
           amount: Math.round(getTotalAmount() * 100), // Convert pounds to pence
           currency: 'gbp'
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
         }
       );
 
@@ -149,21 +143,15 @@ export default function GroceryPaymentScreen({ route, navigation }) {
           delivery_address: deliveryAddress
         };
 
-        const orderResponse = await axios.post(
-          `${API_BASE_URL}/api/grocery/orders`,
-          orderData,
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
+        const orderResponse = await api.post(
+          `/grocery/orders`,
+          orderData
         );
 
         // Update payment status
-        await axios.put(
-          `${API_BASE_URL}/api/grocery/orders/${orderResponse.data._id}/payment`,
-          { payment_intent_id: paymentIntent.id },
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
+        await api.put(
+          `/grocery/orders/${orderResponse.data._id}/payment`,
+          { payment_intent_id: paymentIntent.id }
         );
 
         Alert.alert(
@@ -182,14 +170,13 @@ export default function GroceryPaymentScreen({ route, navigation }) {
           ]
         );
       } else {
-        // Payment not succeeded - show status for debugging
-        console.log('Payment not succeeded, status:', paymentIntent?.status);
+        // Payment not succeeded
+        logger.warn('Payment not succeeded, status:', paymentIntent?.status);
         Alert.alert('Payment Issue', `Payment status: ${paymentIntent?.status || 'unknown'}. Please try again.`);
       }
     } catch (error) {
-      // Use console.log instead of logger.error to avoid LogBox spam
-      console.log('Payment error:', error?.message || error);
-      console.log('Error response:', error.response?.data);
+      logger.error('Payment error:', error?.message || error);
+      logger.error('Error response:', error.response?.data);
       Alert.alert('Error', error.response?.data?.message || error.response?.data?.error || 'Payment failed. Please try again.');
     } finally {
       setLoading(false);

@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../utils/config';
-
-const DEEP_NAVY = "#071528";
-const SKY_BLUE = "#84C3EA";
+import { useThemeColors } from '../constants/theme';
 
 export default function ForgotPassword({ navigation }) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const { colors, isDark } = useThemeColors();
 
   const handleReset = async () => {
     const trimmedEmail = email.trim().toLowerCase();
@@ -46,17 +45,17 @@ export default function ForgotPassword({ navigation }) {
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container} 
+      style={[styles.container, { backgroundColor: colors.background }]} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar barStyle="light-content" backgroundColor={DEEP_NAVY} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <Ionicons name="lock-closed-outline" size={64} color="#83C5FA" style={{ marginBottom: 24 }} />
-      <Text style={styles.title}>Forgot Password</Text>
-      <Text style={styles.subtitle}>Enter your email and we'll send you a 6-digit code to reset your password.</Text>
+      <Text style={[styles.title, { color: colors.text }]}>Forgot Password</Text>
+      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Enter your email and we'll send you a 6-digit code to reset your password.</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
         placeholder="Email address"
-        placeholderTextColor="#b0b8c1"
+        placeholderTextColor={colors.textSecondary}
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
@@ -65,11 +64,11 @@ export default function ForgotPassword({ navigation }) {
         autoFocus
       />
       <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]} 
+        style={[styles.button, { backgroundColor: colors.primary, shadowColor: colors.primary }, loading && styles.buttonDisabled]} 
         onPress={handleReset} 
         disabled={loading}
       >
-        <Text style={styles.buttonText}>{loading ? 'Sending...' : 'Send Reset Code'}</Text>
+        <Text style={[styles.buttonText, { color: colors.textInverse }]}>{loading ? 'Sending...' : 'Send Reset Code'}</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backLink}>
         <Ionicons name="arrow-back" size={18} color="#83C5FA" />
@@ -85,39 +84,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: DEEP_NAVY,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 8,
-    color: '#fff',
   },
   subtitle: {
     fontSize: 16,
-    color: '#b0b8c1',
     marginBottom: 24,
     textAlign: 'center',
   },
   input: {
     width: '100%',
     borderWidth: 1,
-    borderColor: '#23325c',
     borderRadius: 8,
     padding: 14,
     fontSize: 16,
     marginBottom: 16,
-    backgroundColor: '#16244a',
-    color: '#fff',
   },
   button: {
     width: '100%',
-    backgroundColor: SKY_BLUE,
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: SKY_BLUE,
+    shadowOffset: { width: 0, height: 2 },
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -127,7 +119,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
   },

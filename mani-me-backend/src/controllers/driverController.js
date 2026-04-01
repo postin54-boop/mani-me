@@ -7,6 +7,7 @@
 const { db } = require('../firebase');
 const { shipment: Shipment } = require('../models');
 const User = require('../models/user');
+const bcrypt = require('bcryptjs');
 const logger = require('../utils/logger');
 
 // Stripe for payment capture
@@ -17,15 +18,21 @@ const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STR
  */
 exports.getDrivers = async (req, res) => {
 	try {
-		const drivers = await User.find({ 
-			$or: [
-				{ role: 'driver' },
-				{ role: 'UK_DRIVER' },
-				{ role: 'GH_DRIVER' },
-				{ role: 'DRIVER' }
-			]
-		}).select('-password').lean();
-		res.json(drivers);
+		const page = parseInt(req.query.page) || 1;
+		const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+		const skip = (page - 1) * limit;
+		const [drivers, total] = await Promise.all([
+			User.find({ 
+				$or: [
+					{ role: 'driver' },
+					{ role: 'UK_DRIVER' },
+					{ role: 'GH_DRIVER' },
+					{ role: 'DRIVER' }
+				]
+			}).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+			User.countDocuments({ $or: [{ role: 'driver' }, { role: 'UK_DRIVER' }, { role: 'GH_DRIVER' }, { role: 'DRIVER' }] })
+		]);
+		res.json({ drivers, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
 	} catch (err) {
 		logger.error('Error fetching drivers', { error: err.message });
 		res.status(500).json({ message: 'Error fetching drivers' });
@@ -41,7 +48,8 @@ exports.addDriver = async (req, res) => {
 		if (!fullName || !email || !password) return res.status(400).json({ message: 'Missing required fields' });
 		const exists = await User.findOne({ email });
 		if (exists) return res.status(400).json({ message: 'Driver already exists' });
-		const driver = new User({ fullName, email, phone, password, role: 'driver' });
+		const hashedPassword = await bcrypt.hash(password, 10);
+		const driver = new User({ fullName, email, phone, password: hashedPassword, role: 'driver' });
 		await driver.save();
 		res.status(201).json(driver);
 	} catch (err) {

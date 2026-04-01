@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, Modal, TextInput, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, Modal, TextInput, Linking, AppState } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '../context/UserContext';
@@ -8,6 +8,7 @@ import { API_BASE_URL } from '../utils/config';
 import { ParcelCardSkeleton } from '../components/Skeleton';
 import { InlineError, EmptyState } from '../components/ErrorRetry';
 import logger from '../utils/logger';
+import OfflineNotice from '../components/OfflineNotice';
 
 export default function OrdersScreen({ navigation }) {
   const { colors: themeColors, isDark } = useThemeColors();
@@ -149,7 +150,14 @@ export default function OrdersScreen({ navigation }) {
   useEffect(() => {
     if (!userId || !token) return;
 
+    const appStateRef = { current: AppState.currentState };
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      appStateRef.current = nextState;
+    });
+
     const interval = setInterval(() => {
+      // Only refresh when app is in foreground
+      if (appStateRef.current !== 'active') return;
       // Silent refresh in background (no loading state)
       if (!isFetchingRef.current) {
         isFetchingRef.current = true;
@@ -158,7 +166,10 @@ export default function OrdersScreen({ navigation }) {
       }
     }, 30000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      subscription.remove();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, token]);
 
@@ -452,6 +463,7 @@ export default function OrdersScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <OfflineNotice />
       <StatusBar 
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={themeColors.primary}

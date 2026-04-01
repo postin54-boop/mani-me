@@ -12,6 +12,7 @@ import EditProfileScreen from "../screens/EditProfileScreen";
 import DocumentsScreen from "../screens/DocumentsScreen";
 import HelpSupportScreen from "../screens/HelpSupportScreen";
 import PrivacyPolicyScreen from "../screens/PrivacyPolicyScreen";
+import TermsScreen from "../screens/TermsScreen";
 import ScanParcelScreen from "../screens/ScanParcelScreen";
 import PrintLabelsScreen from "../screens/PrintLabelsScreen";
 import CashReconciliationScreen from "../screens/CashReconciliationScreen";
@@ -34,6 +35,7 @@ export default function DriverStack() {
           <Stack.Screen name="Documents" component={DocumentsScreen} />
           <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
           <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+          <Stack.Screen name="Terms" component={TermsScreen} />
           <Stack.Screen name="ScanParcelScreen" component={ScanParcelScreen} />
           <Stack.Screen name="PrintLabelsScreen" component={PrintLabelsScreen} />
           <Stack.Screen name="CashReconciliation" component={CashReconciliationScreen} />

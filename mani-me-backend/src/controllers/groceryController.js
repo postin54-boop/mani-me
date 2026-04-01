@@ -15,12 +15,18 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 exports.getItems = async (req, res) => {
   try {
     const { category } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+    const skip = (page - 1) * limit;
     const query = { is_available: true };
     if (category && ['Grocery', 'Electronics', 'Household'].includes(category)) {
       query.category = category;
     }
-    const items = await GroceryItem.find(query).sort({ createdAt: -1 });
-    res.json(items);
+    const [items, total] = await Promise.all([
+      GroceryItem.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      GroceryItem.countDocuments(query)
+    ]);
+    res.json({ items, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
   } catch (error) {
     logger.error('Error fetching grocery items', { error: error.message });
     res.status(500).json({ message: 'Failed to fetch items' });

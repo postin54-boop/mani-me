@@ -5,9 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../utils/config';
-
-const DEEP_NAVY = "#071528";
-const SKY_BLUE = "#84C3EA";
+import { useThemeColors } from '../constants/theme';
 
 export default function ResetPassword({ route, navigation }) {
   const { email = '' } = route?.params || {};
@@ -17,6 +15,7 @@ export default function ResetPassword({ route, navigation }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const inputRefs = useRef([]);
+  const { colors, isDark } = useThemeColors();
 
   const handleCodeChange = (value, index) => {
     // Only allow digits
@@ -109,13 +108,13 @@ export default function ResetPassword({ route, navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar barStyle="light-content" backgroundColor={DEEP_NAVY} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <Ionicons name="shield-checkmark-outline" size={64} color="#83C5FA" style={{ marginBottom: 24 }} />
-      <Text style={styles.title}>Reset Password</Text>
-      <Text style={styles.subtitle}>
+      <Text style={[styles.title, { color: colors.text }]}>Reset Password</Text>
+      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
         Enter the 6-digit code sent to{'\n'}
         <Text style={styles.emailHighlight}>{email}</Text>
       </Text>
@@ -126,7 +125,7 @@ export default function ResetPassword({ route, navigation }) {
           <TextInput
             key={index}
             ref={(ref) => (inputRefs.current[index] = ref)}
-            style={[styles.codeInput, digit ? styles.codeInputFilled : null]}
+            style={[styles.codeInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }, digit ? { borderColor: '#83C5FA', backgroundColor: colors.surfaceAlt } : null]}
             value={digit}
             onChangeText={(value) => handleCodeChange(value, index)}
             onKeyPress={(e) => handleCodeKeyPress(e, index)}
@@ -141,9 +140,9 @@ export default function ResetPassword({ route, navigation }) {
       {/* New Password */}
       <View style={styles.passwordContainer}>
         <TextInput
-          style={styles.passwordInput}
+          style={[styles.passwordInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
           placeholder="New password (min 8 characters)"
-          placeholderTextColor="#b0b8c1"
+          placeholderTextColor={colors.textSecondary}
           secureTextEntry={!showPassword}
           value={newPassword}
           onChangeText={setNewPassword}
@@ -162,9 +161,9 @@ export default function ResetPassword({ route, navigation }) {
       </View>
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
         placeholder="Confirm new password"
-        placeholderTextColor="#b0b8c1"
+        placeholderTextColor={colors.textSecondary}
         secureTextEntry={!showPassword}
         value={confirmPassword}
         onChangeText={setConfirmPassword}
@@ -172,11 +171,11 @@ export default function ResetPassword({ route, navigation }) {
       />
 
       <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
+        style={[styles.button, { backgroundColor: colors.primary, shadowColor: colors.primary }, loading && styles.buttonDisabled]}
         onPress={handleReset}
         disabled={loading}
       >
-        <Text style={styles.buttonText}>{loading ? 'Resetting...' : 'Reset Password'}</Text>
+        <Text style={[styles.buttonText, { color: colors.textInverse }]}>{loading ? 'Resetting...' : 'Reset Password'}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={handleResend} disabled={loading} style={styles.resendLink}>
@@ -197,17 +196,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: DEEP_NAVY,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 8,
-    color: '#fff',
   },
   subtitle: {
     fontSize: 16,
-    color: '#b0b8c1',
     marginBottom: 24,
     textAlign: 'center',
     lineHeight: 22,
@@ -227,17 +223,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 56,
     borderWidth: 1.5,
-    borderColor: '#23325c',
     borderRadius: 12,
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
-    backgroundColor: '#16244a',
-    color: '#fff',
-  },
-  codeInputFilled: {
-    borderColor: '#83C5FA',
-    backgroundColor: '#1a2d5a',
   },
   passwordContainer: {
     width: '100%',
@@ -247,13 +236,10 @@ const styles = StyleSheet.create({
   passwordInput: {
     width: '100%',
     borderWidth: 1,
-    borderColor: '#23325c',
     borderRadius: 8,
     padding: 14,
     paddingRight: 48,
     fontSize: 16,
-    backgroundColor: '#16244a',
-    color: '#fff',
   },
   eyeIcon: {
     position: 'absolute',
@@ -263,22 +249,17 @@ const styles = StyleSheet.create({
   input: {
     width: '100%',
     borderWidth: 1,
-    borderColor: '#23325c',
     borderRadius: 8,
     padding: 14,
     fontSize: 16,
     marginBottom: 20,
-    backgroundColor: '#16244a',
-    color: '#fff',
   },
   button: {
     width: '100%',
-    backgroundColor: SKY_BLUE,
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: SKY_BLUE,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -288,7 +269,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
   },

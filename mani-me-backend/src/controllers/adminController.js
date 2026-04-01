@@ -303,7 +303,7 @@ exports.getDashboard = async (req, res) => {
 exports.getOrders = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
     const skip = (page - 1) * limit;
     const { status, search } = req.query;
     let query = {};
@@ -342,7 +342,7 @@ exports.updateOrderStatus = async (req, res) => {
 exports.getUsers = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
     const skip = (page - 1) * limit;
     const { search, role } = req.query;
     let query = {};
@@ -379,14 +379,15 @@ exports.updateUserStatus = async (req, res) => {
 
 exports.getUkDrivers = async (req, res) => {
   try {
-    const drivers = await User.find({
-      $or: [
-        { role: 'DRIVER', driver_type: 'UK' },
-        { role: 'UK_DRIVER' },
-        { role: 'DRIVER', driver_type: 'pickup' }
-      ]
-    }).select('-password').sort({ createdAt: -1 });
-    res.json(drivers);
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+    const skip = (page - 1) * limit;
+    const query = { $or: [{ role: 'DRIVER', driver_type: 'UK' }, { role: 'UK_DRIVER' }, { role: 'DRIVER', driver_type: 'pickup' }] };
+    const [drivers, total] = await Promise.all([
+      User.find(query).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit),
+      User.countDocuments(query)
+    ]);
+    res.json({ drivers, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
   } catch (error) {
     logger.error('Get UK drivers error', { error: error.message });
     res.status(500).json({ message: 'Server error' });
@@ -395,14 +396,15 @@ exports.getUkDrivers = async (req, res) => {
 
 exports.getGhanaDrivers = async (req, res) => {
   try {
-    const drivers = await User.find({
-      $or: [
-        { role: 'DRIVER', driver_type: 'Ghana' },
-        { role: 'GH_DRIVER' },
-        { role: 'DRIVER', driver_type: 'delivery' }
-      ]
-    }).select('-password').sort({ createdAt: -1 });
-    res.json(drivers);
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+    const skip = (page - 1) * limit;
+    const query = { $or: [{ role: 'DRIVER', driver_type: 'Ghana' }, { role: 'GH_DRIVER' }, { role: 'DRIVER', driver_type: 'delivery' }] };
+    const [drivers, total] = await Promise.all([
+      User.find(query).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit),
+      User.countDocuments(query)
+    ]);
+    res.json({ drivers, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
   } catch (error) {
     logger.error('Get Ghana drivers error', { error: error.message });
     res.status(500).json({ message: 'Server error' });

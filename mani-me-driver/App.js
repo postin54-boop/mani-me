@@ -38,6 +38,7 @@ import ChatScreen from './screens/ChatScreen';
 import DocumentsScreen from './screens/DocumentsScreen';
 import HelpSupportScreen from './screens/HelpSupportScreen';
 import PrivacyPolicyScreen from './screens/PrivacyPolicyScreen';
+import TermsScreen from './screens/TermsScreen';
 import { useThemeColors } from './constants/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -177,6 +178,7 @@ function AppNavigator() {
             <Stack.Screen name="Documents" component={DocumentsScreen} />
             <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
             <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+            <Stack.Screen name="Terms" component={TermsScreen} />
           </>
         )}
       </Stack.Navigator>

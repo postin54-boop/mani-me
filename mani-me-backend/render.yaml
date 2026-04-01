@@ -2,9 +2,9 @@ services:
   - type: web
     name: mani-me
     runtime: node
-    plan: starter
-    buildCommand: npm install
-    startCommand: npm start
+    plan: standard
+    buildCommand: npm install && npm install -g pm2
+    startCommand: pm2-runtime ecosystem.config.js --env production
     envVars:
       - key: NODE_ENV
         value: production

@@ -69,15 +69,16 @@ We never sell your personal information to third parties.`,
 • Request deletion of your account
 • Opt out of non-essential communications
 
-Contact us at privacy@manime.com to exercise these rights.`,
+Contact us at manimeappinfo@gmail.com to exercise these rights.`,
     },
     {
       title: 'Contact Us',
       content: `If you have questions about this Privacy Policy, please contact:
 
 Mani Me Ltd
-Email: privacy@manime.com
-Phone: +44 123 456 7890`,
+Email: manimeappinfo@gmail.com
+Phone: +44 7958 086887
+WhatsApp: +44 7958 086887`,
     },
   ];
 

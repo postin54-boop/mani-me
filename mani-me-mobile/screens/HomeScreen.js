@@ -17,7 +17,6 @@ import { useUser } from '../context/UserContext';
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import OfflineNotice from '../components/OfflineNotice';
 import { ParcelCardSkeleton } from '../components/Skeleton';
 import { InlineError } from '../components/ErrorRetry';
