@@ -7,10 +7,9 @@ const Redis = require('ioredis');
 let redisClient = null;
 if (process.env.REDIS_URL) {
   redisClient = new Redis(process.env.REDIS_URL, {
-    enableOfflineQueue: false,
-    maxRetriesPerRequest: 1,
-    lazyConnect: true,
+    maxRetriesPerRequest: null,
   });
+  redisClient.on('connect', () => console.log('✅ Redis connected for rate limiting'));
   redisClient.on('error', (err) => {
     // Don't crash if Redis is temporarily unavailable — rate limiters fall back gracefully
     console.error('Rate limiter Redis error:', err.message);
