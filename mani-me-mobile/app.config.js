@@ -90,7 +90,7 @@ export default {
       privacyPolicyUrl: "https://www.manime.co.uk/privacy.html",
       termsOfServiceUrl: "https://www.manime.co.uk/terms.html",
       eas: {
-        projectId: "3638c63b-4837-422f-a329-b7e169066774"
+        projectId: "ec7490e5-bd9f-4c0b-be34-2360c0fca56b"
       }
     },
     owner: "postin54"
