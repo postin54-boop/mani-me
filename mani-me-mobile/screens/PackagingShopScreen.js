@@ -294,7 +294,10 @@ const PackagingShopScreen = ({ navigation }) => {
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Your Cart</Text>
@@ -316,9 +319,12 @@ const PackagingShopScreen = ({ navigation }) => {
                 <Text style={styles.emptyCartText}>Your cart is empty</Text>
               </View>
             ) : (
-              <>
-                <ScrollView style={styles.cartItems}>
-                  {cart.map((item) => (
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 16 }}
+              >
+                {cart.map((item) => (
                     <View key={item._id} style={styles.cartItem}>
                       {item.image_url ? (
                         <Image
@@ -349,7 +355,6 @@ const PackagingShopScreen = ({ navigation }) => {
                       </View>
                     </View>
                   ))}
-                </ScrollView>
 
                 {/* Fulfillment Options */}
                 <View style={styles.fulfillmentSection}>
@@ -391,10 +396,7 @@ const PackagingShopScreen = ({ navigation }) => {
                   </View>
 
                   {fulfillmentMethod === 'delivery' && (
-                    <KeyboardAvoidingView 
-                      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                      style={styles.addressForm}
-                    >
+                    <View style={styles.addressForm}>
                       <View>
                         <Text style={styles.inputLabel}>Street Address</Text>
                         <TextInput
@@ -428,7 +430,7 @@ const PackagingShopScreen = ({ navigation }) => {
                           }
                         />
                       </View>
-                    </KeyboardAvoidingView>
+                    </View>
                   )}
                 </View>
 
@@ -447,10 +449,10 @@ const PackagingShopScreen = ({ navigation }) => {
                     <Text style={styles.checkoutButtonText}>Proceed to Payment</Text>
                   </TouchableOpacity>
                 </View>
-              </>
+              </ScrollView>
             )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
     </SafeAreaView>

@@ -24,7 +24,8 @@
       },
       "env": {
         "EXPO_PUBLIC_SENTRY_DSN": "${SENTRY_DSN}",
-        "EXPO_PUBLIC_STRIPE_KEY": "${STRIPE_PUBLISHABLE_KEY}"
+        "EXPO_PUBLIC_STRIPE_KEY": "${STRIPE_PUBLISHABLE_KEY}",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     }
   },

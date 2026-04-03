@@ -156,24 +156,43 @@ exports.updatePickupStatus = async (req, res) => {
 			shipment.warehouse_status = 'received';
 			
 			// CAPTURE PAYMENT: When parcel is collected, charge the customer's card
-			if (shipment.payment_intent_id && shipment.payment_method !== 'cash' && shipment.payment_status !== 'paid') {
-				try {
-					if (stripe) {
+			if (shipment.payment_method !== 'cash' && stripe) {
+				// Capture original payment intent
+				if (shipment.payment_intent_id && shipment.payment_status !== 'paid') {
+					try {
 						logger.info('Capturing payment for pickup', { shipmentId: id, paymentIntentId: shipment.payment_intent_id });
 						const paymentIntent = await stripe.paymentIntents.capture(shipment.payment_intent_id);
 						shipment.payment_status = 'paid';
 						shipment.paid_at = new Date();
 						logger.info('Payment captured successfully', { shipmentId: id, amount: paymentIntent.amount });
+					} catch (paymentError) {
+						logger.error('Failed to capture payment on pickup', { 
+							error: paymentError.message, 
+							shipmentId: id,
+							paymentIntentId: shipment.payment_intent_id
+						});
+						shipment.payment_notes = `Auto-capture failed: ${paymentError.message}`;
 					}
-				} catch (paymentError) {
-					// Log but don't fail the pickup - payment can be handled separately
-					logger.error('Failed to capture payment on pickup', { 
-						error: paymentError.message, 
-						shipmentId: id,
-						paymentIntentId: shipment.payment_intent_id
-					});
-					// Mark for manual intervention if capture failed
-					shipment.payment_notes = `Auto-capture failed: ${paymentError.message}`;
+				}
+
+				// Capture size-adjustment extra charge if customer approved one
+				const sizeAdj = shipment.size_adjustment;
+				if (sizeAdj?.status === 'approved' && sizeAdj?.payment_intent_id) {
+					try {
+						logger.info('Capturing size-adjustment payment', { shipmentId: id, paymentIntentId: sizeAdj.payment_intent_id });
+						const adjPI = await stripe.paymentIntents.capture(sizeAdj.payment_intent_id);
+						shipment.size_adjustment.captured = true;
+						shipment.size_adjustment.captured_at = new Date();
+						logger.info('Size-adjustment payment captured', { shipmentId: id, amount: adjPI.amount });
+					} catch (adjError) {
+						logger.error('Failed to capture size-adjustment payment', {
+							error: adjError.message,
+							shipmentId: id,
+							paymentIntentId: sizeAdj.payment_intent_id
+						});
+						shipment.payment_notes = (shipment.payment_notes ? shipment.payment_notes + '; ' : '') +
+							`Size-adjustment capture failed: ${adjError.message}`;
+					}
 				}
 			}
 		}

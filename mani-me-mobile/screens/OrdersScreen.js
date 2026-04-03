@@ -334,6 +334,21 @@ export default function OrdersScreen({ navigation }) {
       Alert.alert('Missing Information', 'Please provide both date and reason for rescheduling');
       return;
     }
+
+    // Validate and normalise date to ISO format YYYY-MM-DD
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const parsedDate = new Date(rescheduleDate);
+    if (!dateRegex.test(rescheduleDate) || isNaN(parsedDate.getTime())) {
+      Alert.alert('Invalid Date', 'Please enter the date in YYYY-MM-DD format (e.g. 2026-04-15)');
+      return;
+    }
+    // Must be a future date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (parsedDate < today) {
+      Alert.alert('Invalid Date', 'Please choose a future date for your pickup.');
+      return;
+    }
     
     try {
       const parcelId = selectedParcel._id || selectedParcel.id;
@@ -341,7 +356,7 @@ export default function OrdersScreen({ navigation }) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
-          new_pickup_date: rescheduleDate,
+          pickup_date: rescheduleDate,
           reason: rescheduleReason,
         }),
       });
@@ -354,7 +369,7 @@ export default function OrdersScreen({ navigation }) {
         fetchParcels();
       } else {
         const errorData = await response.json();
-        Alert.alert('Error', errorData.error || 'Failed to reschedule pickup');
+        Alert.alert('Error', errorData.error || errorData.message || 'Failed to reschedule pickup');
       }
     } catch (error) {
       logger.error('Reschedule error:', error);
@@ -627,6 +642,26 @@ export default function OrdersScreen({ navigation }) {
                 </View>
               </TouchableOpacity>
 
+              {/* Size Adjustment Pending Banner */}
+              {parcel.size_adjustment?.requested && parcel.size_adjustment?.status === 'pending' && (
+                <TouchableOpacity
+                  style={styles.sizeAdjustmentBanner}
+                  onPress={() => navigation.navigate('SizeAdjustment', { shipmentId: parcel._id || parcel.id })}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.sizeAdjustmentLeft}>
+                    <Ionicons name="information-circle" size={22} color="#83C5FA" />
+                    <View style={{ marginLeft: 10, flex: 1 }}>
+                      <Text style={styles.sizeAdjustmentTitle}>Action Required</Text>
+                      <Text style={styles.sizeAdjustmentText}>
+                        Driver says parcel is larger. Extra £{((parcel.size_adjustment.extra_amount || 0) / 100).toFixed(2)} required.{'\n'}Tap to approve or reject.
+                      </Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#83C5FA" />
+                </TouchableOpacity>
+              )}
+
               {/* Action Buttons */}
               <View style={styles.actionButtonsRow}>
                 <TouchableOpacity 
@@ -837,10 +872,20 @@ export default function OrdersScreen({ navigation }) {
               <Text style={[styles.inputLabel, { color: themeColors.text }]}>New Pickup Date</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: themeColors.background, color: themeColors.text, borderColor: themeColors.border }]}
-                placeholder="YYYY-MM-DD"
+                placeholder="YYYY-MM-DD  e.g. 2026-04-15"
                 placeholderTextColor={themeColors.textSecondary}
                 value={rescheduleDate}
-                onChangeText={setRescheduleDate}
+                onChangeText={(text) => {
+                  // Strip non-numeric except dashes
+                  const digits = text.replace(/[^0-9]/g, '');
+                  // Auto-insert dashes: YYYY-MM-DD
+                  let formatted = digits;
+                  if (digits.length > 4) formatted = digits.slice(0, 4) + '-' + digits.slice(4);
+                  if (digits.length > 6) formatted = digits.slice(0, 4) + '-' + digits.slice(4, 6) + '-' + digits.slice(6, 8);
+                  setRescheduleDate(formatted);
+                }}
+                keyboardType="number-pad"
+                maxLength={10}
               />
             </View>
             
@@ -1361,6 +1406,35 @@ const styles = StyleSheet.create({
     fontSize: 11,
     opacity: 0.7,
     marginTop: 1,
+  },
+  sizeAdjustmentBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 12,
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#83C5FA18',
+    borderWidth: 1.5,
+    borderColor: '#83C5FA60',
+  },
+  sizeAdjustmentLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  sizeAdjustmentTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#83C5FA',
+    marginBottom: 2,
+  },
+  sizeAdjustmentText: {
+    fontSize: 12,
+    color: '#83C5FA',
+    opacity: 0.85,
+    lineHeight: 16,
   },
   dismissBtn: {
     flexDirection: 'row',

@@ -11,6 +11,9 @@ const { sendPaymentSuccessEmail, sendPaymentFailedEmail, sendRefundEmail } = req
 // Stripe initialization
 if (!process.env.STRIPE_SECRET_KEY) {
   logger.error('STRIPE_SECRET_KEY not set - payments will fail');
+} else {
+  const k = process.env.STRIPE_SECRET_KEY;
+  logger.info(`STRIPE_SECRET_KEY loaded: prefix=${k.slice(0, 8)} length=${k.length} startsCorrectly=${k.startsWith('sk_')}`);
 }
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
@@ -69,8 +72,10 @@ exports.createIntent = async (req, res) => {
 
     // Determine capture method based on order type
     // - shipmentId: Pre-authorize only (capture on pickup)
+    // - isParcelBooking: Pre-authorize for Apple Pay (shipment created after payment auth)
     // - orderId or no ID: Immediate capture (grocery orders, etc.)
-    const isPreAuth = !!shipmentId && !orderId;
+    const { isParcelBooking } = req.body;
+    const isPreAuth = (!orderId) && (!!shipmentId || !!isParcelBooking);
     
     const paymentIntentOptions = {
       amount: Math.round(amount), // Already in pence, just ensure it's an integer

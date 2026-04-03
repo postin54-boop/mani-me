@@ -4,6 +4,9 @@
       "eas": {
         "projectId": "1e67619e-d321-4112-95c3-112af0f8eec8"
       }
+    },
+    "ios": {
+      "bundleIdentifier": "com.postin54.manime"
     }
   }
 }

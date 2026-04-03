@@ -7,7 +7,7 @@ import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme, Platform } from 'react-native';
+import { useColorScheme, Platform, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Constants from 'expo-constants';
@@ -245,7 +245,7 @@ function AppNavigator() {
 
   // Wait for initial route to be determined
   if (!initialRoute) {
-    return null;
+    return <View style={{ flex: 1, backgroundColor: '#0B1F33' }} />;
   }
 
   return (
@@ -299,7 +299,11 @@ export default function App() {
 
   useEffect(() => {
     // Hide the native splash screen
-    SplashScreen.hideAsync();
+    SplashScreen.hideAsync().catch(() => {});
+
+    // Safety net: force splash away after 6 seconds no matter what
+    const safetyTimer = setTimeout(() => setShowSplash(false), 6000);
+    return () => clearTimeout(safetyTimer);
   }, []);
 
   if (showSplash) {

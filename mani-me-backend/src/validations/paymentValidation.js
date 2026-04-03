@@ -17,11 +17,18 @@ const createPaymentIntent = {
   }),
 };
 
-// Confirm payment
+// Confirm payment (used by mobile after 3DS/SCA)
 const confirmPayment = {
   body: Joi.object({
     paymentIntentId: Joi.string().required(),
     paymentMethodId: Joi.string().optional(),
+  }),
+};
+
+// Capture a pre-authorized payment (called when driver marks parcel collected)
+const capturePayment = {
+  body: Joi.object({
+    shipmentId: objectId.required(),
   }),
 };
 
@@ -70,6 +77,7 @@ const refundPayment = {
 module.exports = {
   createPaymentIntent,
   confirmPayment,
+  capturePayment,
   recordCashPayment,
   getById,
   getPayments,

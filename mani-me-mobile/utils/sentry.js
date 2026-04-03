@@ -1,8 +1,9 @@
 /**
  * Sentry Configuration for Mani Me Customer App
- * Using sentry-expo for Expo compatibility
+ * Using @sentry/react-native directly (sentry-expo was deprecated after Expo SDK 49)
  */
 
+import * as Sentry from '@sentry/react-native';
 import Constants from 'expo-constants';
 
 // Sentry DSN - configured for Mani Me
@@ -10,92 +11,73 @@ const SENTRY_DSN = 'https://ca92ece6e715e60ecf6f698cf29f375b@o4511077071060992.i
 
 const isDev = __DEV__;
 
-// sentry-expo uses native modules that crash in Expo Go — load conditionally
-const isExpoGo = Constants.appOwnership === 'expo';
-const Sentry = isExpoGo ? null : require('sentry-expo');
-
 /**
  * Initialize Sentry - call this at app startup
  */
 export const initSentry = () => {
-  if (isExpoGo) {
-    console.log('[Sentry] Skipped in Expo Go');
-    return;
+  try {
+    Sentry.init({
+      dsn: SENTRY_DSN,
+      debug: isDev,
+      environment: isDev ? 'development' : 'production',
+      release: `com.manime.app@${Constants.expoConfig?.version || '1.0.0'}`,
+    });
+    if (isDev) console.log('[Sentry] Initialized');
+  } catch (e) {
+    console.log('[Sentry] Init failed:', e);
   }
-  Sentry.init({
-    dsn: SENTRY_DSN,
-    enableInExpoDevelopment: false,
-    debug: isDev,
-    environment: isDev ? 'development' : 'production',
-    release: `com.manime.app@${Constants.expoConfig?.version || '1.0.0'}`,
-  });
-  console.log('[Sentry] Initialized');
 };
 
 /**
  * Set user context for better error tracking
  */
 export const setUserContext = (user) => {
-  if (isExpoGo || !Sentry) return;
-  if (!user) {
-    Sentry.Native.setUser(null);
-    return;
-  }
-  Sentry.Native.setUser({
-    id: user.id || user._id,
-    email: user.email,
-    username: user.name,
-  });
+  try {
+    if (!user) { Sentry.setUser(null); return; }
+    Sentry.setUser({
+      id: user.id || user._id,
+      email: user.email,
+      username: user.name,
+    });
+  } catch (e) {}
 };
 
 /**
  * Clear user context on logout
  */
 export const clearUserContext = () => {
-  if (isExpoGo || !Sentry) return;
-  Sentry.Native.setUser(null);
+  try { Sentry.setUser(null); } catch (e) {}
 };
 
 /**
  * Capture an exception
  */
 export const captureException = (error, context = {}) => {
-  if (isExpoGo || !Sentry) return;
   if (isDev) {
     console.error('[Sentry] Would capture:', error);
     return;
   }
-  Sentry.Native.captureException(error, {
-    extra: context,
-  });
+  try { Sentry.captureException(error, { extra: context }); } catch (e) {}
 };
 
 /**
  * Capture a message
  */
 export const captureMessage = (message, level = 'info', context = {}) => {
-  if (isExpoGo || !Sentry) return;
   if (isDev) {
     console.log(`[Sentry] Would capture message (${level}):`, message);
     return;
   }
-  Sentry.Native.captureMessage(message, {
-    level,
-    extra: context,
-  });
+  try { Sentry.captureMessage(message, { level, extra: context }); } catch (e) {}
 };
 
 /**
  * Add breadcrumb for debugging
  */
 export const addBreadcrumb = (category, message, data = {}) => {
-  if (isExpoGo || !Sentry) return;
-  Sentry.Native.addBreadcrumb({
-    category,
-    message,
-    data,
-    level: 'info',
-  });
+  try {
+    Sentry.addBreadcrumb({ category, message, data, level: 'info' });
+  } catch (e) {}
 };
 
 export default Sentry;

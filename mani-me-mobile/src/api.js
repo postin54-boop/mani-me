@@ -78,7 +78,15 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // Handle 401 Unauthorized - Attempt token refresh before logging out
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Skip auth endpoints - a 401 on login/register means wrong credentials, not session expiry
+    const isAuthEndpoint = originalRequest.url && (
+      originalRequest.url.includes('/auth/login') ||
+      originalRequest.url.includes('/auth/register') ||
+      originalRequest.url.includes('/auth/google') ||
+      originalRequest.url.includes('/auth/refresh')
+    );
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
       
       logger.warn('Received 401 - Attempting token refresh');

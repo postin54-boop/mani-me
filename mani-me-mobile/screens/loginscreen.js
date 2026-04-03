@@ -19,6 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Keyboard } from 'react-native';
 import * as Google from "expo-auth-session/providers/google";
 import Constants from 'expo-constants';
 import api from "../src/api";
@@ -44,6 +45,11 @@ export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [focusedField, setFocusedField] = useState(null);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -90,25 +96,31 @@ export default function LoginScreen({ navigation }) {
   useEffect(() => {
     if (response?.type === "success") {
       const handleGoogleAuth = async () => {
+        if (!isMounted.current) return;
         setLoading(true);
+        let navigated = false;
         try {
           const accessToken = response.authentication?.accessToken;
           if (!accessToken) {
-            Alert.alert("Login Error", "Failed to get Google access token");
+            if (isMounted.current) Alert.alert("Login Error", "Failed to get Google access token");
             return;
           }
           const res = await api.post("/auth/google", { accessToken });
           if (res.data.token && res.data.user) {
             await loginUser(res.data.user, res.data.token);
+            navigated = true;
             navigation.replace("Home");
           } else {
-            Alert.alert("Login Error", "Invalid response from server");
+            if (isMounted.current) Alert.alert("Login Error", "Invalid response from server");
           }
         } catch (error) {
           logger.error("Google login error:", error);
-          Alert.alert("Login Error", error.response?.data?.error || "Google sign-in failed. Please try again.");
+          if (isMounted.current) {
+            const msg = error.response?.data?.error || error.response?.data?.message || "Google sign-in failed. Please try again.";
+            Alert.alert("Login Error", msg);
+          }
         } finally {
-          setLoading(false);
+          if (isMounted.current && !navigated) setLoading(false);
         }
       };
       handleGoogleAuth();
@@ -135,11 +147,13 @@ export default function LoginScreen({ navigation }) {
   };
 
   const handleLogin = async () => {
+    Keyboard.dismiss();
     setErrors({});
     
     if (!validateForm()) return;
     
     setLoading(true);
+    let navigated = false;
     try {
       logger.log("Attempting login to:", api.defaults.baseURL);
       const res = await api.post("/auth/login", { 
@@ -149,23 +163,26 @@ export default function LoginScreen({ navigation }) {
       
       if (res.data.token && res.data.user) {
         await loginUser(res.data.user, res.data.token);
+        navigated = true;
         navigation.replace("Home");
       } else {
-        Alert.alert("Login Error", "Invalid response from server");
+        if (isMounted.current) Alert.alert("Login Error", "Invalid response from server");
       }
     } catch (error) {
       logger.error("Login error:", error);
+      if (!isMounted.current) return;
       if (error.isAuthError) {
         Alert.alert("Login Error", "Invalid email or password");
       } else if (error.code === 'ECONNABORTED') {
-        Alert.alert("Login Error", "Connection timeout. Please check your connection.");
+        Alert.alert("Login Error", "Connection timeout. Please check your connection and try again.");
       } else if (error.isNetworkError) {
-        Alert.alert("Login Error", "Cannot connect to server.");
+        Alert.alert("Login Error", "Cannot connect to server. Please check your internet connection.");
       } else {
-        Alert.alert("Login Error", error.response?.data?.error || error.message);
+        const msg = error.response?.data?.error || error.response?.data?.message || error.message || "An unexpected error occurred";
+        Alert.alert("Login Error", msg);
       }
     } finally {
-      setLoading(false);
+      if (isMounted.current && !navigated) setLoading(false);
     }
   };
 
@@ -340,6 +357,7 @@ export default function LoginScreen({ navigation }) {
               style={styles.googleButton}
               onPress={handleGoogleSignIn}
               activeOpacity={0.8}
+              disabled={loading}
             >
               <AntDesign name="google" size={20} color="#0B1A33" />
               <Text style={styles.googleText}>Google</Text>

@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.manime.app",
-      "buildNumber": "12",
+      "buildNumber": "17",
       "icon": "./assets/adaptive-icon.png",
       "entitlements": {
         "com.apple.developer.in-app-payments": ["merchant.manime.delivery"]
@@ -39,7 +39,8 @@
           "merchantIdentifier": "merchant.manime.delivery",
           "enableGooglePay": true
         }
-      ]
+      ],
+      "@sentry/react-native/expo"
     ],
     "owner": "postin54"
   }

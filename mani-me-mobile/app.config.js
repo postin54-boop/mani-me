@@ -21,7 +21,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.manime.app",
-      buildNumber: "13",
+      buildNumber: "17",
       icon: "./assets/adaptive-icon.png",
       infoPlist: {
         NSPhotoLibraryUsageDescription: "Allow Mani Me to access your photos to set a profile picture.",
@@ -67,10 +67,13 @@ export default {
         }
       ],
       [
-        "sentry-expo",
+        "@sentry/react-native/expo",
         {
-          organization: "manime",
-          project: "mani-me-mobile"
+          "organization": "manime",
+          "project": "mani-me-mobile",
+          "setCommits": false,
+          "deployEnv": "production",
+          "uploadSourceMaps": false
         }
       ]
     ],

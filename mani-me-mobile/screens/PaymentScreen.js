@@ -210,7 +210,7 @@ export default function PaymentScreen({ route, navigation }) {
         return;
       }
       
-      // 1. Create payment intent on backend
+      // 1. Create payment intent on backend (manual capture — charged only on driver pickup)
       const intentResponse = await fetch(`${API_BASE_URL}/api/payments/create-intent`, {
         method: 'POST',
         headers: { 
@@ -220,6 +220,7 @@ export default function PaymentScreen({ route, navigation }) {
         body: JSON.stringify({
           amount: Math.round(totalAmount * 100), // Convert to pence
           currency: 'gbp',
+          isParcelBooking: true, // forces manual capture — capture happens when driver collects
         }),
       });
       
@@ -227,7 +228,7 @@ export default function PaymentScreen({ route, navigation }) {
         throw new Error('Failed to create payment intent');
       }
       
-      const { clientSecret } = await intentResponse.json();
+      const { clientSecret, paymentIntentId } = await intentResponse.json();
       
       // 2. Present Apple Pay sheet
       const { error: presentError } = await presentApplePay({
@@ -255,14 +256,19 @@ export default function PaymentScreen({ route, navigation }) {
         throw new Error(confirmError.message || 'Payment confirmation failed');
       }
       
-      // 4. Create shipment after successful payment
+      // 4. Create shipment after successful Apple Pay authorisation
       const shipmentResponse = await fetch(`${API_BASE_URL}/api/shipments/create`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          payment_method: 'apple_pay',
+          payment_status: 'authorized',  // not 'paid' — captured on pickup
+          payment_intent_id: paymentIntentId, // link so driver can capture it
+        }),
       });
 
       const rawResponse = await shipmentResponse.text();
