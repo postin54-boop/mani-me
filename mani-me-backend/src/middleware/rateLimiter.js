@@ -20,15 +20,27 @@ const makeStore = (prefix) => redisClient
   ? new RedisStore({ sendCommand: (...args) => redisClient.call(...args), prefix })
   : undefined; // undefined = default MemoryStore
 
-// Rate limiter for login attempts - 5 attempts per 15 minutes
+// Extract real client IP — works behind Render/Vercel load balancers
+// X-Forwarded-For may be 'clientIp, proxy1, proxy2' — we want the first (leftmost) value
+const getRealIp = (req) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    const first = forwarded.split(',')[0].trim();
+    if (first) return first;
+  }
+  return req.ip || req.socket?.remoteAddress || 'unknown';
+};
+
+// Rate limiter for login attempts - 10 failures per 15 minutes per real IP
 const loginLimiter = rateLimit({
   store: makeStore('rl:login:'),
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 login requests per windowMs
+  max: 10, // 10 attempts per window per IP
+  keyGenerator: getRealIp,
   message: 'Too many login attempts from this IP, please try again after 15 minutes',
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  skipSuccessfulRequests: false, // Count successful requests
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // Only count failed attempts
   handler: (req, res) => {
     res.status(429).json({
       message: 'Too many login attempts. Please try again after 15 minutes.',
@@ -37,11 +49,12 @@ const loginLimiter = rateLimit({
   }
 });
 
-// Rate limiter for registration - 3 attempts per hour
+// Rate limiter for registration - 10 attempts per hour per real IP
 const registerLimiter = rateLimit({
   store: makeStore('rl:register:'),
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // Limit each IP to 3 registration requests per windowMs
+  max: 10,
+  keyGenerator: getRealIp,
   message: 'Too many accounts created from this IP, please try again after an hour',
   standardHeaders: true,
   legacyHeaders: false,
@@ -54,11 +67,12 @@ const registerLimiter = rateLimit({
   }
 });
 
-// Rate limiter for password reset - 3 attempts per 30 minutes
+// Rate limiter for password reset - 5 attempts per 30 minutes per real IP
 const passwordResetLimiter = rateLimit({
   store: makeStore('rl:pwreset:'),
   windowMs: 30 * 60 * 1000, // 30 minutes
-  max: 3,
+  max: 5,
+  keyGenerator: getRealIp,
   message: 'Too many password reset attempts from this IP',
   standardHeaders: true,
   legacyHeaders: false,
@@ -70,11 +84,12 @@ const passwordResetLimiter = rateLimit({
   }
 });
 
-// General API rate limiter - 300 requests per 15 minutes per IP (increased for mobile apps)
+// General API rate limiter - 300 requests per 15 minutes per real IP
 const apiLimiter = rateLimit({
   store: makeStore('rl:api:'),
   windowMs: 15 * 60 * 1000,
-  max: 300, // Increased from 100 for better mobile experience
+  max: 300,
+  keyGenerator: getRealIp,
   message: 'Too many requests from this IP',
   standardHeaders: true,
   legacyHeaders: false,
@@ -95,6 +110,7 @@ const trackingLimiter = rateLimit({
   store: makeStore('rl:track:'),
   windowMs: 15 * 60 * 1000,
   max: 50, // 50 tracking requests per 15 minutes
+  keyGenerator: getRealIp,
   message: 'Too many tracking requests',
   standardHeaders: true,
   legacyHeaders: false
