@@ -1,7 +1,7 @@
 export default {
   expo: {
     name: "Mani Me",
-    slug: "mani-me-mobile-kr7nuurcvejqq1tsjoegv",
+    slug: "mani-me-mobile",
     scheme: "manime",
     version: "1.0.0",
     orientation: "portrait",
@@ -90,7 +90,7 @@ export default {
       privacyPolicyUrl: "https://www.manime.co.uk/privacy.html",
       termsOfServiceUrl: "https://www.manime.co.uk/terms.html",
       eas: {
-        projectId: "7bcdef28-2650-4de1-8e5b-708baf883fa8"
+        projectId: "041fb8e3-a172-45b5-9743-a820da41b061"
       }
     },
     owner: "postin54"
