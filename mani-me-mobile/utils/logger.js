@@ -28,11 +28,15 @@ export const logger = {
     if (__DEV__) {
       console.error(...args);
     }
-    // Errors are captured as exceptions in Sentry
-    if (args[0] instanceof Error) {
-      captureException(args[0], { additionalArgs: args.slice(1) });
+    // Find the Error object from any argument position
+    // Supports: logger.error(err), logger.error('msg', err), logger.error('msg:', err.message, err)
+    const errorObj = args.find(a => a instanceof Error);
+    const nonErrorArgs = args.filter(a => !(a instanceof Error));
+    const contextStr = nonErrorArgs.map(a => (a != null ? String(a) : '')).filter(Boolean).join(' ');
+    if (errorObj) {
+      captureException(errorObj, contextStr ? { context: contextStr } : {});
     } else {
-      captureException(new Error(args[0]?.toString() || 'Unknown error'), { args });
+      captureException(new Error(contextStr || 'Unknown error'), {});
     }
   },
   
