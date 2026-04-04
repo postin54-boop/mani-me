@@ -11,7 +11,7 @@ const bcrypt = require('bcryptjs');
 const logger = require('../utils/logger');
 
 // Stripe for payment capture
-const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
+const stripe = require('../utils/stripe');
 
 /**
  * GET /drivers - Get all drivers (admin)

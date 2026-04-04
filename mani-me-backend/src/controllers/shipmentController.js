@@ -25,7 +25,7 @@ const {
 } = require('../utils/email');
 
 // Stripe for payment cancellation
-const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
+const stripe = require('../utils/stripe');
 
 /**
  * GET /shipments/recent/:userId - Recent shipments for a user

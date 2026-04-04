@@ -9,7 +9,7 @@ const GroceryOrder = require('../models/groceryOrder');
 const User = require('../models/user');
 const { sendOrderReceiptEmail } = require('../utils/email');
 const logger = require('../utils/logger');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require('../utils/stripe');
 
 // Public
 exports.getItems = async (req, res) => {

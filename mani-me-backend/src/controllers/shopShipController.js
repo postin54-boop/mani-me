@@ -1,5 +1,5 @@
 const shopShipService = require('../services/shopShipService');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require('../utils/stripe');
 const { sendOrderReceiptEmail } = require('../utils/email');
 const User = require('../models/user');
 

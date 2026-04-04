@@ -7,15 +7,7 @@
 const logger = require('../utils/logger');
 const PromoCode = require('../models/promoCode');
 const { sendPaymentSuccessEmail, sendPaymentFailedEmail, sendRefundEmail } = require('../utils/email');
-
-// Stripe initialization
-if (!process.env.STRIPE_SECRET_KEY) {
-  logger.error('STRIPE_SECRET_KEY not set - payments will fail');
-} else {
-  const k = process.env.STRIPE_SECRET_KEY;
-  logger.info(`STRIPE_SECRET_KEY loaded: prefix=${k.slice(0, 8)} length=${k.length} startsCorrectly=${k.startsWith('sk_')}`);
-}
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require('../utils/stripe');
 
 exports.validatePromo = async (req, res) => {
   try {
