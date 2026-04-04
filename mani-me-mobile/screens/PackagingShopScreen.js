@@ -101,6 +101,7 @@ const PackagingShopScreen = ({ navigation }) => {
 
   const removeFromCart = (itemId) => {
     const existingItem = cart.find((i) => i._id === itemId);
+    if (!existingItem) return;
     if (existingItem.quantity > 1) {
       setCart(
         cart.map((i) =>

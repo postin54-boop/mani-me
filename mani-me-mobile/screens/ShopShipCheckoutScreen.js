@@ -17,6 +17,7 @@ import { useThemeColors } from '../constants/theme';
 import { useShopShipCart } from '../context/ShopShipCartContext';
 import { useUser } from '../context/UserContext';
 import api from '../src/api';
+import logger from '../utils/logger';
 
 export default function ShopShipCheckoutScreen({ navigation }) {
   const { colors, isDark } = useThemeColors();
@@ -102,12 +103,12 @@ export default function ShopShipCheckoutScreen({ navigation }) {
         [
           { 
             text: 'View Orders', 
-            onPress: () => navigation.navigate('ShopShipOrders') 
+            onPress: () => navigation.navigate('ShopOrders')
           },
         ]
       );
     } catch (error) {
-      console.error('Error placing order:', error);
+      logger.error(error, { context: 'ShopShipCheckoutScreen.placeOrder' });
       Alert.alert('Error', error.response?.data?.error || 'Failed to place order. Please try again.');
     } finally {
       setLoading(false);

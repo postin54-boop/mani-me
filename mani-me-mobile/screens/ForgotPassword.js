@@ -15,6 +15,11 @@ export default function ForgotPassword({ navigation }) {
       Alert.alert('Error', 'Please enter your email address.');
       return;
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      Alert.alert('Error', 'Please enter a valid email address.');
+      return;
+    }
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
@@ -109,7 +114,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 16,
-    shadowOffset: { width: 0, height: 2 },
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,

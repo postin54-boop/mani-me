@@ -1,6 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { API_BASE_URL } from './config';
@@ -32,7 +32,7 @@ export async function registerForPushNotificationsAsync() {
     }
     
     if (finalStatus !== 'granted') {
-      alert('Failed to get push token for push notification!');
+      Alert.alert('Notifications', 'Failed to get push token. Please enable notifications in Settings.');
       return null;
     }
     
@@ -46,7 +46,7 @@ export async function registerForPushNotificationsAsync() {
       return null;
     }
   } else {
-    alert('Must use physical device for Push Notifications');
+    Alert.alert('Notifications', 'Push notifications require a physical device.');
   }
 
   if (Platform.OS === 'android') {

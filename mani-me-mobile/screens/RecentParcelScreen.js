@@ -15,9 +15,14 @@ export default function RecentParcelScreen({ navigation }) {
   const [error, setError] = useState(null);
 
   const fetchParcels = async () => {
+    if (!user?.id || !token) {
+      setError('Please log in to view your parcels');
+      setLoading(false);
+      return;
+    }
     try {
       setError(null);
-      const response = await fetch(`${API_BASE_URL}/api/shipments/user/${user?.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/shipments/user/${user.id}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -33,7 +38,6 @@ export default function RecentParcelScreen({ navigation }) {
         .slice(0, 10);
       setParcels(recent);
     } catch (err) {
-      console.error('Error fetching parcels:', err);
       setError('Could not load recent parcels');
     } finally {
       setLoading(false);

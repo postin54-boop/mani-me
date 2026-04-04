@@ -9,7 +9,7 @@ import { API_BASE_URL } from '../utils/config';
 export default function ShopCheckoutScreen({ route, navigation }) {
   const { cart = [], subtotal = 0, deliveryFee = 0, total = 0 } = route?.params || {};
   const { colors, isDark } = useThemeColors();
-  const { user } = useUser();
+  const { user, token } = useUser();
   const { confirmPayment } = useStripe();
   
   const [loading, setLoading] = useState(false);
@@ -40,6 +40,7 @@ export default function ShopCheckoutScreen({ route, navigation }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           amount: total,
@@ -76,6 +77,7 @@ export default function ShopCheckoutScreen({ route, navigation }) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({
             user_id: user?.id,
@@ -112,7 +114,7 @@ export default function ShopCheckoutScreen({ route, navigation }) {
         Alert.alert('Error', 'Payment succeeded but order creation failed. Please contact support.');
       }
     } catch (error) {
-      console.error('Payment error:', error);
+      logger.error(error, { context: 'ShopCheckoutScreen.handlePayment' });
       Alert.alert('Error', 'An error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -220,9 +222,7 @@ export default function ShopCheckoutScreen({ route, navigation }) {
             />
           </View>
           
-          <Text style={[styles.testCardInfo, { color: colors.textSecondary }]}>
-            Test card: 4242 4242 4242 4242
-          </Text>
+          {__DEV__ && <Text style={[styles.testCardInfo, { color: colors.textSecondary }]}>Test card: 4242 4242 4242 4242</Text>}
         </View>
 
         <View style={{ height: 120 }} />

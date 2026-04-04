@@ -17,7 +17,8 @@ import { useUser } from '../context/UserContext';
 import { API_BASE_URL } from '../utils/config';
 
 export default function ShopOrderDetailScreen({ route, navigation }) {
-  const { orderId, orderType } = route.params; // orderType: 'packaging' or 'grocery'
+  const { orderId, orderType } = route?.params ?? {};
+  if (!orderId) { navigation.goBack(); return null; }
   const { colors, isDark } = useThemeColors();
   const { token } = useUser();
   const [order, setOrder] = useState(null);

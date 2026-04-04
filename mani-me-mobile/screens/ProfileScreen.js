@@ -33,7 +33,7 @@ export default function ProfileScreen({ navigation }) {
       if (status !== 'granted') {
         Alert.alert(
           'Permission needed', 
-          'Please allow access to your photo library in Settings > Expo Go > Photos',
+          'Please allow access to your photo library in Settings > Privacy > Photos',
           [{ text: 'OK' }]
         );
         return;
@@ -56,6 +56,7 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const takeProfilePhoto = async () => {
+    try {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     
     if (status !== 'granted') {
@@ -72,6 +73,9 @@ export default function ProfileScreen({ navigation }) {
     if (!result.canceled) {
       setProfileImage(result.assets[0].uri);
       setIsEditing(true); // Enter edit mode to show Save button
+    }
+    } catch (err) {
+      Alert.alert('Camera Error', 'Unable to open camera. Please try again.');
     }
   };
 

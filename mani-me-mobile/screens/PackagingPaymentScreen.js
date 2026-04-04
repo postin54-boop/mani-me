@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors, SIZES, FONTS, SHADOWS, BRAND_COLORS } from '../constants/theme';
 import { useUser } from '../context/UserContext';
 import axios from 'axios';
+import logger from '../utils/logger';
 import { API_BASE_URL } from '../utils/config';
 
 export default function PackagingPaymentScreen({ route, navigation }) {
@@ -58,7 +59,7 @@ export default function PackagingPaymentScreen({ route, navigation }) {
         ]
       );
     } catch (error) {
-      console.error('Order creation error:', error);
+      logger.error(error, { context: 'PackagingPaymentScreen.createOrder' });
       Alert.alert('Payment received but order creation failed. Please contact support.');
     }
   };
@@ -93,7 +94,7 @@ export default function PackagingPaymentScreen({ route, navigation }) {
           currencyCode: 'GBP',
         },
         googlePay: {
-          testEnv: true, // Set to false in production
+          testEnv: __DEV__, // sandbox only in dev builds
           merchantName: 'Mani Me',
           merchantCountryCode: 'GB',
           currencyCode: 'GBP',
@@ -112,7 +113,7 @@ export default function PackagingPaymentScreen({ route, navigation }) {
 
       await handlePaymentSuccess();
     } catch (error) {
-      console.error('Platform Pay error:', error);
+      logger.error(error, { context: 'PackagingPaymentScreen.platformPay' });
       Alert.alert('Error', error.response?.data?.message || 'Payment failed. Please try again.');
     } finally {
       setLoading(false);
@@ -164,7 +165,7 @@ export default function PackagingPaymentScreen({ route, navigation }) {
         Alert.alert('Payment Issue', `Payment status: ${paymentIntent?.status || 'unknown'}. Please try again.`);
       }
     } catch (error) {
-      console.error('Payment error:', error);
+      logger.error(error, { context: 'PackagingPaymentScreen.cardPayment' });
       Alert.alert('Error', error.response?.data?.message || 'Payment failed. Please try again.');
     } finally {
       setLoading(false);

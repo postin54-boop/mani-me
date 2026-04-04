@@ -235,7 +235,7 @@ export default function ShopShipScreen({ navigation }) {
       {!selectedCategory && !searchQuery ? (
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Featured</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('ShopShipAll')}>
+          <TouchableOpacity onPress={() => navigation.navigate('ShopShip')}>
             <Text style={[styles.seeAll, { color: colors.primary }]}>See All</Text>
           </TouchableOpacity>
         </View>

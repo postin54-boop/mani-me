@@ -128,7 +128,7 @@ export default function NotificationsScreen({ navigation }) {
       ) : (
         <FlatList
           data={notifications}
-          keyExtractor={(item) => item._id || item.id || String(Math.random())}
+          keyExtractor={(item, index) => item._id || item.id || `notif-${index}`}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           refreshControl={

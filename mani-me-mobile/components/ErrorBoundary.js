@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { captureException, addBreadcrumb } from '../utils/sentry';
+import { navigationRef } from '../App';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -73,8 +74,10 @@ class ErrorBoundary extends React.Component {
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={() => {
-                // In production, you might want to restart the app or navigate to home
                 this.handleReset();
+                if (navigationRef.isReady()) {
+                  navigationRef.navigate('Home');
+                }
               }}
             >
               <Text style={styles.secondaryButtonText}>Go to Home</Text>
