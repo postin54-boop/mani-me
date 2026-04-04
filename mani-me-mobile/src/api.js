@@ -151,7 +151,13 @@ api.interceptors.response.use(
       logger.error('Network Error: Device is offline or cannot reach server');
     } else if (error.response) {
       // Server responded with error status
-      logger.error('API Error:', error.response.status, error.response.data);
+      error.message = `API Error ${error.response.status}: ${JSON.stringify(error.response.data)}`;
+      logger.error(error, {
+        status: error.response.status,
+        url: error.config?.url,
+        method: error.config?.method,
+        responseData: error.response.data,
+      });
       
       // Handle specific error codes
       if (error.response.status === 403) {
