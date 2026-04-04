@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import NetInfo from '@react-native-community/netinfo';
 import axiosRetry from 'axios-retry';
 import logger from '../utils/logger';
+import { captureHttpError } from '../utils/sentry';
 
 // Production API URL (single source of truth)
 const PRODUCTION_URL = "https://mani-me.onrender.com";
@@ -151,14 +152,17 @@ api.interceptors.response.use(
       logger.error('Network Error: Device is offline or cannot reach server');
     } else if (error.response) {
       // Server responded with error status
-      error.message = `API Error ${error.response.status}: ${JSON.stringify(error.response.data)}`;
-      logger.error(error, {
-        status: error.response.status,
-        url: error.config?.url,
-        method: error.config?.method,
-        responseData: error.response.data,
-      });
-      
+      // Capture as a fresh Error so Hermes stack + message are consistent in Sentry
+      captureHttpError(
+        error.response.status,
+        error.config?.url,
+        error.config?.method,
+        error.response.data
+      );
+      // Enrich error.message for downstream catch blocks
+      let responseStr;
+      try { responseStr = JSON.stringify(error.response.data); } catch (_) { responseStr = String(error.response.data); }
+      error.message = `API Error ${error.response.status}: ${responseStr}`;
       // Handle specific error codes
       if (error.response.status === 403) {
         error.isForbidden = true;

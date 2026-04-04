@@ -57,7 +57,36 @@ export const captureException = (error, context = {}) => {
     console.error('[Sentry] Would capture:', error);
     return;
   }
-  try { Sentry.captureException(error, { extra: context }); } catch (e) {}
+  try {
+    Sentry.withScope((scope) => {
+      scope.setExtras(context);
+      Sentry.captureException(error);
+    });
+  } catch (e) {}
+};
+
+/**
+ * Capture an HTTP API error with rich context.
+ * Creates a brand-new Error so the stack + message are consistent in Sentry.
+ */
+export const captureHttpError = (status, url, method, responseData) => {
+  if (isDev) {
+    console.error(`[Sentry] Would capture HTTP error: ${method} ${url} → ${status}`, responseData);
+    return;
+  }
+  try {
+    let responseStr;
+    try { responseStr = JSON.stringify(responseData); } catch (_) { responseStr = String(responseData); }
+    const msg = `API Error ${status}: ${responseStr}`;
+    const err = new Error(msg);
+    Sentry.withScope((scope) => {
+      scope.setTag('http.status', String(status));
+      scope.setTag('http.method', (method || '').toUpperCase());
+      scope.setExtra('url', url);
+      scope.setExtra('responseData', responseData);
+      Sentry.captureException(err);
+    });
+  } catch (e) {}
 };
 
 /**

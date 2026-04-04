@@ -4,13 +4,12 @@ import { useStripe, CardField, usePlatformPay, PlatformPayButton, PlatformPay } 
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors, SIZES, FONTS, SHADOWS, BRAND_COLORS } from '../constants/theme';
 import { useUser } from '../context/UserContext';
-import axios from 'axios';
+import api from '../src/api';
 import logger from '../utils/logger';
-import { API_BASE_URL } from '../utils/config';
 
 export default function PackagingPaymentScreen({ route, navigation }) {
   const { orderData = {} } = route?.params || {};
-  const { user, token } = useUser();
+  const { user } = useUser();
   const [loading, setLoading] = useState(false);
   const [cardComplete, setCardComplete] = useState(false);
   const [cardDetails, setCardDetails] = useState(null);
@@ -36,11 +35,9 @@ export default function PackagingPaymentScreen({ route, navigation }) {
   const handlePaymentSuccess = async () => {
     try {
       // Create order after successful payment - mark as paid
-      await axios.post(`${API_BASE_URL}/api/shop/orders`, {
+      await api.post('/shop/orders', {
         ...orderData,
         payment_status: 'paid',
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
 
       Alert.alert(
@@ -70,13 +67,10 @@ export default function PackagingPaymentScreen({ route, navigation }) {
     
     try {
       // Create payment intent on backend (amount in pence)
-      const paymentResponse = await axios.post(`${API_BASE_URL}/api/payments/create-intent`, {
+      const paymentResponse = await api.post('/payments/create-intent', {
         amount: Math.round(calculateTotal() * 100), // Convert pounds to pence
         currency: 'gbp',
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
-
       const { clientSecret } = paymentResponse.data;
 
       // Confirm with Platform Pay (Apple/Google)
@@ -131,13 +125,10 @@ export default function PackagingPaymentScreen({ route, navigation }) {
 
     try {
       // Create payment intent on backend (amount in pence)
-      const paymentResponse = await axios.post(`${API_BASE_URL}/api/payments/create-intent`, {
+      const paymentResponse = await api.post('/payments/create-intent', {
         amount: Math.round(calculateTotal() * 100), // Convert pounds to pence
         currency: 'gbp',
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
-
       const { clientSecret } = paymentResponse.data;
 
       // Confirm payment with Stripe
@@ -161,7 +152,6 @@ export default function PackagingPaymentScreen({ route, navigation }) {
       if (paymentIntent?.status === 'Succeeded' || paymentIntent?.status === 'succeeded') {
         await handlePaymentSuccess();
       } else {
-        console.log('Payment status:', paymentIntent?.status);
         Alert.alert('Payment Issue', `Payment status: ${paymentIntent?.status || 'unknown'}. Please try again.`);
       }
     } catch (error) {
