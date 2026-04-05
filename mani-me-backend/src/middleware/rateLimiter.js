@@ -116,10 +116,29 @@ const trackingLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Upload rate limiter - prevents memory exhaustion from concurrent uploads
+// 10 uploads per 5 minutes per IP (memoryStorage holds files in RAM)
+const uploadLimiter = rateLimit({
+  store: makeStore('rl:upload:'),
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10, // 10 uploads per window
+  keyGenerator: getRealIp,
+  message: 'Too many file uploads',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      message: 'Too many file uploads. Please try again in a few minutes.',
+      retryAfter: Math.ceil(req.rateLimit.resetTime / 1000)
+    });
+  }
+});
+
 module.exports = {
   loginLimiter,
   registerLimiter,
   passwordResetLimiter,
   apiLimiter,
-  trackingLimiter
+  trackingLimiter,
+  uploadLimiter
 };

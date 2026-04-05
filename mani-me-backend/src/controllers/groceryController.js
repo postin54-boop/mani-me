@@ -23,7 +23,7 @@ exports.getItems = async (req, res) => {
       query.category = category;
     }
     const [items, total] = await Promise.all([
-      GroceryItem.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      GroceryItem.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       GroceryItem.countDocuments(query)
     ]);
     res.json({ items, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
@@ -35,7 +35,7 @@ exports.getItems = async (req, res) => {
 
 exports.getItem = async (req, res) => {
   try {
-    const item = await GroceryItem.findById(req.params.id);
+    const item = await GroceryItem.findById(req.params.id).lean();
     if (!item) return res.status(404).json({ message: 'Item not found' });
     res.json(item);
   } catch (error) {
@@ -206,7 +206,7 @@ exports.updateOrderPayment = async (req, res) => {
 
 exports.getUserOrders = async (req, res) => {
   try {
-    const orders = await GroceryOrder.find({ user_id: req.userId }).sort({ createdAt: -1 }).populate('items.item_id', 'name image_url');
+    const orders = await GroceryOrder.find({ user_id: req.userId }).sort({ createdAt: -1 }).populate('items.item_id', 'name image_url').lean();
     res.json(orders);
   } catch (error) {
     logger.error('Error fetching orders', { error: error.message });
@@ -216,7 +216,7 @@ exports.getUserOrders = async (req, res) => {
 
 exports.getUserOrder = async (req, res) => {
   try {
-    const order = await GroceryOrder.findById(req.params.id).populate('items.item_id', 'name image_url');
+    const order = await GroceryOrder.findById(req.params.id).populate('items.item_id', 'name image_url').lean();
     if (!order) return res.status(404).json({ message: 'Order not found' });
     if (order.user_id.toString() !== req.userId) return res.status(403).json({ message: 'Unauthorized' });
     res.json(order);
@@ -236,7 +236,7 @@ exports.adminGetItems = async (req, res) => {
     if (req.query.search) query.name = { $regex: req.query.search, $options: 'i' };
     if (req.query.category) query.category = req.query.category;
     const [items, total] = await Promise.all([
-      GroceryItem.find(query).sort({ category: 1, name: 1 }).skip(skip).limit(limit),
+      GroceryItem.find(query).sort({ category: 1, name: 1 }).skip(skip).limit(limit).lean(),
       GroceryItem.countDocuments(query)
     ]);
     res.json({ items, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
@@ -283,7 +283,7 @@ exports.adminDeleteItem = async (req, res) => {
 
 exports.adminGetOrders = async (req, res) => {
   try {
-    const orders = await GroceryOrder.find().sort({ createdAt: -1 }).populate('user_id', 'name email phone').populate('items.item_id', 'name image_url');
+    const orders = await GroceryOrder.find().sort({ createdAt: -1 }).populate('user_id', 'name email phone').populate('items.item_id', 'name image_url').lean();
     res.json(orders);
   } catch (error) {
     logger.error('Error fetching orders (admin)', { error: error.message });

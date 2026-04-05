@@ -107,7 +107,8 @@ exports.getNotifications = async (req, res) => {
 
     const notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
-      .limit(safeLimit);
+      .limit(safeLimit)
+      .lean();
 
     res.json({ success: true, notifications });
   } catch (err) {
@@ -154,7 +155,8 @@ exports.getUserNotifications = async (req, res) => {
     }
     const notifications = await Notification.find({ userId })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(50)
+      .lean();
     res.json({ success: true, notifications });
   } catch (err) {
     logger.error('Error fetching user notifications', { error: err.message });
@@ -209,7 +211,8 @@ exports.getDriverNotifications = async (req, res) => {
       ],
     })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(50)
+      .lean();
     const unreadCount = await Notification.countDocuments({
       $or: [
         { userId: driverId },

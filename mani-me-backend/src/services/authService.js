@@ -36,9 +36,16 @@ const formatUser = (user) => ({
 
 /**
  * Generate JWT token for a user
+ * Includes role for admin verification without DB lookup
  */
-const generateToken = (userId) => {
-  return jwt.sign({ user_id: userId }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+const generateToken = (user) => {
+  const userId = user._id || user.id || user;
+  const payload = { user_id: userId };
+  // Include role if available (for admin auth optimization)
+  if (user.role) {
+    payload.role = user.role.toUpperCase();
+  }
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
 };
 
 /**
@@ -113,7 +120,7 @@ const register = async ({ fullName, name, email, phone, password, role, driver_t
     .then(() => logger.info('Welcome email sent', { email }))
     .catch((err) => logger.error('Failed to send welcome email', { email, error: err.message }));
 
-  const token = generateToken(user._id);
+  const token = generateToken(user);
   return { 
     user: formatUser(user), 
     token,
@@ -139,7 +146,7 @@ const login = async ({ email, password }) => {
     throw err;
   }
 
-  const token = generateToken(user._id);
+  const token = generateToken(user);
   return { user: formatUser(user), token };
 };
 
@@ -231,7 +238,7 @@ const refreshToken = async (token) => {
     throw err;
   }
 
-  const newToken = generateToken(user._id);
+  const newToken = generateToken(user);
   return { user: formatUser(user), token: newToken };
 };
 

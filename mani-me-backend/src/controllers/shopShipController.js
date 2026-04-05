@@ -394,7 +394,8 @@ const getAllOrders = async (req, res) => {
         .populate('customer_id', 'name email phone')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
-        .limit(parseInt(limit)),
+        .limit(parseInt(limit))
+        .lean(),
       ShopShipOrder.countDocuments(query)
     ]);
     

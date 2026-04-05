@@ -18,9 +18,9 @@ const connectDB = async () => {
 
   try {
     const options = {
-      // Connection Pool Settings (critical for scale)
-      maxPoolSize: 100,          // Max connections in pool (default is 5!)
-      minPoolSize: 10,           // Keep minimum connections ready
+      // Connection Pool Settings (critical for scale - sized for 50k+ users)
+      maxPoolSize: 500,          // Max connections in pool (increased from 100)
+      minPoolSize: 20,           // Keep minimum connections ready
       maxIdleTimeMS: 30000,      // Close idle connections after 30s
       
       // Timeouts

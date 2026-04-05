@@ -46,6 +46,7 @@ exports.verifyToken = (req, res, next) => {
 };
 
 // Admin verification middleware
+// Optimized: checks role from JWT first, falls back to DB for legacy tokens
 exports.verifyAdmin = async (req, res, next) => {
   try {
     // First verify the JWT token
@@ -61,10 +62,22 @@ exports.verifyAdmin = async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    // Check if user is admin
-    const User = require('../models/user');
     const userId = decoded.user_id || decoded.id || decoded.userId;
-    const user = await User.findById(userId);
+    req.userId = userId;
+
+    // OPTIMIZATION: If role is in JWT (new tokens), skip DB lookup
+    if (decoded.role) {
+      if (decoded.role !== 'ADMIN') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+      // Role verified from JWT - no DB call needed
+      req.user = { _id: userId, role: decoded.role };
+      return next();
+    }
+
+    // FALLBACK: Legacy tokens without role - must check DB
+    const User = require('../models/user');
+    const user = await User.findById(userId).select('role').lean();
     
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
@@ -74,7 +87,6 @@ exports.verifyAdmin = async (req, res, next) => {
       return res.status(403).json({ message: 'Admin access required' });
     }
     
-    req.userId = userId;
     req.user = user;
     next();
   } catch (error) {

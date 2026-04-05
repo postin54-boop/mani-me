@@ -356,7 +356,7 @@ exports.getUsers = async (req, res) => {
       ];
     }
     const [users, total] = await Promise.all([
-      User.find(query).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit),
+      User.find(query).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       User.countDocuments(query)
     ]);
     res.json({ users, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
@@ -384,7 +384,7 @@ exports.getUkDrivers = async (req, res) => {
     const skip = (page - 1) * limit;
     const query = { $or: [{ role: 'DRIVER', driver_type: 'UK' }, { role: 'UK_DRIVER' }, { role: 'DRIVER', driver_type: 'pickup' }] };
     const [drivers, total] = await Promise.all([
-      User.find(query).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit),
+      User.find(query).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       User.countDocuments(query)
     ]);
     res.json({ drivers, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
@@ -401,7 +401,7 @@ exports.getGhanaDrivers = async (req, res) => {
     const skip = (page - 1) * limit;
     const query = { $or: [{ role: 'DRIVER', driver_type: 'Ghana' }, { role: 'GH_DRIVER' }, { role: 'DRIVER', driver_type: 'delivery' }] };
     const [drivers, total] = await Promise.all([
-      User.find(query).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit),
+      User.find(query).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       User.countDocuments(query)
     ]);
     res.json({ drivers, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
@@ -416,7 +416,7 @@ exports.getPendingPickups = async (req, res) => {
     const pendingPickups = await Shipment.find({
       status: 'booked',
       pickup_driver_id: null
-    }).populate('userId', 'id fullName email phone').sort({ pickup_date: 1, pickup_time: 1 });
+    }).populate('userId', 'id fullName email phone').sort({ pickup_date: 1, pickup_time: 1 }).lean();
     res.json(pendingPickups);
   } catch (error) {
     logger.error('Get pending pickups error', { error: error.message });
@@ -431,7 +431,8 @@ exports.getAssignedPickups = async (req, res) => {
       pickup_driver_id: { $ne: null }
     }).populate('userId', 'id fullName email phone')
       .populate('pickup_driver_id', 'id fullName phone')
-      .sort({ updatedAt: -1 });
+      .sort({ updatedAt: -1 })
+      .lean();
     res.json(assignedPickups);
   } catch (error) {
     logger.error('Get assigned pickups error', { error: error.message });
@@ -445,7 +446,7 @@ exports.getPendingDeliveries = async (req, res) => {
       status: 'customs',
       warehouse_status: 'cleared',
       delivery_driver_id: null
-    }).populate('userId', 'id fullName email phone').sort({ updatedAt: 1 });
+    }).populate('userId', 'id fullName email phone').sort({ updatedAt: 1 }).lean();
     res.json(pendingDeliveries);
   } catch (error) {
     logger.error('Get pending deliveries error', { error: error.message });

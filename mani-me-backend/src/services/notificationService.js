@@ -10,6 +10,56 @@ const { addJob, registerProcessor, createQueue, QUEUE_NAMES } = require('../util
 // Create a new Expo SDK client
 const expo = new Expo();
 
+// Expo recommends max 100 notifications per batch
+const EXPO_BATCH_SIZE = 100;
+const BATCH_DELAY_MS = 100; // Small delay between batches to avoid overwhelming Expo
+
+/**
+ * Helper: delay execution
+ */
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Send push notifications in batches (Expo limit: 100 per request)
+ * Used for bulk notifications to prevent overwhelming Expo servers
+ * @param {Array<{to: string, title: string, body: string, data?: object}>} messages
+ * @returns {Promise<Array>} All ticket chunks from Expo
+ */
+async function sendPushNotificationsBatched(messages) {
+  // Filter out invalid tokens
+  const validMessages = messages.filter(m => Expo.isExpoPushToken(m.to));
+  if (validMessages.length === 0) return [];
+
+  const chunks = expo.chunkPushNotifications(validMessages);
+  const tickets = [];
+
+  for (let i = 0; i < chunks.length; i++) {
+    try {
+      const ticketChunk = await expo.sendPushNotificationsAsync(chunks[i]);
+      tickets.push(...ticketChunk);
+      
+      // Small delay between batches to avoid rate limiting
+      if (i < chunks.length - 1) {
+        await delay(BATCH_DELAY_MS);
+      }
+    } catch (error) {
+      logger.error('Error sending notification batch', { 
+        batchIndex: i, 
+        batchSize: chunks[i].length,
+        error: error.message 
+      });
+    }
+  }
+
+  logger.info('Batched notifications sent', { 
+    totalMessages: validMessages.length,
+    batches: chunks.length,
+    ticketsReceived: tickets.length 
+  });
+
+  return tickets;
+}
+
 /**
  * Send push notification to a user's device
  * @param {string} pushToken - Expo push token
@@ -501,6 +551,7 @@ async function sendMarketingNotification(title, message, targetScreen = 'Home') 
 
 module.exports = {
   sendPushNotification,
+  sendPushNotificationsBatched,
   sendShipmentStatusNotification,
   sendPickupCancellationNotifications,
   sendPickupRescheduleNotifications,
