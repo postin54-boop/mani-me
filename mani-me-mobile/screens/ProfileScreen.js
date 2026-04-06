@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, StatusBar, TextInput, ActivityIndicator, Image, Platform, KeyboardAvoidingView, Keyboard, TouchableWithoutFeedback, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,6 +25,17 @@ export default function ProfileScreen({ navigation }) {
     phone: user?.phone || '',
     address: user?.address || '',
   });
+
+  // Sync profile image state when user context changes (e.g., on screen focus)
+  useEffect(() => {
+    setProfileImage(user?.profileImage || null);
+    setEditedUser({
+      name: user?.name || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      address: user?.address || '',
+    });
+  }, [user?.profileImage, user?.name, user?.email, user?.phone, user?.address]);
 
   const pickProfileImage = async () => {
     try {
