@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Paper,
@@ -128,16 +128,16 @@ function Orders() {
     }
   };
 
-  const handleViewOrder = (order) => {
+  const handleViewOrder = useCallback((order) => {
     setSelectedOrder(order);
     setNewStatus(order.status);
     setOpenDialog(true);
-  };
+  }, []);
 
-  const handleCloseDialog = () => {
+  const handleCloseDialog = useCallback(() => {
     setOpenDialog(false);
     setSelectedOrder(null);
-  };
+  }, []);
 
   const handleUpdateStatus = async () => {
     try {

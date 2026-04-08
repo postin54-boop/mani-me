@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Grid,
@@ -81,12 +81,12 @@ const UKDrivers = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch all data in parallel (api interceptor adds auth header automatically)
+      // Fetch all data in parallel with limits for scalability
       const [driversRes, pendingRes, assignedRes, warehouseRes] = await Promise.all([
-        api.get('/api/admin/drivers/uk'),
-        api.get('/api/admin/pickups/pending'),
-        api.get('/api/admin/pickups/assigned'),
-        api.get('/api/parcels'),
+        api.get('/api/admin/drivers/uk', { params: { limit: 100 } }),
+        api.get('/api/admin/pickups/pending', { params: { limit: 50 } }),
+        api.get('/api/admin/pickups/assigned', { params: { limit: 50 } }),
+        api.get('/api/parcels', { params: { limit: 100, status: 'warehouse' } }),
       ]);
 
       setDrivers(Array.isArray(driversRes.data) ? driversRes.data : []);

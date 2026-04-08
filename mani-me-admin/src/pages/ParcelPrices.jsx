@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Box, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Button, CircularProgress, Snackbar, Alert } from '@mui/material';
 import api from '../api';
 import logger from '../utils/logger';
@@ -81,13 +81,13 @@ export default function ParcelPrices() {
     setSavingType(null);
   };
 
-  // Merge default types with loaded prices, showing edited value if available
-  const mergedPrices = PARCEL_TYPES.map(pt => {
+  // Memoize merged prices to avoid recalculating on every render
+  const mergedPrices = useMemo(() => PARCEL_TYPES.map(pt => {
     const found = prices.find(p => p.type === pt.type);
     const currentPrice = editedPrices[pt.type] !== undefined ? editedPrices[pt.type] : (found ? found.price : '');
     const hasChanges = editedPrices[pt.type] !== undefined;
     return { ...pt, price: currentPrice, hasChanges };
-  });
+  }), [prices, editedPrices]);
 
   // Group by category
   const categories = [...new Set(PARCEL_TYPES.map(pt => pt.category))];

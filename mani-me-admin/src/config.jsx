@@ -66,9 +66,9 @@ export const APP_CONFIG = {
   // Request timeouts
   REQUEST_TIMEOUT: 60000, // 60 seconds (Render free tier cold start)
   
-  // Pagination defaults
-  DEFAULT_PAGE_SIZE: 10,
-  PAGE_SIZE_OPTIONS: [5, 10, 25, 50],
+  // Pagination defaults (25 is optimal for admin workflows)
+  DEFAULT_PAGE_SIZE: 25,
+  PAGE_SIZE_OPTIONS: [10, 25, 50, 100],
   
   // Token storage key
   TOKEN_KEY: 'adminToken',

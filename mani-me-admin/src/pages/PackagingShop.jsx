@@ -38,13 +38,27 @@ const PACKAGING_CATEGORIES = ['Boxes', 'Tape', 'Protective', 'Labels', 'Drums'];
 
 export default function PackagingShop() {
   const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [itemsLoading, setItemsLoading] = useState(true);
 
-  // Fetch items from backend using the api instance (includes auth header)
+  // Fetch items from backend with pagination for scalability
   useEffect(() => {
-    api.get('/api/shop/packaging')
-      .then(res => setItems(Array.isArray(res.data) ? res.data : (res.data?.items || [])))
-      .catch(() => setItems([]));
-  }, []);
+    setItemsLoading(true);
+    api.get('/api/shop/packaging', { params: { page, limit: 50 } })
+      .then(res => {
+        const data = res.data;
+        if (data?.items) {
+          setItems(data.items);
+          setTotalPages(data.totalPages || Math.ceil((data.total || data.items.length) / 50));
+        } else {
+          setItems(Array.isArray(data) ? data : []);
+          setTotalPages(1);
+        }
+      })
+      .catch(() => setItems([]))
+      .finally(() => setItemsLoading(false));
+  }, [page]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({

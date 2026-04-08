@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Paper,
@@ -75,17 +75,17 @@ function Users() {
     }
   };
 
-  const handleViewUser = (user) => {
+  const handleViewUser = useCallback((user) => {
     setSelectedUser(user);
     setOpenDialog(true);
-  };
+  }, []);
 
-  const handleCloseDialog = () => {
+  const handleCloseDialog = useCallback(() => {
     setOpenDialog(false);
     setSelectedUser(null);
-  };
+  }, []);
 
-  const handleToggleStatus = async (userId, currentStatus) => {
+  const handleToggleStatus = useCallback(async (userId, currentStatus) => {
     try {
       await api.put(`/api/admin/users/${userId}/status`, {
         is_active: !currentStatus,
@@ -97,7 +97,7 @@ function Users() {
     } catch (error) {
       logger.error('Error updating user status:', error);
     }
-  };
+  }, []);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);

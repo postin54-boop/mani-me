@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { 
   Table, 
   TableBody, 
@@ -20,7 +20,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
-const ModernTable = ({ 
+const ModernTable = memo(({ 
   columns, 
   data, 
   onView, 
@@ -29,7 +29,8 @@ const ModernTable = ({
   emptyMessage = 'No data available',
   hideActions = false,
 }) => {
-  const getStatusColor = (status) => {
+  // Memoize status color lookup for performance
+  const getStatusColor = useCallback((status) => {
     const statusMap = {
       completed: 'success',
       delivered: 'success',
@@ -43,9 +44,12 @@ const ModernTable = ({
       inactive: 'default',
     };
     return statusMap[status?.toLowerCase()] || 'default';
-  };
+  }, []);
 
-  if (!data || data.length === 0) {
+  // Memoize the check for empty data
+  const isEmpty = useMemo(() => !data || data.length === 0, [data]);
+
+  if (isEmpty) {
     return (
       <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
         <Typography variant="body1" color="text.secondary">
@@ -219,6 +223,9 @@ const ModernTable = ({
       </Table>
     </TableContainer>
   );
-};
+});
+
+// Display name for React DevTools
+ModernTable.displayName = 'ModernTable';
 
 export default ModernTable;

@@ -125,8 +125,8 @@ function Dashboard() {
     const fetchNotifications = async () => {
       setNotifLoading(true);
       try {
-        // Fetch all admin notifications (no adminId required)
-        const res = await api.get('/api/notifications');
+        // Fetch admin notifications with limit for scalability
+        const res = await api.get('/api/notifications', { params: { limit: 50 } });
         if (res.data && res.data.notifications) {
           setNotifications(res.data.notifications);
         } else {
@@ -202,7 +202,7 @@ function Dashboard() {
   const fetchPromos = async () => {
     try {
       setPromosLoading(true);
-      const res = await api.get('/api/promo-codes');
+      const res = await api.get('/api/promo-codes', { params: { limit: 25, status: 'active' } });
       const promos = res.data.promoCodes || res.data || [];
       setActivePromos(promos.map(p => ({
         id: p._id,

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 import {
@@ -77,10 +77,10 @@ const GhanaDrivers = () => {
       const token = localStorage.getItem('adminToken');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      // Fetch Ghana drivers and pending deliveries
+      // Fetch Ghana drivers and pending deliveries with limits for scalability
       const [driversRes, deliveriesRes] = await Promise.all([
-        api.get('/api/admin/drivers/ghana', config),
-        api.get('/api/admin/deliveries/pending', config),
+        api.get('/api/admin/drivers/ghana', { ...config, params: { limit: 100 } }),
+        api.get('/api/admin/deliveries/pending', { ...config, params: { limit: 50 } }),
       ]);
 
       setDrivers(Array.isArray(driversRes.data) ? driversRes.data : []);

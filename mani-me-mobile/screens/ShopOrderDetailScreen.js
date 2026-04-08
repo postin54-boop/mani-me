@@ -257,11 +257,15 @@ export default function ShopOrderDetailScreen({ route, navigation }) {
           ))}
         </View>
 
-        {/* Delivery Address Card */}
+        {/* Delivery/Pickup Address Card */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>
-            <Ionicons name="location-outline" size={18} color={colors.primary} />
-            {'  '}Delivery Address
+            <Ionicons 
+              name={order.fulfillment_method === 'pickup' ? 'storefront-outline' : 'location-outline'} 
+              size={18} 
+              color={colors.primary} 
+            />
+            {'  '}{order.fulfillment_method === 'pickup' ? 'Pickup Location' : 'Delivery Address'}
           </Text>
           
           <View style={styles.addressContent}>
@@ -284,6 +288,24 @@ export default function ShopOrderDetailScreen({ route, navigation }) {
                     </Text>
                   </View>
                 )}
+              </>
+            ) : order.fulfillment_method === 'pickup' ? (
+              <>
+                <View style={[styles.pickupBadge, { backgroundColor: colors.primary + '15' }]}>
+                  <Ionicons name="cube-outline" size={20} color={colors.primary} />
+                  <Text style={[styles.pickupBadgeText, { color: colors.primary }]}>
+                    Warehouse Pickup
+                  </Text>
+                </View>
+                <Text style={[styles.addressLine, { color: colors.text, marginTop: 12 }]}>
+                  Mani Me Warehouse
+                </Text>
+                <Text style={[styles.addressLine, { color: colors.textSecondary }]}>
+                  London, E1 6AN
+                </Text>
+                <Text style={[styles.pickupNote, { color: colors.textSecondary, marginTop: 8 }]}>
+                  You will receive a notification when your order is ready for collection.
+                </Text>
               </>
             ) : (
               <>
@@ -564,6 +586,24 @@ const styles = StyleSheet.create({
   phoneText: {
     fontSize: 15,
     fontWeight: '500',
+  },
+  pickupBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 8,
+  },
+  pickupBadgeText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  pickupNote: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    lineHeight: 18,
   },
   summaryRows: {
     gap: 12,

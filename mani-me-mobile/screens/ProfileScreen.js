@@ -5,7 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../firebaseConfig';
+import { signInAnonymously } from 'firebase/auth';
+import { storage, auth } from '../firebaseConfig';
 import { useUser } from '../context/UserContext';
 import { useThemeColors, SIZES, FONTS, SHADOWS } from '../constants/theme';
 import { API_BASE_URL } from '../utils/config';
@@ -137,6 +138,12 @@ export default function ProfileScreen({ navigation }) {
       // Upload new profile image to Firebase Storage if changed
       if (profileImage && profileImage !== user?.profileImage && !profileImage.startsWith('http')) {
         try {
+          // Ensure Firebase Auth is signed in (required for Storage rules)
+          if (!auth.currentUser) {
+            await signInAnonymously(auth);
+            logger.log('Signed in anonymously to Firebase for storage access');
+          }
+          
           // Convert local file URI to blob using XMLHttpRequest (more reliable in React Native)
           const blob = await new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
