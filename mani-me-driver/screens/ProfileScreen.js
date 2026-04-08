@@ -8,9 +8,13 @@ import {
   StatusBar,
   Switch,
   Image,
+  Linking,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Notifications from 'expo-notifications';
+import * as Location from 'expo-location';
 import { useThemeColors } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 
@@ -59,21 +63,75 @@ export default function ProfileScreen({ navigation }) {
     { icon: 'shield-checkmark-outline', label: 'Privacy Policy', screen: 'PrivacyPolicy' },
   ];
 
-  // Settings state
-  const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
-  const [locationEnabled, setLocationEnabled] = React.useState(true);
+  // Settings state — backed by real system permissions
+  const [notificationsEnabled, setNotificationsEnabled] = React.useState(false);
+  const [locationEnabled, setLocationEnabled] = React.useState(false);
+
+  // Load real permission states on mount
+  React.useEffect(() => {
+    (async () => {
+      const notifStatus = await Notifications.getPermissionsAsync();
+      setNotificationsEnabled(notifStatus.status === 'granted');
+      const locStatus = await Location.getForegroundPermissionsAsync();
+      setLocationEnabled(locStatus.status === 'granted');
+    })();
+  }, []);
 
   const handleSettingPress = (item) => {
-    if (item.screen) {
-      navigation.navigate(item.screen);
-    }
+    if (item.screen) navigation.navigate(item.screen);
   };
 
-  const handleToggle = (key, value) => {
+  const handleToggle = async (key, value) => {
     if (key === 'notifications') {
-      setNotificationsEnabled(value);
+      if (value) {
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status === 'granted') {
+          setNotificationsEnabled(true);
+        } else {
+          Alert.alert(
+            'Notifications Disabled',
+            'Enable notifications in your device settings to receive job alerts.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            ]
+          );
+        }
+      } else {
+        Alert.alert(
+          'Disable Notifications',
+          'To turn off notifications, go to your device settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ]
+        );
+      }
     } else if (key === 'location') {
-      setLocationEnabled(value);
+      if (value) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          setLocationEnabled(true);
+        } else {
+          Alert.alert(
+            'Location Disabled',
+            'Enable location access in your device settings for accurate delivery tracking.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            ]
+          );
+        }
+      } else {
+        Alert.alert(
+          'Disable Location',
+          'To turn off location access, go to your device settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ]
+        );
+      }
     }
   };
 

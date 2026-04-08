@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity, Text, ActivityIndicator, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { addNotificationReceivedListener, addNotificationResponseReceivedListener } from './utils/notifications';
 import logger from './utils/logger';
 import { initSentry, setUserContext } from './utils/sentry';
@@ -18,7 +19,9 @@ import { initSentry, setUserContext } from './utils/sentry';
 initSentry();
 
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import AnimatedSplash from './screens/AnimatedSplash';
+import OnboardingScreen from './screens/OnboardingScreen';
 import AuthStack from './navigation/AuthStack';
 import HomeScreen from './screens/HomeScreen';
 import UKPickupsScreen from './screens/UKPickupsScreen';
@@ -39,6 +42,7 @@ import DocumentsScreen from './screens/DocumentsScreen';
 import HelpSupportScreen from './screens/HelpSupportScreen';
 import PrivacyPolicyScreen from './screens/PrivacyPolicyScreen';
 import TermsScreen from './screens/TermsScreen';
+import EarningsScreen from './screens/EarningsScreen';
 import { useThemeColors } from './constants/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -48,6 +52,8 @@ const Tab = createBottomTabNavigator();
 
 function MainTabs() {
   const { colors, isDark } = useThemeColors();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = 60 + insets.bottom;
 
   return (
     <Tab.Navigator
@@ -57,10 +63,12 @@ function MainTabs() {
           let iconName;
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'More') {
+            iconName = focused ? 'grid' : 'grid-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
-          return <Ionicons name={iconName} size={24} color={color} />;
+          return <Ionicons name={iconName} size={26} color={color} />;
         },
         tabBarActiveTintColor: colors.secondary,
         tabBarInactiveTintColor: colors.textSecondary,
@@ -68,19 +76,19 @@ function MainTabs() {
           backgroundColor: colors.surface,
           borderTopColor: colors.border || '#E5E7EB',
           borderTopWidth: 1,
-          height: 70,
-          paddingBottom: 10,
+          height: tabBarHeight,
+          paddingBottom: insets.bottom + 6,
           paddingTop: 10,
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '600',
-          marginTop: 4,
         },
         tabBarShowLabel: true,
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="More" component={MoreScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -88,28 +96,47 @@ function MainTabs() {
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  const handleSplashFinish = async () => {
+    setShowSplash(false);
+    SplashScreen.hideAsync();
+    try {
+      const seen = await AsyncStorage.getItem('driverHasSeenOnboarding');
+      if (!seen) setShowOnboarding(true);
+    } catch { /* ignore */ }
+  };
 
   if (showSplash) {
     return (
-      <AnimatedSplash
-        onFinish={() => {
-          setShowSplash(false);
-          SplashScreen.hideAsync();
-        }}
-      />
+      <SafeAreaProvider>
+        <AnimatedSplash onFinish={handleSplashFinish} />
+      </SafeAreaProvider>
+    );
+  }
+
+  if (showOnboarding) {
+    return (
+      <SafeAreaProvider>
+        <ErrorBoundary>
+          <OnboardingScreen onDone={() => setShowOnboarding(false)} />
+        </ErrorBoundary>
+      </SafeAreaProvider>
     );
   }
 
   return (
-    <ErrorBoundary>
-      <NetworkProvider>
-        <AuthProvider>
-          <CashTrackingProvider>
-            <AppNavigator />
-          </CashTrackingProvider>
-        </AuthProvider>
-      </NetworkProvider>
-    </ErrorBoundary>
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <NetworkProvider>
+          <AuthProvider>
+            <CashTrackingProvider>
+              <AppNavigator />
+            </CashTrackingProvider>
+          </AuthProvider>
+        </NetworkProvider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }
 
@@ -166,7 +193,6 @@ function AppNavigator() {
             <Stack.Screen name="JobDetails" component={JobDetailsScreen} />
             <Stack.Screen name="UKPickups" component={UKPickupsScreen} />
             <Stack.Screen name="GhanaDeliveries" component={GhanaDeliveriesScreen} />
-            <Stack.Screen name="More" component={MoreScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
             <Stack.Screen name="CashReconciliation" component={CashReconciliationScreen} />
             <Stack.Screen name="RecordCashPickup" component={RecordCashPickupScreen} />
@@ -179,6 +205,7 @@ function AppNavigator() {
             <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
             <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
             <Stack.Screen name="Terms" component={TermsScreen} />
+            <Stack.Screen name="Earnings" component={EarningsScreen} />
           </>
         )}
       </Stack.Navigator>

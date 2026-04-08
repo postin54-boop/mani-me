@@ -10,7 +10,8 @@ import {
   Animated, 
   Dimensions, 
   RefreshControl,
-  Alert 
+  Alert,
+  Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -53,7 +54,7 @@ const quickActionsUK = [
 const quickActionsGH = [
   { label: "Deliveries", icon: "bicycle-outline", screen: "GhanaDeliveries", color: COLORS.navy, bg: 'rgba(11, 31, 51, 0.08)' },
   { label: "Scan QR", icon: "qr-code-outline", screen: "ScanParcelScreen", color: COLORS.purple, bg: 'rgba(139, 92, 246, 0.1)' },
-  { label: "Take Photo", icon: "camera-outline", screen: "ScanParcelScreen", color: '#EC4899', bg: 'rgba(236, 72, 153, 0.1)' },
+  { label: "Take Photo", icon: "camera-outline", screen: "GhanaDeliveries", color: '#EC4899', bg: 'rgba(236, 72, 153, 0.1)' },
   { label: "Route Map", icon: "map-outline", screen: "GhanaDeliveries", color: COLORS.success, bg: 'rgba(16, 185, 129, 0.1)' },
   { label: "History", icon: "time-outline", screen: "AssignedJobs", color: COLORS.skyBlue, bg: 'rgba(131, 197, 250, 0.15)' },
   { label: "Chat", icon: "chatbubble-outline", screen: "ChatScreen", color: COLORS.warning, bg: 'rgba(245, 158, 11, 0.1)' },
@@ -65,8 +66,10 @@ export default function HomeScreen({ navigation }) {
   const { totalCash, cashCount } = useCashTracking();
   
   const [driverStatus, setDriverStatus] = useState("AVAILABLE");
+  const [isOnline, setIsOnline] = useState(true);
   const [activeJob, setActiveJob] = useState(null);
   const [assignedJobsCount, setAssignedJobsCount] = useState(0);
+  const [pendingJobsCount, setPendingJobsCount] = useState(0);
   const [notificationCount, setNotificationCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -77,7 +80,9 @@ export default function HomeScreen({ navigation }) {
   // Determine driver type
   const isUK = isUKDriver();
   const quickActions = isUK ? quickActionsUK : quickActionsGH;
-  const statusColor = driverStatus === "AVAILABLE" ? COLORS.success : COLORS.warning;
+  const statusColor = driverStatus === "ON_JOB"
+    ? COLORS.warning
+    : isOnline ? COLORS.success : COLORS.textSecondary;
 
   useEffect(() => {
     Animated.parallel([
@@ -92,9 +97,20 @@ export default function HomeScreen({ navigation }) {
         useNativeDriver: true,
       }),
     ]).start();
+  }, []);
 
+  useEffect(() => {
     if (user) fetchDriverData();
-  }, [user]);
+  }, [user, fetchDriverData]);
+
+  // Poll for new assignments every 30 seconds
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(() => {
+      fetchDriverData();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user, fetchDriverData]);
 
   const fetchDriverData = useCallback(async () => {
     try {
@@ -115,19 +131,19 @@ export default function HomeScreen({ navigation }) {
         setAssignedJobsCount(shipments.length);
         
         // Set notification count based on pending jobs
-        const pendingCount = shipments.filter(s => 
+        const pendingJobs = shipments.filter(s =>
           ['pending', 'assigned', 'booked'].includes(s.status?.toLowerCase())
-        ).length;
-        
-        // Check if user recently viewed notifications (within last 5 minutes)
-        const lastView = await AsyncStorage.getItem('lastNotificationView');
-        const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-        
-        // Only show notification count if there are new jobs since last view
-        // or if user hasn't viewed notifications in a while
-        if (!lastView || parseInt(lastView) < fiveMinutesAgo) {
-          setNotificationCount(pendingCount);
-        }
+        );
+        const pendingCount = pendingJobs.length;
+
+        // Compare against stored read IDs (keyed by userId so it persists across logout)
+        const userId = user?._id || user?.id || 'driver';
+        const readKey = `readJobIds_${userId}`;
+        const storedRaw = await AsyncStorage.getItem(readKey);
+        const readIds = storedRaw ? JSON.parse(storedRaw) : [];
+        const unreadCount = pendingJobs.filter(s => !readIds.includes(s._id || s.id)).length;
+        setNotificationCount(unreadCount);
+        setPendingJobsCount(pendingCount);
         
         // Find active job
         const pendingJob = shipments.find(s => 
@@ -220,22 +236,23 @@ export default function HomeScreen({ navigation }) {
           </View>
           
           <View style={styles.headerActions}>
-            {/* Status Indicator */}
-            <View style={[styles.statusChip, { backgroundColor: `${statusColor}20` }]}>
+            {/* Status Indicator - tap to toggle online/offline */}
+            <TouchableOpacity
+              style={[styles.statusChip, { backgroundColor: `${statusColor}20` }]}
+              onPress={() => { if (driverStatus !== "ON_JOB") setIsOnline(prev => !prev); }}
+              activeOpacity={driverStatus === "ON_JOB" ? 1 : 0.7}
+            >
               <View style={[styles.statusDotSmall, { backgroundColor: statusColor }]} />
               <Text style={[styles.statusChipText, { color: statusColor }]}>
-                {driverStatus === "AVAILABLE" ? "Online" : "Busy"}
+                {driverStatus === "ON_JOB" ? "Busy" : isOnline ? "Online" : "Offline"}
               </Text>
-            </View>
+            </TouchableOpacity>
             
             {/* Notification Bell */}
             <TouchableOpacity 
               style={styles.notificationBtn}
               onPress={() => {
-                // Clear notification count when viewing notifications
                 setNotificationCount(0);
-                // Save that user viewed notifications
-                AsyncStorage.setItem('lastNotificationView', Date.now().toString());
                 navigation.navigate('NotificationsScreen');
               }}
             >
@@ -249,8 +266,12 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
         
-        {/* User Info Row */}
-        <View style={styles.userRow}>
+        {/* User Info Row - tappable to go to Profile */}
+        <TouchableOpacity
+          style={styles.userRow}
+          onPress={() => navigation.navigate('Profile')}
+          activeOpacity={0.8}
+        >
           <Image 
             source={{ uri: user?.avatar || `https://ui-avatars.com/api/?name=${user?.fullName || 'Driver'}&background=83C5FA&color=0B1A33&size=128` }} 
             style={styles.avatar} 
@@ -262,13 +283,13 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.driverBadge}>
             <Text style={styles.driverBadgeText}>{isUK ? '🇬🇧 UK' : '🇬🇭 GH'}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
       </LinearGradient>
       
       {/* Content */}
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 140 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.skyBlue} />
@@ -276,31 +297,43 @@ export default function HomeScreen({ navigation }) {
       >
         {/* Stats Cards Row */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
+          <TouchableOpacity
+            style={styles.statCard}
+            onPress={() => navigation.navigate(isUK ? 'UKPickups' : 'GhanaDeliveries')}
+            activeOpacity={0.7}
+          >
             <View style={[styles.statIcon, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
               <Ionicons name="checkmark-circle" size={22} color={COLORS.success} />
             </View>
             <Text style={styles.statValue}>{assignedJobsCount}</Text>
             <Text style={styles.statLabel}>Assigned</Text>
-          </View>
+          </TouchableOpacity>
           
           {isUK && (
-            <View style={styles.statCard}>
+            <TouchableOpacity
+              style={styles.statCard}
+              onPress={() => navigation.navigate('CashReconciliation')}
+              activeOpacity={0.7}
+            >
               <View style={[styles.statIcon, { backgroundColor: 'rgba(131, 197, 250, 0.15)' }]}>
                 <Ionicons name="wallet" size={22} color={COLORS.skyBlue} />
               </View>
               <Text style={styles.statValue}>£{totalCash.toFixed(0)}</Text>
               <Text style={styles.statLabel}>Collected</Text>
-            </View>
+            </TouchableOpacity>
           )}
           
-          <View style={styles.statCard}>
+          <TouchableOpacity
+            style={styles.statCard}
+            onPress={() => navigation.navigate(isUK ? 'UKPickups' : 'GhanaDeliveries')}
+            activeOpacity={0.7}
+          >
             <View style={[styles.statIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
-              <Ionicons name="time" size={22} color={COLORS.purple} />
+              <Ionicons name="hourglass-outline" size={22} color={COLORS.purple} />
             </View>
-            <Text style={styles.statValue}>{activeJob ? '1' : '0'}</Text>
-            <Text style={styles.statLabel}>Active</Text>
-          </View>
+            <Text style={styles.statValue}>{pendingJobsCount}</Text>
+            <Text style={styles.statLabel}>Pending</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Active Job Card */}
@@ -315,7 +348,7 @@ export default function HomeScreen({ navigation }) {
                 <Text style={styles.activeJobBadgeText}>CURRENT JOB</Text>
               </View>
               {assignedJobsCount > 1 && (
-                <TouchableOpacity onPress={() => navigation.navigate('AssignedJobs')}>
+                <TouchableOpacity onPress={() => navigation.navigate(isUK ? 'UKPickups' : 'GhanaDeliveries')}>
                   <Text style={styles.viewAllLink}>View all ({assignedJobsCount})</Text>
                 </TouchableOpacity>
               )}
@@ -340,7 +373,10 @@ export default function HomeScreen({ navigation }) {
             
             <View style={styles.jobActions}>
               {activeJob.phone && (
-                <TouchableOpacity style={styles.callBtn}>
+                <TouchableOpacity
+                  style={styles.callBtn}
+                  onPress={() => Linking.openURL(`tel:${activeJob.phone}`)}
+                >
                   <Ionicons name="call" size={18} color={COLORS.success} />
                 </TouchableOpacity>
               )}
@@ -363,6 +399,13 @@ export default function HomeScreen({ navigation }) {
             </View>
             <Text style={styles.noJobTitle}>No Active Jobs</Text>
             <Text style={styles.noJobSubtitle}>Pull down to refresh or check your assigned jobs</Text>
+            <TouchableOpacity
+              style={styles.viewJobsBtn}
+              onPress={() => navigation.navigate(isUK ? 'UKPickups' : 'GhanaDeliveries')}
+            >
+              <Text style={styles.viewJobsBtnText}>View {isUK ? 'Pickups' : 'Deliveries'}</Text>
+              <Ionicons name="arrow-forward" size={16} color={COLORS.skyBlue} />
+            </TouchableOpacity>
           </Animated.View>
         )}
 
@@ -698,11 +741,12 @@ const styles = StyleSheet.create({
   actionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-between',
     marginBottom: 24,
+    rowGap: 12,
   },
   actionItem: {
-    width: (width - 64) / 3,
+    width: '31%',
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 14,
@@ -767,5 +811,20 @@ const styles = StyleSheet.create({
   cashPickupCount: {
     fontSize: 13,
     color: COLORS.textSecondary,
+  },
+  viewJobsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    backgroundColor: 'rgba(131, 197, 250, 0.12)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 6,
+  },
+  viewJobsBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.skyBlue,
   },
 });

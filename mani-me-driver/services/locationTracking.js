@@ -24,7 +24,7 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     if (!location) return;
 
     try {
-      const token = await SecureStore.getItemAsync('authToken');
+      const token = await SecureStore.getItemAsync('token');
       if (!token) return;
 
       await fetch(`${API_BASE_URL}/api/drivers/location`, {

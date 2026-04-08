@@ -20,6 +20,29 @@ export default function PrintLabelsScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const qrCodeRef = useRef(null);
+  const [capturedQrDataUrl, setCapturedQrDataUrl] = useState(null);
+
+  // Capture QR data URL whenever selectedParcel changes
+  useEffect(() => {
+    if (!selectedParcel) {
+      setCapturedQrDataUrl(null);
+      return;
+    }
+    // Wait a frame for the QR SVG to render before calling toDataURL
+    const timer = setTimeout(() => {
+      if (qrCodeRef.current?.toDataURL) {
+        qrCodeRef.current.toDataURL((data) => {
+          const prefix = data.startsWith('data:') ? data : `data:image/png;base64,${data}`;
+          setCapturedQrDataUrl(prefix);
+        });
+      } else {
+        // Fallback: use external API
+        const trackingUrl = `https://manime.co.uk/track/${encodeURIComponent(selectedParcel.tracking_number || selectedParcel.id)}`;
+        setCapturedQrDataUrl(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(trackingUrl)}`);
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [selectedParcel]);
 
   // Generate label HTML for printing
   const generateLabelHTML = (parcel, qrDataUrl) => {
@@ -30,51 +53,30 @@ export default function PrintLabelsScreen({ navigation }) {
         <meta charset="utf-8">
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { 
-            font-family: Arial, sans-serif; 
-            padding: 10mm;
-            width: 100mm;
-          }
-          .label {
-            border: 2px solid #000;
-            padding: 4mm;
-            background: #fff;
-          }
-          .header {
-            text-align: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 3mm;
-            margin-bottom: 3mm;
-          }
-          .logo { font-size: 18pt; font-weight: bold; color: #0B1A33; }
-          .parcel-id { font-size: 14pt; font-weight: bold; margin-top: 2mm; }
-          .qr-section { 
-            text-align: center; 
-            padding: 3mm 0;
-            border-bottom: 1px dashed #000;
-          }
-          .qr-section img { width: 30mm; height: 30mm; }
+          body { font-family: Arial, sans-serif; padding: 8mm; width: 100%; }
+          .label { border: 2px solid #000; padding: 4mm; background: #fff; width: 105mm; margin: 0 auto; }
+          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 3mm; margin-bottom: 3mm; }
+          .logo { font-size: 20pt; font-weight: bold; color: #0B1A33; }
+          .parcel-id { font-size: 13pt; font-weight: bold; margin-top: 2mm; letter-spacing: 1px; }
+          .qr-section { text-align: center; padding: 3mm 0; border-bottom: 1px dashed #000; }
+          .qr-section img { width: 32mm; height: 32mm; }
           .info-section { padding: 2mm 0; font-size: 9pt; }
           .info-row { margin: 1.5mm 0; }
           .label-title { font-weight: bold; color: #666; font-size: 8pt; }
           .label-value { font-weight: bold; font-size: 10pt; }
+          .size-cost-row {
+            display: flex; flex-direction: row; justify-content: space-between;
+            background: #F3F4F6; padding: 2mm 3mm; border-radius: 2mm; margin: 2mm 0;
+          }
+          .size-badge { font-size: 9pt; font-weight: bold; color: #0B1A33; }
+          .cost-badge { font-size: 11pt; font-weight: bold; color: #10B981; }
           .destination {
-            background: #0B1A33;
-            color: white;
-            text-align: center;
-            padding: 3mm;
-            font-size: 14pt;
-            font-weight: bold;
-            margin-top: 2mm;
+            background: #0B1A33; color: white; text-align: center;
+            padding: 3mm; font-size: 14pt; font-weight: bold; margin-top: 2mm;
           }
-          .footer { 
-            text-align: center; 
-            font-size: 7pt; 
-            color: #666; 
-            margin-top: 2mm;
-            border-top: 1px solid #ccc;
-            padding-top: 2mm;
-          }
+          .payment-row { font-size: 9pt; color: #666; margin-top: 1.5mm; text-align: center; }
+          .instructions { background: #FEF3C7; border: 1px solid #F59E0B; padding: 2mm 3mm; font-size: 8pt; margin-top: 2mm; border-radius: 1mm; }
+          .footer { text-align: center; font-size: 7pt; color: #666; margin-top: 2mm; border-top: 1px solid #ccc; padding-top: 2mm; }
         </style>
       </head>
       <body>
@@ -84,36 +86,42 @@ export default function PrintLabelsScreen({ navigation }) {
             <div style="font-size: 8pt; color: #666;">UK ↔ Ghana Parcel Service</div>
             <div class="parcel-id">${parcel.id}</div>
           </div>
-          
+
           <div class="qr-section">
             <img src="${qrDataUrl}" alt="QR Code" />
-            <div style="font-size: 8pt; color: #666; margin-top: 1mm;">Scan for tracking</div>
+            <div style="font-size: 8pt; color: #666; margin-top: 1mm;">Scan to track parcel</div>
           </div>
-          
+
+          <div class="size-cost-row">
+            <span class="size-badge">📦 ${parcel.parcel_size ? parcel.parcel_size.replace(/_/g,' ').toUpperCase() : 'PARCEL'}</span>
+            ${parcel.total_cost ? `<span class="cost-badge">£${Number(parcel.total_cost).toFixed(2)}</span>` : ''}
+          </div>
+          ${parcel.payment_method ? `<div class="payment-row">${parcel.payment_method === 'cash' ? '💷 Cash on Pickup' : '💳 Paid by Card'}</div>` : ''}
+
           <div class="info-section">
             <div class="info-row">
               <div class="label-title">FROM:</div>
               <div class="label-value">${parcel.sender || 'Sender'}</div>
               <div style="font-size: 8pt;">${parcel.pickupAddress || 'UK'}</div>
             </div>
-            
+
             <div class="info-row" style="margin-top: 3mm;">
               <div class="label-title">TO:</div>
               <div class="label-value">${parcel.receiverName || 'Receiver'}</div>
               <div style="font-size: 8pt;">${parcel.receiverAddress || 'Ghana'}</div>
               ${parcel.receiverPhone ? `<div style="font-size: 8pt;">Tel: ${parcel.receiverPhone}</div>` : ''}
             </div>
-            
-            ${parcel.weight ? `<div class="info-row"><span class="label-title">Weight:</span> ${parcel.weight} kg</div>` : ''}
+
+            ${parcel.weight ? `<div class="info-row"><span class="label-title">Weight:</span> <strong>${parcel.weight} kg</strong></div>` : ''}
           </div>
-          
-          <div class="destination">
-            🇬🇭 ${parcel.destination || 'GHANA'}
-          </div>
-          
+
+          ${parcel.specialInstructions ? `<div class="instructions"><strong>⚠ Special Instructions:</strong> ${parcel.specialInstructions}</div>` : ''}
+
+          <div class="destination">🇬🇭 ${parcel.destination || 'GHANA'}</div>
+
           <div class="footer">
             Printed: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}<br/>
-            www.mani-me.com
+            www.manime.co.uk
           </div>
         </div>
       </body>
@@ -124,34 +132,26 @@ export default function PrintLabelsScreen({ navigation }) {
   // Print label using system print dialog
   const printLabel = async (parcel) => {
     setPrinting(true);
-    
     try {
-      // Generate QR code as data URL
-      const qrDataUrl = await new Promise((resolve) => {
-        // Create a simple QR code data URL
-        const trackingUrl = `https://mani-me.com/track/${parcel.id}`;
-        // Use a placeholder - in production you'd generate actual QR
-        resolve(`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(trackingUrl)}`);
-      });
-      
+      // Use pre-captured QR data URL; fall back to external service if not ready
+      const qrDataUrl = capturedQrDataUrl
+        || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://manime.co.uk/track/${encodeURIComponent(parcel.tracking_number || parcel.id)}`)}`;
+
       const html = generateLabelHTML(parcel, qrDataUrl);
-      
-      // Print using system dialog - shows available printers
-      await Print.printAsync({
-        html,
-        // For thermal printers, you might want specific dimensions
-        // width: 384, // 48mm * 8 dots/mm for common thermal printers
-        // height: 600,
-      });
-      
-      Alert.alert(
-        'Print Complete',
-        `Label for ${parcel.id} sent to printer!`,
-        [{ text: 'OK' }]
-      );
+      await Print.printAsync({ html });
+
+      Alert.alert('Print Complete', `Label for ${parcel.id} sent to printer!`, [{ text: 'OK' }]);
     } catch (error) {
-      logger.error('Print error', error);
-      if (error.message !== 'Cancelled') {
+      // Silently ignore all "user walked away from the dialog" messages (wording varies by OS/version)
+      const msg = error?.message?.toLowerCase() || '';
+      const isCancelled =
+        msg.includes('cancel') ||
+        msg.includes('dismiss') ||
+        msg.includes('did not complete') ||
+        msg.includes('not complete') ||
+        msg.includes('user');
+      if (!isCancelled) {
+        logger.error('Print error', error);
         Alert.alert('Print Error', 'Failed to print label. Please try again.');
       }
     } finally {
@@ -164,10 +164,9 @@ export default function PrintLabelsScreen({ navigation }) {
   // Share/Save label as PDF
   const shareLabelAsPDF = async (parcel) => {
     setPrinting(true);
-    
     try {
-      const trackingUrl = `https://mani-me.com/track/${parcel.id}`;
-      const qrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(trackingUrl)}`;
+      const qrDataUrl = capturedQrDataUrl
+        || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://manime.co.uk/track/${encodeURIComponent(parcel.tracking_number || parcel.id)}`)}`;
       
       const html = generateLabelHTML(parcel, qrDataUrl);
       
@@ -185,8 +184,18 @@ export default function PrintLabelsScreen({ navigation }) {
         Alert.alert('Sharing not available', 'Sharing is not available on this device');
       }
     } catch (error) {
-      logger.error('Share label PDF error', error);
-      Alert.alert('Error', 'Failed to generate PDF. Please try again.');
+      // Silently ignore all dialog-dismissed messages (wording varies by OS/version)
+      const msg = error?.message?.toLowerCase() || '';
+      const isCancelled =
+        msg.includes('cancel') ||
+        msg.includes('dismiss') ||
+        msg.includes('did not complete') ||
+        msg.includes('not complete') ||
+        msg.includes('user');
+      if (!isCancelled) {
+        logger.error('Share label PDF error', error);
+        Alert.alert('Error', 'Failed to generate PDF. Please try again.');
+      }
     } finally {
       setPrinting(false);
       setPreviewVisible(false);
@@ -228,7 +237,11 @@ export default function PrintLabelsScreen({ navigation }) {
           receiverPhone: shipment.receiver_phone,
           status: shipment.status,
           weight: shipment.weight_kg,
+          parcel_size: shipment.parcel_size,
+          total_cost: shipment.total_cost,
+          payment_method: shipment.payment_method,
           specialInstructions: shipment.special_instructions,
+          tracking_number: shipment.tracking_number,
         }));
         setRecentPickups(mappedPickups);
       } else {
@@ -363,6 +376,18 @@ export default function PrintLabelsScreen({ navigation }) {
         <Ionicons name="arrow-back" size={24} color="#0B1A33" />
       </TouchableOpacity>
 
+      {/* Always-mounted QR renderer for data URL capture */}
+      {selectedParcel && (
+        <View style={{ position: 'absolute', opacity: 0, top: -500, pointerEvents: 'none' }}>
+          <QRCode
+            value={selectedParcel.tracking_number || selectedParcel.id || 'MANI-ME'}
+            size={150}
+            backgroundColor="white"
+            getRef={(c) => { qrCodeRef.current = c; }}
+          />
+        </View>
+      )}
+
       <ScrollView 
         style={{ flex: 1 }} 
         contentContainerStyle={styles.scrollContent}
@@ -474,9 +499,10 @@ export default function PrintLabelsScreen({ navigation }) {
                 {/* QR Code */}
                 <View style={styles.qrContainer}>
                   <QRCode
-                    value={selectedParcel.id}
+                    value={selectedParcel.tracking_number || selectedParcel.id}
                     size={120}
                     backgroundColor="white"
+                    getRef={(c) => (qrCodeRef.current = c)}
                   />
                 </View>
 

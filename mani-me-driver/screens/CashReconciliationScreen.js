@@ -1,27 +1,45 @@
 // screens/CashReconciliationScreen.js
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ActivityIndicator, ScrollView, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Image, 
+  ActivityIndicator, 
+  ScrollView, 
+  Alert,
+  FlatList
+} from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../utils/firebase';
 import { submitCashReconciliation } from '../utils/api';
 import { useCashTracking } from '../context/CashTrackingContext';
 import { useAuth } from '../context/AuthContext';
 import logger from '../utils/logger';
 
+const COLORS = {
+  deepNavy: '#071528',
+  surface: '#0D2847',
+  skyBlue: '#83C5FA',
+  success: '#10B981',
+  warning: '#F59E0B',
+  danger: '#EF4444',
+  text: '#FFFFFF',
+  textSecondary: '#94A3B8',
+};
+
 export default function CashReconciliationScreen({ navigation }) {
-  const { totalCash, cashCount, clearCashPickups } = useCashTracking();
+  const { totalCash, cashCount, cashPickups, clearCashPickups } = useCashTracking();
   const { user } = useAuth();
-  const [amount, setAmount] = useState('');
+  const insets = useSafeAreaInsets();
   const [photo, setPhoto] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-
-  // Pre-fill amount with total cash collected
-  useEffect(() => {
-    if (totalCash > 0) {
-      setAmount(totalCash.toFixed(2));
-    }
-  }, [totalCash]);
+  const [step, setStep] = useState(1); // 1 = Review, 2 = Photo, 3 = Confirm
 
   const pickImage = async () => {
     let result = await ImagePicker.launchCameraAsync({
@@ -29,114 +47,235 @@ export default function CashReconciliationScreen({ navigation }) {
       aspect: [4, 3],
       quality: 0.7,
     });
-    if (!result.cancelled) {
-      setPhoto(result.uri);
+    if (!result.canceled && result.assets && result.assets[0]) {
+      setPhoto(result.assets[0].uri);
+      setStep(3);
     }
   };
 
   const handleSubmit = async () => {
-    logger.log('Submit button pressed', { user, amount, photo });
-    
-    // Get user id from either id or _id field
     const userId = user?.id || user?._id;
     
     if (!userId) {
-      setError('User not authenticated');
       Alert.alert('Error', 'User not authenticated. Please log in again.');
       return;
     }
 
-    if (!amount || isNaN(parseFloat(amount))) {
-      setError('Please enter a valid amount');
+    if (totalCash <= 0) {
+      Alert.alert('No Cash', 'There are no cash pickups to submit.');
       return;
     }
 
     if (!photo) {
-      setError('Please upload a receipt photo');
+      Alert.alert('Photo Required', 'Please take a photo of the cash/receipt first.');
       return;
     }
 
     setSubmitting(true);
-    setError('');
     try {
-      logger.log('Submitting cash reconciliation...', { userId, amount: parseFloat(amount) });
-      
+      logger.log('Submitting cash reconciliation...', { userId, amount: totalCash });
+
+      // Upload receipt photo to Firebase Storage
+      const filename = `cash-receipts/${userId}/${Date.now()}.jpg`;
+      const storageRef = ref(storage, filename);
+      const blob = await (await fetch(photo)).blob();
+      await uploadBytes(storageRef, blob);
+      const photoUrl = await getDownloadURL(storageRef);
+
       const response = await submitCashReconciliation({
         driver_id: userId,
-        amount: parseFloat(amount),
-        photoUrl: photo, // Replace with uploaded URL in production
+        amount: totalCash,
+        photoUrl,
+        pickupCount: cashCount,
+        pickups: cashPickups.map(p => ({ id: p.id, amount: p.amount, parcelId: p.parcelId })),
       });
       
       logger.log('Submission successful:', response.data);
-      
-      // Clear cash pickups after successful submission
       await clearCashPickups();
       
       setSubmitting(false);
       Alert.alert(
-        'Submitted to Admin',
-        `Your cash report has been submitted for admin approval.\n\nAmount: £${parseFloat(amount).toFixed(2)}\nPickups: ${cashCount}\n\nStatus: Pending Review`,
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack()
-          }
-        ]
+        '✅ Submitted Successfully',
+        `Your cash report has been submitted.\n\nTotal: £${totalCash.toFixed(2)}\nPickups: ${cashCount}\n\nStatus: Pending Admin Review`,
+        [{ text: 'Done', onPress: () => navigation.goBack() }]
       );
     } catch (err) {
       logger.error('Submission error:', err);
       setSubmitting(false);
       const errorMessage = err?.response?.data?.error || err?.response?.data?.message || err.message || 'Submission failed';
-      setError(errorMessage);
       Alert.alert('Submission Failed', errorMessage);
     }
   };
 
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const renderPickupItem = ({ item, index }) => (
+    <View style={styles.pickupItem}>
+      <View style={styles.pickupLeft}>
+        <View style={styles.pickupIndex}>
+          <Text style={styles.pickupIndexText}>{index + 1}</Text>
+        </View>
+        <View>
+          <Text style={styles.pickupAmount}>£{item.amount.toFixed(2)}</Text>
+          <Text style={styles.pickupTime}>{formatTime(item.timestamp)}</Text>
+        </View>
+      </View>
+      {item.parcelId && (
+        <Text style={styles.pickupParcelId}>#{item.parcelId.slice(-6)}</Text>
+      )}
+    </View>
+  );
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      <MaterialCommunityIcons name="cash-remove" size={64} color={COLORS.textSecondary} />
+      <Text style={styles.emptyTitle}>No Cash Pickups</Text>
+      <Text style={styles.emptySubtitle}>
+        You haven't recorded any cash pickups today.{'\n'}Cash payments will appear here automatically.
+      </Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Ionicons name="arrow-back" size={24} color="#fff" />
-      </TouchableOpacity>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Cash Reconciliation</Text>
-        <Text style={styles.subtitle}>Report cash collected from pickups</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Amount Submitted (£)"
-        keyboardType="numeric"
-        value={amount}
-        onChangeText={setAmount}
-        editable={!submitting}
-      />
-      <TouchableOpacity style={styles.photoButton} onPress={pickImage} disabled={submitting}>
-        <Text style={styles.photoButtonText}>{photo ? 'Change Photo' : 'Upload Receipt Photo'}</Text>
-      </TouchableOpacity>
-      {photo && <Image source={{ uri: photo }} style={styles.photoPreview} />}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      
-      <TouchableOpacity 
-        style={[
-          styles.submitButton, 
-          (submitting || !amount || !photo) && styles.submitButtonDisabled
-        ]} 
-        onPress={handleSubmit} 
-        disabled={submitting || !amount || !photo}
+      {/* Header */}
+      <LinearGradient
+        colors={[COLORS.deepNavy, COLORS.surface]}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
-        {submitting ? (
-          <ActivityIndicator color="#fff" />
+        <View style={styles.headerRow}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Cash Handover</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        {/* Step Indicator */}
+        <View style={styles.stepIndicator}>
+          <View style={[styles.stepDot, step >= 1 && styles.stepDotActive]}>
+            <Text style={styles.stepDotText}>1</Text>
+          </View>
+          <View style={[styles.stepLine, step >= 2 && styles.stepLineActive]} />
+          <View style={[styles.stepDot, step >= 2 && styles.stepDotActive]}>
+            <Text style={styles.stepDotText}>2</Text>
+          </View>
+          <View style={[styles.stepLine, step >= 3 && styles.stepLineActive]} />
+          <View style={[styles.stepDot, step >= 3 && styles.stepDotActive]}>
+            <Text style={styles.stepDotText}>3</Text>
+          </View>
+        </View>
+        <View style={styles.stepLabels}>
+          <Text style={styles.stepLabel}>Review</Text>
+          <Text style={styles.stepLabel}>Photo</Text>
+          <Text style={styles.stepLabel}>Confirm</Text>
+        </View>
+      </LinearGradient>
+
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {/* Summary Card */}
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryHeader}>
+            <MaterialCommunityIcons name="cash-multiple" size={28} color={COLORS.success} />
+            <Text style={styles.summaryTitle}>Cash to Hand Over</Text>
+          </View>
+          <Text style={styles.summaryAmount}>£{totalCash.toFixed(2)}</Text>
+          <View style={styles.summaryStats}>
+            <View style={styles.summaryStat}>
+              <Ionicons name="receipt-outline" size={18} color={COLORS.skyBlue} />
+              <Text style={styles.summaryStatText}>{cashCount} pickup{cashCount !== 1 ? 's' : ''}</Text>
+            </View>
+            <View style={styles.summaryStat}>
+              <Ionicons name="calendar-outline" size={18} color={COLORS.skyBlue} />
+              <Text style={styles.summaryStatText}>Today</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Info Banner */}
+        <View style={styles.infoBanner}>
+          <Ionicons name="information-circle" size={20} color={COLORS.skyBlue} />
+          <Text style={styles.infoBannerText}>
+            Hand over this cash to the warehouse supervisor and take a photo of the receipt.
+          </Text>
+        </View>
+
+        {/* Pickups List */}
+        <Text style={styles.sectionTitle}>Breakdown</Text>
+        {cashPickups.length > 0 ? (
+          <View style={styles.pickupsList}>
+            {cashPickups.map((item, index) => (
+              <View key={item.id}>
+                {renderPickupItem({ item, index })}
+              </View>
+            ))}
+          </View>
         ) : (
-          <Text style={styles.submitButtonText}>Submit Report</Text>
+          renderEmptyState()
         )}
-      </TouchableOpacity>
-      
-      {(!amount || !photo) && !submitting && (
-        <Text style={styles.helperText}>
-          {!amount && !photo ? 'Please enter amount and upload photo' : 
-           !amount ? 'Please enter amount' : 
-           'Please upload receipt photo'}
-        </Text>
-      )}
+
+        {/* Photo Section */}
+        {cashCount > 0 && (
+          <View style={styles.photoSection}>
+            <Text style={styles.sectionTitle}>Receipt Photo</Text>
+            {photo ? (
+              <View style={styles.photoPreviewContainer}>
+                <Image source={{ uri: photo }} style={styles.photoPreview} />
+                <TouchableOpacity 
+                  style={styles.retakeButton}
+                  onPress={pickImage}
+                >
+                  <Ionicons name="camera" size={18} color="#fff" />
+                  <Text style={styles.retakeButtonText}>Retake</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity 
+                style={styles.photoButton}
+                onPress={() => { setStep(2); pickImage(); }}
+              >
+                <Ionicons name="camera-outline" size={32} color={COLORS.skyBlue} />
+                <Text style={styles.photoButtonText}>Take Receipt Photo</Text>
+                <Text style={styles.photoButtonHint}>Photo of cash handover or supervisor signature</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </ScrollView>
+
+      {/* Bottom Action */}
+      {cashCount > 0 && (
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              (!photo || submitting) && styles.submitButtonDisabled
+            ]}
+            onPress={handleSubmit}
+            disabled={!photo || submitting}
+          >
+            {submitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle" size={22} color="#fff" />
+                <Text style={styles.submitButtonText}>
+                  Submit £{totalCash.toFixed(2)} Handover
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+          {!photo && (
+            <Text style={styles.submitHint}>Take a photo to continue</Text>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -144,84 +283,284 @@ export default function CashReconciliationScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#071528',
+    backgroundColor: COLORS.deepNavy,
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 10,
-    padding: 8,
-  },
-  scrollContent: {
-    padding: 24,
-    paddingTop: 80,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  title: {
+  headerTitle: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
+  },
+  stepIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 8,
   },
-  subtitle: {
-    color: '#84C3EA',
-    fontSize: 14,
-    marginBottom: 24,
+  stepDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepDotActive: {
+    backgroundColor: COLORS.skyBlue,
+  },
+  stepDotText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  stepLine: {
+    width: 40,
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginHorizontal: 8,
+  },
+  stepLineActive: {
+    backgroundColor: COLORS.skyBlue,
+  },
+  stepLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  stepLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    flex: 1,
     textAlign: 'center',
   },
-  input: {
-    width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-    marginBottom: 18,
+  content: {
+    flex: 1,
   },
-  photoButton: {
-    backgroundColor: '#84C3EA',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
+  contentContainer: {
+    padding: 16,
+    paddingBottom: 100,
+  },
+  summaryCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(131, 197, 250, 0.2)',
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 12,
   },
-  photoButtonText: {
-    color: '#071528',
+  summaryTitle: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    marginLeft: 10,
+  },
+  summaryAmount: {
+    color: '#fff',
+    fontSize: 42,
     fontWeight: '700',
-    fontSize: 15,
+    marginBottom: 16,
+  },
+  summaryStats: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  summaryStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  summaryStatText: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(131, 197, 250, 0.1)',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 20,
+    gap: 10,
+  },
+  infoBannerText: {
+    color: COLORS.skyBlue,
+    fontSize: 13,
+    flex: 1,
+    lineHeight: 18,
+  },
+  sectionTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  pickupsList: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  pickupItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  pickupLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  pickupIndex: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(131, 197, 250, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickupIndexText: {
+    color: COLORS.skyBlue,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  pickupAmount: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  pickupTime: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  pickupParcelId: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontFamily: 'monospace',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  photoSection: {
+    marginBottom: 20,
+  },
+  photoButton: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(131, 197, 250, 0.3)',
+    borderStyle: 'dashed',
+  },
+  photoButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 12,
+  },
+  photoButtonHint: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    marginTop: 6,
+  },
+  photoPreviewContainer: {
+    position: 'relative',
   },
   photoPreview: {
-    width: 180,
-    height: 120,
-    borderRadius: 8,
-    marginBottom: 18,
-    marginTop: 4,
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
   },
-  error: {
-    color: '#ff5252',
-    marginBottom: 10,
+  retakeButton: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  retakeButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.deepNavy,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    padding: 16,
+    paddingTop: 14,
   },
   submitButton: {
-    backgroundColor: '#071528',
-    borderRadius: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    marginTop: 8,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.success,
+    borderRadius: 12,
+    padding: 16,
+    gap: 10,
   },
   submitButtonDisabled: {
     backgroundColor: '#3a4a5f',
-    opacity: 0.6,
+    opacity: 0.7,
   },
   submitButtonText: {
     color: '#fff',
+    fontSize: 17,
     fontWeight: '700',
-    fontSize: 16,
   },
-  helperText: {
-    color: '#84C3EA',
+  submitHint: {
+    color: COLORS.textSecondary,
     fontSize: 12,
-    marginTop: 8,
     textAlign: 'center',
+    marginTop: 8,
   },
 });

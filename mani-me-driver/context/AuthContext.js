@@ -157,6 +157,9 @@ export const AuthProvider = ({ children }) => {
   const clearAuthData = async () => {
     await secureStorage.removeItem('token');
     await AsyncStorage.removeItem("user");
+    // Also remove the plain 'token' key to prevent migrateFromAsyncStorage
+    // from restoring this session on the next app launch
+    await AsyncStorage.removeItem('token');
     setToken(null);
     setUser(null);
     setRole(null);
@@ -263,7 +266,14 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, user: userData };
     } catch (error) {
-      logger.error("Login error:", error);
+      // 4xx errors are expected (wrong password, unknown email) — warn only
+      // 5xx or network errors are unexpected — log as error
+      const status = error.response?.status;
+      if (status && status < 500) {
+        logger.warn('Login failed (client error):', error.response?.data?.message || error.message);
+      } else {
+        logger.error('Login error:', error);
+      }
       return { 
         success: false, 
         message: error.response?.data?.message || error.message || "Login failed" 

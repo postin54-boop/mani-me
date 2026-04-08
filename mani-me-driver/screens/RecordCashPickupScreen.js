@@ -3,11 +3,13 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCashTracking } from '../context/CashTrackingContext';
+import apiClient from '../utils/api';
+import logger from '../utils/logger';
 
 export default function RecordCashPickupScreen({ navigation, route }) {
-  const { parcelId } = route.params || {};
+  const { parcelId, shipmentId, amount: prefillAmount } = route.params || {};
   const { addCashPickup } = useCashTracking();
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState(prefillAmount ? String(prefillAmount) : '');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
@@ -17,22 +19,33 @@ export default function RecordCashPickupScreen({ navigation, route }) {
     }
 
     setLoading(true);
-    const result = await addCashPickup(amount, parcelId);
-    setLoading(false);
+    try {
+      // 1. Record in local cash tracking context
+      const result = await addCashPickup(amount, parcelId);
+      if (!result.success) throw new Error(result.error || 'Failed to record cash pickup');
 
-    if (result.success) {
+      // 2. If we have a shipmentId, confirm payment on the backend
+      if (shipmentId) {
+        try {
+          await apiClient.put(`/shipments/${shipmentId}/status`, {
+            status: 'picked_up',
+            payment_confirmed: true,
+            cash_amount_collected: parseFloat(amount),
+          });
+        } catch (err) {
+          logger.warn('Could not update shipment payment status — cash recorded locally', err);
+        }
+      }
+
       Alert.alert(
-        'Success',
-        `Cash pickup recorded: £${parseFloat(amount).toFixed(2)}`,
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack()
-          }
-        ]
+        'Cash Recorded',
+        `£${parseFloat(amount).toFixed(2)} recorded${parcelId ? ` for parcel ${parcelId}` : ''}.`,
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
-    } else {
-      Alert.alert('Error', result.error || 'Failed to record cash pickup');
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Failed to record cash pickup');
+    } finally {
+      setLoading(false);
     }
   };
 

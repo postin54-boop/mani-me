@@ -3,13 +3,12 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Keyboard
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 import { useThemeColors } from '../constants/theme';
 import api from '../utils/api';
 import logger from '../utils/logger';
-import firebaseConfig from '../utils/firebaseConfig';
+import { db } from '../utils/firebase';
 
 export default function ChatScreen({ route, navigation }) {
   const {
@@ -25,15 +24,6 @@ export default function ChatScreen({ route, navigation }) {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const flatListRef = useRef(null);
-  const dbRef = useRef(null);
-
-  // Initialize Firebase (using centralized config)
-  useEffect(() => {
-    if (!dbRef.current) {
-      const app = initializeApp(firebaseConfig);
-      dbRef.current = getFirestore(app);
-    }
-  }, []);
 
   useEffect(() => {
     if (!shipment_id) {
@@ -42,12 +32,10 @@ export default function ChatScreen({ route, navigation }) {
       return;
     }
 
-    if (!dbRef.current) return;
-
     logger.log("Setting up real-time listener for shipment_id:", shipment_id);
     
     // Create real-time listener for messages
-    const messagesRef = collection(dbRef.current, 'messages');
+    const messagesRef = collection(db, 'messages');
     const q = query(
       messagesRef,
       where('shipment_id', '==', shipment_id),
@@ -75,7 +63,7 @@ export default function ChatScreen({ route, navigation }) {
 
     // Cleanup listener on unmount
     return () => unsubscribe();
-  }, [shipment_id, dbRef.current]);
+  }, [shipment_id]);
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -86,7 +74,7 @@ export default function ChatScreen({ route, navigation }) {
         shipment_id,
         sender_id: user.id,
         sender_role: 'driver',
-        sender_name: user.name,
+        sender_name: user.fullName || user.name || 'Driver',
         message: newMessage.trim(),
       };
       

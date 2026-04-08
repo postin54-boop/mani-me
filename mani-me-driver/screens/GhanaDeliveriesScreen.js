@@ -16,8 +16,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../utils/firebase';
 import { useThemeColors } from '../constants/theme';
 import { fetchDriverAssignmentsPaginated, updateDeliveryStatus } from '../utils/optimizedApi';
+import apiClient from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import logger from '../utils/logger';
 
@@ -34,6 +37,8 @@ export default function GhanaDeliveriesScreen({ navigation }) {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [proofPhoto, setProofPhoto] = useState(null);
+  const [failReason, setFailReason] = useState('');
+  const [failNotes, setFailNotes] = useState('');
 
   useEffect(() => {
     fetchDeliveries(1);
@@ -107,6 +112,31 @@ export default function GhanaDeliveriesScreen({ navigation }) {
     }
   }, [loadingMore, hasMore, refreshing, page]);
 
+  const declineDelivery = async (delivery) => {
+    Alert.alert(
+      'Decline Delivery',
+      `Decline delivery for ${delivery.receiverName || delivery.id}? This will unassign you from the job.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Decline',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiClient.post(`/drivers/deliveries/${delivery.id || delivery._id}/decline`, {
+                reason: 'Driver declined',
+              });
+              onRefresh();
+            } catch {
+              setDeliveries(prev => prev.filter(d => (d.id || d._id) !== (delivery.id || delivery._id)));
+              Alert.alert('Job Declined', 'The delivery has been removed from your list.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const openMaps = (address) => {
     const encodedAddress = encodeURIComponent(address);
     const url = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
@@ -117,8 +147,12 @@ export default function GhanaDeliveriesScreen({ navigation }) {
     Linking.openURL(`tel:${phone}`);
   };
 
-  const chatReceiver = (deliveryId) => {
-    logger.log('Chat with receiver:', deliveryId);
+  const chatReceiver = (delivery) => {
+    navigation.navigate('ChatScreen', {
+      shipment_id: delivery.id || delivery._id,
+      customer_name: delivery.receiverName || 'Receiver',
+      tracking_number: delivery.trackingNumber || delivery.id,
+    });
   };
 
   const handleDeliveryProof = (delivery) => {
@@ -155,6 +189,8 @@ export default function GhanaDeliveriesScreen({ navigation }) {
 
   const handleFailedDelivery = (delivery) => {
     setSelectedDelivery(delivery);
+    setFailReason('');
+    setFailNotes('');
     setShowFailModal(true);
   };
 
@@ -164,9 +200,25 @@ export default function GhanaDeliveriesScreen({ navigation }) {
       return;
     }
     try {
+      // Upload proof photo to Firebase Storage first
+      let photoUrl = proofPhoto;
+      if (proofPhoto.startsWith('file://') || proofPhoto.startsWith('/')) {
+        const blob = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.onload = () => resolve(xhr.response);
+          xhr.onerror = () => reject(new Error('Failed to load image'));
+          xhr.responseType = 'blob';
+          xhr.open('GET', proofPhoto, true);
+          xhr.send(null);
+        });
+        const filename = `proof_of_delivery/${selectedDelivery.id}_${Date.now()}.jpg`;
+        const storageRef = ref(storage, filename);
+        await uploadBytes(storageRef, blob);
+        photoUrl = await getDownloadURL(storageRef);
+      }
       await updateDeliveryStatus(selectedDelivery.id, 'delivered', {
         proofType: 'photo',
-        proofPhotoUri: proofPhoto,
+        proofPhotoUri: photoUrl,
         deliveredAt: new Date().toISOString(),
       });
       Alert.alert('Success', 'Delivery marked as completed');
@@ -178,14 +230,22 @@ export default function GhanaDeliveriesScreen({ navigation }) {
     }
   };
 
-  const reportFailedDelivery = async (reason) => {
+  const reportFailedDelivery = async (reason, notes) => {
+    const resolvedReason = reason || failReason;
+    if (!resolvedReason) {
+      Alert.alert('Select Reason', 'Please select a reason for the failed delivery.');
+      return;
+    }
     try {
       await updateDeliveryStatus(selectedDelivery.id, 'failed', {
-        failReason: reason,
+        failReason: resolvedReason,
+        failNotes: notes || failNotes || '',
         attemptedAt: new Date().toISOString(),
       });
       Alert.alert('Reported', 'Delivery failure has been reported');
       setShowFailModal(false);
+      setFailReason('');
+      setFailNotes('');
       onRefresh();
     } catch (error) {
       Alert.alert('Error', 'Failed to report delivery failure');
@@ -199,6 +259,26 @@ export default function GhanaDeliveriesScreen({ navigation }) {
         { backgroundColor: colors.surface, borderColor: colors.border },
       ]}
     >
+      {/* Accept / Decline row for pending deliveries */}
+      {delivery.status === 'pending' && (
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+          <TouchableOpacity
+            style={[styles.actionBtn, { flex: 1, backgroundColor: colors.primary, justifyContent: 'center' }]}
+            onPress={() => navigation.navigate('JobDetails', { job: delivery })}
+          >
+            <Ionicons name="eye-outline" size={18} color="#fff" />
+            <Text style={[styles.actionText, { color: '#fff' }]}>View Details</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: '#FEE2E2', borderColor: '#EF4444', borderWidth: 1 }]}
+            onPress={() => declineDelivery(delivery)}
+          >
+            <Ionicons name="close-circle-outline" size={18} color="#EF4444" />
+            <Text style={[styles.actionText, { color: '#EF4444' }]}>Decline</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.cardHeader}>
         <View>
@@ -297,7 +377,7 @@ export default function GhanaDeliveriesScreen({ navigation }) {
 
         <TouchableOpacity
           style={[styles.actionBtn, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}
-          onPress={() => chatReceiver(delivery.id)}
+          onPress={() => chatReceiver(delivery)}
         >
           <Ionicons name="chatbubble" size={20} color={colors.secondary} />
           <Text style={[styles.actionText, { color: colors.text }]}>
@@ -491,45 +571,55 @@ export default function GhanaDeliveriesScreen({ navigation }) {
               Reason for failure:
             </Text>
 
-            <TouchableOpacity 
-              style={[styles.reasonBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={() => reportFailedDelivery('Customer Not Home')}
-            >
-              <Ionicons name="home-outline" size={20} color={colors.text} />
-              <Text style={[styles.reasonText, { color: colors.text }]}>
-                Customer Not Home
-              </Text>
-            </TouchableOpacity>
+            <Text style={[styles.reasonLabel, { color: colors.textSecondary, fontSize: 12, marginBottom: 4 }]}>
+              {failReason ? `Selected: ${failReason}` : 'Tap a reason to select:'}
+            </Text>
 
-            <TouchableOpacity 
-              style={[styles.reasonBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={() => reportFailedDelivery('Phone Unreachable')}
-            >
-              <Ionicons name="call-outline" size={20} color={colors.text} />
-              <Text style={[styles.reasonText, { color: colors.text }]}>
-                Phone Unreachable
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.reasonBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Ionicons name="time-outline" size={20} color={colors.text} />
-              <Text style={[styles.reasonText, { color: colors.text }]}>
-                Requested Reschedule
-              </Text>
-            </TouchableOpacity>
+            {['Customer Not Home', 'Phone Unreachable', 'Requested Reschedule', 'Wrong Address'].map((reason) => (
+              <TouchableOpacity
+                key={reason}
+                style={[
+                  styles.reasonBtn,
+                  {
+                    backgroundColor: failReason === reason ? (colors.error + '20') : colors.surface,
+                    borderColor: failReason === reason ? colors.error : colors.border,
+                    borderWidth: failReason === reason ? 2 : 1,
+                  },
+                ]}
+                onPress={() => setFailReason(reason)}
+              >
+                <Ionicons
+                  name={
+                    reason === 'Customer Not Home' ? 'home-outline'
+                    : reason === 'Phone Unreachable' ? 'call-outline'
+                    : reason === 'Requested Reschedule' ? 'time-outline'
+                    : 'location-outline'
+                  }
+                  size={20}
+                  color={failReason === reason ? colors.error : colors.text}
+                />
+                <Text style={[styles.reasonText, { color: failReason === reason ? colors.error : colors.text, fontWeight: failReason === reason ? '700' : '400' }]}>
+                  {reason}
+                </Text>
+                {failReason === reason && <Ionicons name="checkmark-circle" size={18} color={colors.error} />}
+              </TouchableOpacity>
+            ))}
 
             <TextInput
               style={[styles.notesInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-              placeholder="Additional notes..."
+              placeholder="Additional notes (optional)..."
               placeholderTextColor={colors.textSecondary}
               multiline
+              value={failNotes}
+              onChangeText={setFailNotes}
             />
 
             <TouchableOpacity
-              style={[styles.confirmBtn, { backgroundColor: colors.error }]}
-              onPress={() => setShowFailModal(false)}
+              style={[styles.confirmBtn, { backgroundColor: failReason ? colors.error : colors.border }]}
+              onPress={() => reportFailedDelivery()}
+              disabled={!failReason}
             >
-              <Text style={styles.confirmBtnText}>Submit Failed Delivery</Text>
+              <Text style={[styles.confirmBtnText, { opacity: failReason ? 1 : 0.5 }]}>Submit Failed Delivery</Text>
             </TouchableOpacity>
           </View>
         </View>

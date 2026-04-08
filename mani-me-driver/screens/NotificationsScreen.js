@@ -21,16 +21,29 @@ const COLORS = {
 
 export default function NotificationsScreen() {
   const navigation = useNavigation();
-  const { user, isUK } = useContext(AuthContext);
+  const { user, isUKDriver } = useContext(AuthContext);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Mark notifications as viewed when screen is focused
+  // Mark notifications as read (by ID) when screen is focused
   useFocusEffect(
     useCallback(() => {
-      AsyncStorage.setItem('lastNotificationView', Date.now().toString());
-    }, [])
+      const markAllRead = async () => {
+        if (!notifications.length) return;
+        const userId = user?._id || user?.id || 'driver';
+        const readKey = `readJobIds_${userId}`;
+        try {
+          const storedRaw = await AsyncStorage.getItem(readKey);
+          const existing = storedRaw ? JSON.parse(storedRaw) : [];
+          const newIds = notifications.map(n => n.id).filter(id => id && !existing.includes(id));
+          if (newIds.length) {
+            await AsyncStorage.setItem(readKey, JSON.stringify([...existing, ...newIds]));
+          }
+        } catch {}
+      };
+      markAllRead();
+    }, [notifications, user])
   );
 
   const fetchNotifications = async () => {
@@ -42,7 +55,7 @@ export default function NotificationsScreen() {
         return;
       }
 
-      const type = isUK ? 'pickup' : 'delivery';
+      const type = isUKDriver() ? 'pickup' : 'delivery';
       
       const response = await apiClient.get(`/drivers/${driverId}/assignments`, {
         params: { type, limit: 20 }
@@ -57,8 +70,8 @@ export default function NotificationsScreen() {
           .map(shipment => ({
             id: shipment._id || shipment.id,
             type: getNotificationType(shipment.status),
-            title: getNotificationTitle(shipment.status, isUK),
-            message: getNotificationMessage(shipment, isUK),
+            title: getNotificationTitle(shipment.status, isUKDriver()),
+            message: getNotificationMessage(shipment, isUKDriver()),
             time: formatTime(shipment.updated_at || shipment.created_at),
             status: shipment.status,
             trackingNumber: shipment.tracking_number,

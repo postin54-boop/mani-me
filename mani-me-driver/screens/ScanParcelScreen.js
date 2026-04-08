@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useThemeColors } from "../constants/theme";
+import apiClient from "../utils/api";
 
 export default function ScanParcelScreen() {
   const navigation = useNavigation();
@@ -14,56 +15,47 @@ export default function ScanParcelScreen() {
   const [scanned, setScanned] = useState(false);
   const [parcelId, setParcelId] = useState("");
   const [showManualInput, setShowManualInput] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
+
+  const lookupAndNavigate = async (trackingCode) => {
+    setLookingUp(true);
+    try {
+      const response = await apiClient.get(`/shipments/track/${encodeURIComponent(trackingCode)}`);
+      const shipment = response.data?.data || response.data?.shipment || response.data;
+      if (shipment && (shipment._id || shipment.id)) {
+        navigation.navigate('JobDetails', { job: shipment });
+      } else {
+        Alert.alert('Not Found', `No shipment found for: ${trackingCode}`);
+        setScanned(false);
+      }
+    } catch {
+      Alert.alert('Not Found', `Could not find shipment for: ${trackingCode}`);
+      setScanned(false);
+    } finally {
+      setLookingUp(false);
+    }
+  };
 
   const handleBarCodeScanned = ({ type, data }) => {
-    if (scanned) return;
+    if (scanned || lookingUp) return;
     setScanned(true);
-    
-    // Vibrate or play sound feedback could be added here
-    Alert.alert(
-      "Parcel Scanned!",
-      `Parcel ID: ${data}`,
-      [
-        {
-          text: "Scan Another",
-          onPress: () => setScanned(false),
-        },
-        {
-          text: "View Details",
-          onPress: () => {
-            // Navigate to parcel details or process the scan
-            navigation.goBack();
-          },
-        },
-      ]
-    );
+    lookupAndNavigate(data);
   };
 
   const handleManualSubmit = () => {
     if (parcelId.trim()) {
-      Alert.alert(
-        "Parcel Found",
-        `Parcel ID: ${parcelId.trim()}`,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              setParcelId("");
-              navigation.goBack();
-            },
-          },
-        ]
-      );
+      lookupAndNavigate(parcelId.trim());
     } else {
       Alert.alert("Error", "Please enter a parcel ID");
     }
   };
 
   // Permission loading state
-  if (!permission) {
+  if (!permission || lookingUp) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={colors.primary} />
+        {lookingUp && <Text style={{ color: colors.textSecondary, marginTop: 12 }}>Looking up parcel…</Text>}
       </View>
     );
   }

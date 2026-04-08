@@ -1,10 +1,12 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Linking, Alert, ActivityIndicator } from "react-native";
+import React, { useState, useMemo, useEffect } from "react";
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Linking, Alert, ActivityIndicator, Modal, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from 'expo-image-picker';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../utils/firebase';
 import { useAuth } from "../context/AuthContext";
-import axios from "axios";
-import { API_BASE_URL } from "../utils/config";
+import apiClient from "../utils/api";
 
 const BRAND = {
   primary: "#0B1A33",
@@ -17,13 +19,40 @@ const BRAND = {
 };
 
 export default function JobDetailsScreen({ route, navigation }) {
-  const { isUKDriver, token } = useAuth();
+  const { isUKDriver } = useAuth();
   
   // Get job from route params
   const job = route?.params?.job || {};
   
   // Determine driver type
   const isUK = isUKDriver?.() ?? true;
+
+  // Initialize UK workflow steps based on current backend status
+  const initUKSteps = useMemo(() => {
+    const s = job.shipment_status || job.status || '';
+    const isPickedUp = ['picked_up', 'in_transit', 'customs', 'out_for_delivery', 'delivered'].includes(s);
+    const isEnRoute = isPickedUp || s === 'driver_en_route';
+    return [
+      { key: 'assigned', label: 'Assigned', done: true },
+      { key: 'arrived', label: 'Arrived at Pickup', done: isEnRoute },
+      { key: 'intake', label: 'Parcel Intake', done: isPickedUp },
+      { key: 'paid', label: 'Payment Confirmed', done: isPickedUp },
+      { key: 'loaded', label: 'Loaded to Van', done: isPickedUp },
+    ];
+  }, [job]);
+
+  // Initialize Ghana workflow steps based on current backend status
+  const initGhanaSteps = useMemo(() => {
+    const s = job.shipment_status || job.status || '';
+    const isDelivered = s === 'delivered';
+    const isOutForDelivery = isDelivered || s === 'out_for_delivery';
+    return [
+      { key: 'assigned', label: 'Assigned', done: true },
+      { key: 'scanned', label: 'Parcel Scanned', done: isOutForDelivery },
+      { key: 'delivered', label: 'Delivered', done: isDelivered },
+      { key: 'proof', label: 'Proof of Delivery', done: isDelivered },
+    ];
+  }, [job]);
 
   // Format date for display
   const formatDate = (dateString) => {
@@ -53,25 +82,112 @@ export default function JobDetailsScreen({ route, navigation }) {
     Linking.openURL(`tel:${phone}`);
   };
 
-  // Dynamic workflow state
-  const [ukSteps, setUkSteps] = useState([
-    { key: "assigned", label: "Assigned", done: true },
-    { key: "arrived", label: "Arrived at Pickup", done: false },
-    { key: "intake", label: "Parcel Intake", done: false },
-    { key: "paid", label: "Payment Confirmed", done: false },
-    { key: "loaded", label: "Loaded to Van", done: false },
-  ]);
-  const [ghSteps, setGhSteps] = useState([
-    { key: "assigned", label: "Assigned", done: true },
-    { key: "scanned", label: "Parcel Scanned", done: false },
-    { key: "delivered", label: "Delivered", done: false },
-    { key: "proof", label: "Proof of Delivery", done: false },
-  ]);
+  const [ukSteps, setUkSteps] = useState(initUKSteps);
+  const [ghSteps, setGhSteps] = useState(initGhanaSteps);
 
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [collectionPhoto, setCollectionPhoto] = useState(null);
 
-  // Map step keys to actual shipment statuses (aligned with backend)
+  // ── Size adjustment (UK driver reports parcel is larger than booked) ──
+  const [sizeAdj, setSizeAdj] = useState(
+    job.size_adjustment?.requested ? job.size_adjustment : null
+  );
+  const [showAdjModal, setShowAdjModal] = useState(false);
+  const [adjNewSize, setAdjNewSize] = useState('');
+  const [adjNotes, setAdjNotes] = useState('');
+  const [adjLoading, setAdjLoading] = useState(false);
+
+  const SIZE_OPTIONS = [
+    { key: 'medium_box',      label: 'Medium Box',       dims: '45×45×45 cm', price: '£75' },
+    { key: 'large_box',       label: 'Large Box',        dims: '60×60×60 cm', price: '£105' },
+    { key: 'extra_large_box', label: 'Extra-Large Box',  dims: '75×75×75 cm', price: '£140' },
+    { key: 'barrel',          label: 'Barrel / Drum',    dims: '60–200 L',    price: '£180' },
+  ];
+
+  // Poll for customer approval every 10 s while pending
+  useEffect(() => {
+    if (sizeAdj?.status !== 'pending') return;
+    const shipmentId = job._id || job.id;
+    if (!shipmentId) return;
+    const poll = async () => {
+      try {
+        const res = await apiClient.get(`/drivers/pickups/${shipmentId}/size-adjustment`);
+        if (res.data.has_adjustment) setSizeAdj(res.data.adjustment);
+      } catch { /* silent */ }
+    };
+    const timer = setInterval(poll, 10000);
+    return () => clearInterval(timer);
+  }, [sizeAdj?.status]);
+
+  const submitSizeAdjustment = async () => {
+    if (!adjNewSize) { Alert.alert('Select Size', 'Please select the actual parcel size'); return; }
+    const shipmentId = job._id || job.id;
+    setAdjLoading(true);
+    try {
+      const res = await apiClient.post(`/drivers/pickups/${shipmentId}/size-adjustment`, {
+        new_size: adjNewSize,
+        driver_notes: adjNotes,
+      });
+      setSizeAdj({ ...res.data.adjustment, status: 'pending' });
+      setShowAdjModal(false);
+      Alert.alert('Sent to Customer', 'The customer has been notified and must approve before you proceed.');
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to submit. Please try again.');
+    } finally {
+      setAdjLoading(false);
+    }
+  };
+
+  // Take collection photo then mark parcel as picked up
+  const handleTakePhotoAndCollect = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Camera permission is needed to photograph the parcel at collection.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+
+      setLoading(true);
+      setSuccessMsg('');
+      try {
+        // Upload to Firebase Storage
+        const uri = result.assets[0].uri;
+        const blob = await (await fetch(uri)).blob();
+        const shipmentId = job._id || job.id;
+        const filename = `pickup-photos/${shipmentId}_${Date.now()}.jpg`;
+        const storageRef = ref(storage, filename);
+        await uploadBytes(storageRef, blob);
+        const photoUrl = await getDownloadURL(storageRef);
+
+        // Update status + photo reference
+        await apiClient.put(`/shipments/${shipmentId}/status`, {
+          status: 'picked_up',
+          collection_photo_url: photoUrl,
+        });
+        setCollectionPhoto(photoUrl);
+        const newSteps = ukSteps.map((s, i) => i === ukSteps.findIndex(s => s.key === 'intake') ? { ...s, done: true } : s);
+        setUkSteps(newSteps);
+        setSuccessMsg('Parcel collected!');
+        setTimeout(() => setSuccessMsg(''), 1500);
+      } catch (err) {
+        Alert.alert('Error', err?.response?.data?.message || 'Failed to save photo. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Could not open camera.');
+    }
+  };
+
   const stepToStatus = {
     arrived: 'driver_en_route',
     intake: 'picked_up',
@@ -100,12 +216,8 @@ export default function JobDetailsScreen({ route, navigation }) {
         const newStatus = stepToStatus[stepKey];
         
         if (newStatus) {
-          // Call backend API to update shipment status
-          await axios.put(
-            `${API_BASE_URL}/api/shipments/${shipmentId}/status`,
-            { status: newStatus },
-            token ? { headers: { Authorization: `Bearer ${token}` } } : {}
-          );
+          // Use apiClient which reads token from SecureStore via interceptors
+          await apiClient.put(`/shipments/${shipmentId}/status`, { status: newStatus });
         }
 
         // Update local state on success
@@ -173,7 +285,7 @@ export default function JobDetailsScreen({ route, navigation }) {
               <Text style={styles.parcelId}>{job.parcelId || job.tracking_number || job.parcel_id_short || 'N/A'}</Text>
             </View>
             {job.qr_code_url && (
-              <TouchableOpacity style={styles.qrBtn}>
+              <TouchableOpacity style={styles.qrBtn} onPress={() => setShowQRModal(true)}>
                 <Ionicons name="qr-code" size={28} color={BRAND.primary} />
               </TouchableOpacity>
             )}
@@ -267,6 +379,55 @@ export default function JobDetailsScreen({ route, navigation }) {
           {job.parcel_image_url && (
             <View style={styles.imageContainer}>
               <Image source={{ uri: job.parcel_image_url }} style={styles.parcelImage} />
+            </View>
+          )}
+
+          {/* ── Size Adjustment Card (UK drivers only, before collection) ── */}
+          {isUK && !ukSteps[2].done && (
+            <View style={{ marginTop: 14 }}>
+              {!sizeAdj ? (
+                <TouchableOpacity
+                  style={styles.sizeReportBtn}
+                  onPress={() => setShowAdjModal(true)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.sizeReportBtnLeft}>
+                    <View style={styles.sizeReportIcon}>
+                      <Ionicons name="resize" size={20} color="#D97706" />
+                    </View>
+                    <View>
+                      <Text style={styles.sizeReportTitle}>Wrong box size?</Text>
+                      <Text style={styles.sizeReportSub}>Tap to report a size mismatch &amp; charge the difference</Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#D97706" />
+                </TouchableOpacity>
+              ) : (
+                <View style={[
+                  styles.adjBanner,
+                  sizeAdj.status === 'approved' && { backgroundColor: '#10B98115', borderColor: '#10B981' },
+                  sizeAdj.status === 'rejected' && { backgroundColor: '#EF444415', borderColor: '#EF4444' },
+                  sizeAdj.status === 'pending'  && { backgroundColor: '#F59E0B15', borderColor: '#F59E0B' },
+                ]}>
+                  <Ionicons
+                    name={sizeAdj.status === 'approved' ? 'checkmark-circle' : sizeAdj.status === 'rejected' ? 'close-circle' : 'time'}
+                    size={22}
+                    color={sizeAdj.status === 'approved' ? '#10B981' : sizeAdj.status === 'rejected' ? '#EF4444' : '#F59E0B'}
+                  />
+                  <View style={{ flex: 1, marginLeft: 10 }}>
+                    <Text style={[styles.adjBannerTitle, {
+                      color: sizeAdj.status === 'approved' ? '#10B981' : sizeAdj.status === 'rejected' ? '#EF4444' : '#F59E0B'
+                    }]}>
+                      {sizeAdj.status === 'approved' ? 'Approved — You can now collect'
+                        : sizeAdj.status === 'rejected' ? 'Rejected — Booking Cancelled'
+                        : '⏳ Awaiting customer approval…'}
+                    </Text>
+                    <Text style={styles.adjBannerSub}>
+                      {(sizeAdj.new_size || '').replace(/_/g, ' ')} · Extra charge: £{sizeAdj.extra_charge ?? ''}
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -373,6 +534,37 @@ export default function JobDetailsScreen({ route, navigation }) {
             ))}
           </View>
 
+          {/* Size adjustment status banner */}
+          {isUK && sizeAdj && (
+            <View style={[
+              styles.adjBanner,
+              sizeAdj.status === 'approved' && { backgroundColor: '#10B98115', borderColor: '#10B981' },
+              sizeAdj.status === 'rejected' && { backgroundColor: '#EF444415', borderColor: '#EF4444' },
+              sizeAdj.status === 'pending'  && { backgroundColor: '#F59E0B15', borderColor: '#F59E0B' },
+            ]}>
+              <Ionicons
+                name={sizeAdj.status === 'approved' ? 'checkmark-circle' : sizeAdj.status === 'rejected' ? 'close-circle' : 'time'}
+                size={22}
+                color={sizeAdj.status === 'approved' ? '#10B981' : sizeAdj.status === 'rejected' ? '#EF4444' : '#F59E0B'}
+              />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={[styles.adjBannerTitle, {
+                  color: sizeAdj.status === 'approved' ? '#10B981' : sizeAdj.status === 'rejected' ? '#EF4444' : '#F59E0B'
+                }]}>
+                  {sizeAdj.status === 'approved'
+                    ? 'Size Adjustment Approved — Proceed'
+                    : sizeAdj.status === 'rejected'
+                    ? 'Adjustment Rejected — Booking Cancelled'
+                    : 'Waiting for Customer Approval…'}
+                </Text>
+                <Text style={styles.adjBannerSub}>
+                  {(sizeAdj.original_size || '').replace(/_/g, ' ')} → {(sizeAdj.new_size || '').replace(/_/g, ' ')}
+                  {' · Extra: '}{sizeAdj.extra_charge || sizeAdj.extra_amount || ''}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* Action Buttons */}
           {isUK ? (
             <>
@@ -387,14 +579,29 @@ export default function JobDetailsScreen({ route, navigation }) {
                 </TouchableOpacity>
               )}
               {ukSteps[1].done && !ukSteps[2].done && (
-                <TouchableOpacity
-                  style={[styles.workflowBtn, loading && { opacity: 0.5 }]}
-                  disabled={loading}
-                  onPress={() => markNextStep(ukSteps, setUkSteps, "intake", "Parcel Collected")}
-                >
-                  <Ionicons name="camera" size={20} color="#fff" />
-                  <Text style={styles.workflowBtnText}>Take Photo & Collect</Text>
-                </TouchableOpacity>
+                <>
+                  {/* Only allow collect if no adjustment is pending */}
+                  {(!sizeAdj || sizeAdj.status === 'approved') && (
+                    <TouchableOpacity
+                      style={[styles.workflowBtn, loading && { opacity: 0.5 }]}
+                      disabled={loading}
+                      onPress={handleTakePhotoAndCollect}
+                    >
+                      <Ionicons name="camera" size={20} color="#fff" />
+                      <Text style={styles.workflowBtnText}>Take Photo & Collect</Text>
+                    </TouchableOpacity>
+                  )}
+                  {/* Show mismatch button only if no adjustment has been requested yet */}
+                  {!sizeAdj && (
+                    <TouchableOpacity
+                      style={[styles.workflowBtn, { backgroundColor: '#F59E0B', marginTop: 8 }]}
+                      onPress={() => setShowAdjModal(true)}
+                    >
+                      <Ionicons name="resize" size={20} color="#fff" />
+                      <Text style={styles.workflowBtnText}>Report Parcel Size Mismatch</Text>
+                    </TouchableOpacity>
+                  )}
+                </>
               )}
               {ukSteps[2].done && !ukSteps[3].done && (
                 <TouchableOpacity
@@ -465,6 +672,90 @@ export default function JobDetailsScreen({ route, navigation }) {
           )}
         </View>
       </ScrollView>
+
+      {/* ── QR Code Modal ── */}
+      <Modal
+        visible={showQRModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowQRModal(false)}
+      >
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={1}
+          onPress={() => setShowQRModal(false)}
+        >
+          <View style={{ backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center' }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: BRAND.primary, marginBottom: 16 }}>
+              {job.parcelId || job.tracking_number || 'QR Code'}
+            </Text>
+            {job.qr_code_url && (
+              <Image source={{ uri: job.qr_code_url }} style={{ width: 220, height: 220 }} resizeMode="contain" />
+            )}
+            <Text style={{ marginTop: 16, color: '#6B7280', fontSize: 13 }}>Tap anywhere to close</Text>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── Size Adjustment Modal ── */}
+      <Modal
+        visible={showAdjModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAdjModal(false)}
+      >
+        <View style={styles.adjModalOverlay}>
+          <View style={styles.adjModalSheet}>
+            <Text style={styles.adjModalTitle}>Report Parcel Size Mismatch</Text>
+            <Text style={styles.adjModalSubtitle}>
+              The customer will be charged the difference and must approve before you proceed.
+            </Text>
+
+            <Text style={[styles.adjModalSubtitle, { fontWeight: '600', color: '#0B1A33', marginBottom: 8 }]}>
+              Actual parcel size:
+            </Text>
+            {SIZE_OPTIONS.map(opt => (
+              <TouchableOpacity
+                key={opt.key}
+                style={[styles.sizeOption, adjNewSize === opt.key && styles.sizeOptionSelected]}
+                onPress={() => setAdjNewSize(opt.key)}
+              >
+                <View>
+                  <Text style={styles.sizeOptionLabel}>{opt.label}</Text>
+                  <Text style={styles.sizeOptionDims}>{opt.dims}</Text>
+                </View>
+                <Text style={styles.sizeOptionPrice}>{opt.price}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <TextInput
+              style={styles.adjNotesInput}
+              placeholder="Optional notes for customer (e.g. box is wider than booked)"
+              placeholderTextColor="#9CA3AF"
+              value={adjNotes}
+              onChangeText={setAdjNotes}
+              multiline
+            />
+
+            <TouchableOpacity
+              style={[styles.adjSubmitBtn, (adjLoading || !adjNewSize) && { opacity: 0.5 }]}
+              disabled={adjLoading || !adjNewSize}
+              onPress={submitSizeAdjustment}
+            >
+              {adjLoading
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.adjSubmitBtnText}>Send to Customer for Approval</Text>}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ marginTop: 12, alignItems: 'center' }}
+              onPress={() => setShowAdjModal(false)}
+            >
+              <Text style={{ color: '#6B7280', fontWeight: '600' }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -748,5 +1039,134 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 18,
     marginTop: 8,
+  },
+  // ── Size adjustment styles ──
+  sizeReportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    borderRadius: 12,
+    padding: 14,
+  },
+  sizeReportBtnLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  sizeReportIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#FDE68A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sizeReportTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  sizeReportSub: {
+    fontSize: 12,
+    color: '#B45309',
+    marginTop: 2,
+    maxWidth: 220,
+  },
+  adjBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  adjBannerTitle: {
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  adjBannerSub: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  adjModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end',
+  },
+  adjModalSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  adjModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0B1A33',
+    marginBottom: 4,
+  },
+  adjModalSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 16,
+  },
+  sizeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    marginBottom: 8,
+    backgroundColor: '#F9FAFB',
+  },
+  sizeOptionSelected: {
+    borderColor: '#0B1A33',
+    backgroundColor: '#0B1A3310',
+  },
+  sizeOptionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0B1A33',
+  },
+  sizeOptionDims: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  sizeOptionPrice: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  adjNotesInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    color: '#0B1A33',
+    marginBottom: 16,
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  adjSubmitBtn: {
+    backgroundColor: '#0B1A33',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  adjSubmitBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });

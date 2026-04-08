@@ -17,6 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '../constants/theme';
 import { fetchDriverAssignmentsPaginated, updatePickupStatus, reportSizeMismatch } from '../utils/optimizedApi';
+import apiClient from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
 // Parcel size options with prices
@@ -223,7 +224,32 @@ export default function UKPickupsScreen({ navigation }) {
     );
   };
 
-  // Format date for display
+  const declineJob = async (pickup) => {
+    Alert.alert(
+      'Decline Job',
+      `Are you sure you want to decline pickup ${pickup.parcel_id_short || pickup.id}? This will unassign you from the job.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Decline',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiClient.post(`/drivers/pickups/${pickup.id || pickup._id}/decline`, {
+                reason: 'Driver declined',
+              });
+              onRefresh();
+            } catch {
+              // If no decline endpoint, just remove from local list
+              setPickups(prev => prev.filter(p => (p.id || p._id) !== (pickup.id || pickup._id)));
+              Alert.alert('Job Declined', 'The job has been removed from your list.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'Flexible';
     try {
@@ -241,6 +267,26 @@ export default function UKPickupsScreen({ navigation }) {
         { backgroundColor: colors.surface, borderColor: colors.border },
       ]}
     >
+      {/* Accept / Decline / Details row */}
+      {(pickup.status === 'pickup_scheduled' || pickup.status === 'pending' || pickup.status === 'booked') && (
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+          <TouchableOpacity
+            style={[styles.actionBtn, { flex: 1, backgroundColor: colors.primary, justifyContent: 'center' }]}
+            onPress={() => navigation.navigate('JobDetails', { job: pickup })}
+          >
+            <Ionicons name="eye-outline" size={18} color="#fff" />
+            <Text style={[styles.actionText, { color: '#fff' }]}>View Details</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: '#FEE2E2', borderColor: '#EF4444', borderWidth: 1 }]}
+            onPress={() => declineJob(pickup)}
+          >
+            <Ionicons name="close-circle-outline" size={18} color="#EF4444" />
+            <Text style={[styles.actionText, { color: '#EF4444' }]}>Decline</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.cardHeader}>
         <View style={{ flex: 1 }}>
@@ -433,7 +479,31 @@ export default function UKPickupsScreen({ navigation }) {
           <Ionicons name="call" size={20} color={colors.secondary} />
           <Text style={[styles.actionText, { color: colors.text }]}>Call</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}
+          onPress={() => navigation.navigate('PrintLabelsScreen', { shipment: pickup })}
+        >
+          <Ionicons name="print-outline" size={20} color={colors.secondary} />
+          <Text style={[styles.actionText, { color: colors.text }]}>Print</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Cash on Pickup — Record Cash button */}
+      {pickup.payment_method === 'cash' && !pickup.payment_confirmed &&
+       (pickup.status === 'picked_up' || pickup.status === 'parcel_collected') && (
+        <TouchableOpacity
+          style={[styles.cashBtn, { backgroundColor: '#10B981' }]}
+          onPress={() => navigation.navigate('RecordCashPickup', {
+            parcelId: pickup.parcel_id_short || pickup.id,
+            shipmentId: pickup._id || pickup.id,
+            amount: pickup.total_cost,
+          })}
+        >
+          <Ionicons name="cash-outline" size={20} color="#fff" />
+          <Text style={[styles.completeBtnText]}>Record Cash Collected (£{(pickup.total_cost || 0).toFixed(2)})</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Size Adjustment Pending Banner */}
       {pickup.size_adjustment?.requested && pickup.size_adjustment?.status === 'pending' && (
@@ -834,6 +904,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  cashBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 8,
+    gap: 8,
   },
   parcelImage: {
     width: 100,

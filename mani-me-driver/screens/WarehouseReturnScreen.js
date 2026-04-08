@@ -1,6 +1,6 @@
 // screens/WarehouseReturnScreen.js
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCashTracking } from '../context/CashTrackingContext';
 import { useAuth } from '../context/AuthContext';
@@ -12,38 +12,71 @@ export default function WarehouseReturnScreen({ navigation }) {
   const { user } = useAuth();
   const [checkingIn, setCheckingIn] = useState(false);
   const [endingDay, setEndingDay] = useState(false);
+  const [collectedParcels, setCollectedParcels] = useState([]);
+  const [loadingParcels, setLoadingParcels] = useState(true);
+  const [handedOver, setHandedOver] = useState(false);
 
   const getDriverId = () => user?._id || user?.id || user?.user_id;
 
+  // Fetch all parcels the driver has collected but not yet handed to warehouse
+  useEffect(() => {
+    const fetchCollectedParcels = async () => {
+      const driverId = getDriverId();
+      if (!driverId) { setLoadingParcels(false); return; }
+      try {
+        const res = await apiClient.get(`/drivers/${driverId}/assignments?type=pickup`);
+        const shipments = res.data?.data?.shipments || res.data?.shipments || res.data || [];
+        const collected = shipments.filter(s => {
+          const st = s.shipment_status || s.status || '';
+          return ['picked_up', 'parcel_collected'].includes(st);
+        });
+        setCollectedParcels(collected);
+      } catch (err) {
+        logger.warn('Could not fetch collected parcels', err);
+      } finally {
+        setLoadingParcels(false);
+      }
+    };
+    fetchCollectedParcels();
+  }, []);
+
   const handleWarehouseCheckIn = () => {
+    const parcelCount = collectedParcels.length;
     Alert.alert(
-      'Warehouse Check-In',
-      `Ready to check in at warehouse?\n\n• Parcels collected today\n• Cash to submit: £${totalCash.toFixed(2)}\n• Pickups: ${cashCount}`,
+      'Confirm Parcel Handover',
+      `You are handing over ${parcelCount} parcel${parcelCount !== 1 ? 's' : ''} to the warehouse.\n\nCash to submit: £${totalCash.toFixed(2)}\n\nThis will mark all collected parcels as received at the UK warehouse.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Check In',
+          text: 'Confirm Handover',
           onPress: async () => {
             const driverId = getDriverId();
             if (!driverId) {
               Alert.alert('Error', 'Driver profile not available. Please log in again.');
               return;
             }
-
             setCheckingIn(true);
             try {
-              await apiClient.post('/drivers/clock-in', {
-                driver_id: driverId,
-                clock_in_time: new Date().toISOString(),
-              });
+              // Mark each collected parcel as at_uk_warehouse
+              const results = await Promise.allSettled(
+                collectedParcels.map(parcel =>
+                  apiClient.put(`/shipments/${parcel._id || parcel.id}/status`, {
+                    status: 'at_uk_warehouse',
+                  })
+                )
+              );
+              const succeeded = results.filter(r => r.status === 'fulfilled').length;
+              const failed = results.length - succeeded;
 
-              Alert.alert('Success', 'Checked in at warehouse successfully!', [
-                { text: 'OK', onPress: () => navigation.goBack() }
+              setHandedOver(true);
+              let msg = `${succeeded} parcel${succeeded !== 1 ? 's' : ''} marked as received at warehouse.`;
+              if (failed > 0) msg += `\n${failed} could not be updated — please notify admin.`;
+              Alert.alert('Handover Complete', msg, [
+                { text: 'OK' }
               ]);
             } catch (error) {
-              logger.error('Warehouse check-in failed', error);
-              const message = error.response?.data?.error || 'Failed to check in at warehouse. Please try again.';
-              Alert.alert('Error', message);
+              logger.error('Warehouse handover failed', error);
+              Alert.alert('Error', 'Failed to complete handover. Please try again or notify admin.');
             } finally {
               setCheckingIn(false);
             }
@@ -141,13 +174,38 @@ export default function WarehouseReturnScreen({ navigation }) {
         <Text style={styles.title}>Return to Warehouse</Text>
         <Text style={styles.subtitle}>Complete your shift and check in parcels</Text>
 
-        {/* Checklist Card */}
+        {/* Parcel Handover Summary */}
+        <View style={styles.checklistCard}>
+          <Text style={styles.checklistTitle}>Parcels to Hand Over</Text>
+          {loadingParcels ? (
+            <ActivityIndicator size="small" color="#83C5FA" style={{ marginVertical: 12 }} />
+          ) : collectedParcels.length === 0 ? (
+            <View style={styles.checkItem}>
+              <Ionicons name={handedOver ? 'checkmark-circle' : 'cube-outline'} size={24} color={handedOver ? '#10B981' : '#83C5FA'} />
+              <Text style={styles.checkText}>
+                {handedOver ? 'All parcels handed over ✓' : 'No collected parcels found'}
+              </Text>
+            </View>
+          ) : (
+            collectedParcels.map((p, i) => (
+              <View key={p._id || p.id || i} style={styles.checkItem}>
+                <Ionicons name="cube-outline" size={20} color="#83C5FA" />
+                <Text style={[styles.checkText, { flex: 1 }]}>
+                  {p.parcel_id_short || p.tracking_number || p.id}
+                  {p.sender_name ? ` — ${p.sender_name}` : ''}
+                </Text>
+              </View>
+            ))
+          )}
+        </View>
+
+        {/* End of Day Checklist Card */}
         <View style={styles.checklistCard}>
           <Text style={styles.checklistTitle}>End of Day Checklist</Text>
           
           <View style={styles.checkItem}>
-            <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-            <Text style={styles.checkText}>All pickups completed</Text>
+            <Ionicons name={handedOver || collectedParcels.length === 0 ? 'checkmark-circle' : 'alert-circle'} size={24} color={handedOver || collectedParcels.length === 0 ? '#10B981' : '#F59E0B'} />
+            <Text style={styles.checkText}>Parcels handed to warehouse</Text>
           </View>
 
           <View style={styles.checkItem}>
@@ -159,11 +217,6 @@ export default function WarehouseReturnScreen({ navigation }) {
             <Text style={styles.checkText}>
               Cash submitted {cashCount > 0 && `(${cashCount} pending)`}
             </Text>
-          </View>
-
-          <View style={styles.checkItem}>
-            <Ionicons name="cube-outline" size={24} color="#83C5FA" />
-            <Text style={styles.checkText}>Parcels ready for warehouse</Text>
           </View>
         </View>
 
@@ -182,13 +235,13 @@ export default function WarehouseReturnScreen({ navigation }) {
 
         {/* Action Buttons */}
         <TouchableOpacity 
-          style={styles.primaryButton}
-          onPress={handleWarehouseCheckIn}
+          style={[styles.primaryButton, (handedOver && collectedParcels.length > 0) && { backgroundColor: '#10B981' }]}
+          onPress={handedOver ? undefined : handleWarehouseCheckIn}
           disabled={checkingIn || endingDay}
         >
-          <Ionicons name="location" size={24} color="#fff" style={{ marginRight: 8 }} />
+          <Ionicons name={handedOver ? 'checkmark-circle' : 'business'} size={24} color="#fff" style={{ marginRight: 8 }} />
           <Text style={styles.primaryButtonText}>
-            {checkingIn ? 'Checking In...' : 'Check In at Warehouse'}
+            {checkingIn ? 'Updating Parcels...' : handedOver ? 'Handover Complete ✓' : `Hand Over ${collectedParcels.length} Parcel${collectedParcels.length !== 1 ? 's' : ''} to Warehouse`}
           </Text>
         </TouchableOpacity>
 

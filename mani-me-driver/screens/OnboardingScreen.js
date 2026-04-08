@@ -13,6 +13,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import secureStorage from '../utils/secureStorage';
 import logger from '../utils/logger';
 
 const { width, height } = Dimensions.get('window');
@@ -52,7 +53,7 @@ const slides = [
   },
 ];
 
-export default function OnboardingScreen({ navigation }) {
+export default function OnboardingScreen({ navigation, onDone }) {
   const flatListRef = useRef();
   const [currentIndex, setCurrentIndex] = useState(0);
   const insets = useSafeAreaInsets();
@@ -84,10 +85,21 @@ export default function OnboardingScreen({ navigation }) {
   const completeOnboarding = async () => {
     try {
       await AsyncStorage.setItem('driverHasSeenOnboarding', 'true');
+      // Always clear any stored auth so the driver must log in fresh after onboarding
+      // Clear all possible token storage locations (AsyncStorage, SecureStore fallback)
+      await AsyncStorage.multiRemove(['user', 'token', 'driverUser', '@secure_token']);
+      // Also clear secure storage token (AuthContext reads from here)
+      await secureStorage.removeItem('token');
+      logger.log('Onboarding complete, all auth data cleared');
     } catch (e) {
       logger.error('Error saving onboarding state:', e);
     }
-    navigation.replace('Login');
+    // If mounted standalone (from App.js), call onDone callback
+    if (onDone) {
+      onDone();
+    } else if (navigation) {
+      navigation.replace('Login');
+    }
   };
 
   const renderIcon = (item) => {
