@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, StatusBar, TextInput, ActivityIndicator, Image, Platform, KeyboardAvoidingView, Keyboard, TouchableWithoutFeedback, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, StatusBar, TextInput, ActivityIndicator, Image, Platform, KeyboardAvoidingView, Keyboard, TouchableWithoutFeedback, Linking, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,14 @@ import { useUser } from '../context/UserContext';
 import { useThemeColors, SIZES, FONTS, SHADOWS } from '../constants/theme';
 import { API_BASE_URL } from '../utils/config';
 import logger from '../utils/logger';
+import { 
+  isBiometricSupported, 
+  isBiometricEnabled, 
+  enableBiometric, 
+  disableBiometric, 
+  getBiometricName,
+  authenticateWithBiometrics 
+} from '../utils/biometricAuth';
 
 export default function ProfileScreen({ navigation }) {
   const { colors, isDark } = useThemeColors();
@@ -26,6 +34,12 @@ export default function ProfileScreen({ navigation }) {
     phone: user?.phone || '',
     address: user?.address || '',
   });
+  
+  // Biometric auth state
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricName, setBiometricName] = useState('Biometric');
+  const [biometricLoading, setBiometricLoading] = useState(false);
 
   // Sync profile image state when user context changes (e.g., on screen focus)
   useEffect(() => {
@@ -37,6 +51,46 @@ export default function ProfileScreen({ navigation }) {
       address: user?.address || '',
     });
   }, [user?.profileImage, user?.name, user?.email, user?.phone, user?.address]);
+  
+  // Check biometric support on mount
+  useEffect(() => {
+    const checkBiometric = async () => {
+      const supported = await isBiometricSupported();
+      setBiometricSupported(supported);
+      if (supported) {
+        const enabled = await isBiometricEnabled();
+        setBiometricEnabled(enabled);
+        const name = await getBiometricName();
+        setBiometricName(name);
+      }
+    };
+    checkBiometric();
+  }, []);
+  
+  const handleBiometricToggle = async (value) => {
+    setBiometricLoading(true);
+    try {
+      if (value) {
+        // Verify biometrics before enabling
+        const result = await authenticateWithBiometrics(`Verify ${biometricName} to enable`);
+        if (result.success) {
+          await enableBiometric();
+          setBiometricEnabled(true);
+          Alert.alert('Success', `${biometricName} login enabled`);
+        } else if (result.error !== 'Cancelled') {
+          Alert.alert('Failed', 'Could not verify biometrics');
+        }
+      } else {
+        await disableBiometric();
+        setBiometricEnabled(false);
+      }
+    } catch (error) {
+      logger.error('Biometric toggle error:', error);
+      Alert.alert('Error', 'Failed to update biometric settings');
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
 
   const pickProfileImage = async () => {
     try {
@@ -452,6 +506,37 @@ export default function ProfileScreen({ navigation }) {
                 <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
+            
+            {/* Biometric Security Section */}
+            {biometricSupported && (
+              <View style={[styles.legalSection, { backgroundColor: colors.surface, marginHorizontal: SIZES.lg, borderRadius: 12, marginBottom: SIZES.md }]}>
+                <View style={[styles.legalItem, { borderBottomWidth: 0 }]}>
+                  <View style={styles.legalItemContent}>
+                    <Ionicons 
+                      name={biometricName === 'Face ID' ? 'scan-outline' : 'finger-print-outline'} 
+                      size={20} 
+                      color={biometricEnabled ? colors.secondary : colors.textSecondary} 
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.legalItemText, { color: colors.text }]}>{biometricName} Login</Text>
+                      <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
+                        Quick and secure app unlock
+                      </Text>
+                    </View>
+                  </View>
+                  {biometricLoading ? (
+                    <ActivityIndicator size="small" color={colors.secondary} />
+                  ) : (
+                    <Switch
+                      value={biometricEnabled}
+                      onValueChange={handleBiometricToggle}
+                      trackColor={{ false: colors.border, true: colors.secondary + '50' }}
+                      thumbColor={biometricEnabled ? colors.secondary : '#f4f3f4'}
+                    />
+                  )}
+                </View>
+              </View>
+            )}
 
             <TouchableOpacity 
               style={[styles.supportButton, { backgroundColor: colors.secondary + '15', borderColor: colors.secondary }]}

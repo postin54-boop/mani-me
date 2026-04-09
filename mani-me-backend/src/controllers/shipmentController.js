@@ -4,6 +4,7 @@
  * @module controllers/shipmentController
  */
 
+const mongoose = require('mongoose');
 const { shipment: Shipment, user: User, item: Item } = require('../models');
 const { v4: uuidv4 } = require('uuid');
 const { sendShipmentStatusNotification, sendPickupAssignedNotification } = require('../services/notificationService');
@@ -369,8 +370,16 @@ exports.updateStatusAlias = async (req, res) => {
  */
 exports.getStats = async (req, res) => {
   try {
+    const cacheKey = `stats:${req.params.userId}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return res.json(cached);
+
+    let userObjectId;
+    try { userObjectId = new mongoose.Types.ObjectId(req.params.userId); }
+    catch { return res.status(400).json({ error: 'Invalid userId' }); }
+
     const stats = await Shipment.aggregate([
-      { $match: { userId: req.params.userId } },
+      { $match: { userId: userObjectId } },
       {
         $group: {
           _id: null,
@@ -386,7 +395,9 @@ exports.getStats = async (req, res) => {
     ]);
 
     const result = stats[0] || { total_parcels: 0, delivered: 0, in_transit: 0 };
-    res.json({ total_parcels: result.total_parcels, delivered: result.delivered, in_transit: result.in_transit });
+    const payload = { total_parcels: result.total_parcels, delivered: result.delivered, in_transit: result.in_transit };
+    cache.set(cacheKey, payload, 60); // cache for 60 seconds
+    res.json(payload);
   } catch (error) {
     logger.error('Error fetching shipment stats', { error: error.message, userId: req.params.userId });
     res.status(500).json({ error: 'Server error' });

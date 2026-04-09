@@ -154,21 +154,23 @@ export default function GroceryPaymentScreen({ route, navigation }) {
           { payment_intent_id: paymentIntent.id }
         );
 
-        Alert.alert(
-          'Success',
-          'Payment successful! Your grocery order has been placed.',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'Home' }]
-                });
-              }
-            }
-          ]
-        );
+        // Navigate to confirmation/receipt screen
+        navigation.replace('GroceryOrderConfirmation', {
+          orderId: orderResponse.data._id,
+          orderNumber: orderResponse.data.order_number,
+          items: cart.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          subtotal,
+          shippingCost,
+          total: getTotalAmount(),
+          deliveryAddress,
+          boxSize,
+          paymentIntentId: paymentIntent.id,
+          orderDate: new Date().toISOString(),
+        });
       } else {
         // Payment not succeeded
         logger.warn('Payment not succeeded, status:', paymentIntent?.status);

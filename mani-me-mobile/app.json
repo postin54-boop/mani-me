@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.manime.app",
-      "buildNumber": "19",
+      "buildNumber": "23",
       "icon": "./assets/adaptive-icon.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false

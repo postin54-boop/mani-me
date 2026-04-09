@@ -16,13 +16,16 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import KeyIcon from '@mui/icons-material/Key';
 import api from '../api';
 import { gradients } from '../theme';
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [totpCode, setTotpCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [requires2FA, setRequires2FA] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -32,7 +35,20 @@ function Login({ onLogin }) {
     setLoading(true);
 
     try {
-      const response = await api.post('/api/admin/login', { email, password });
+      const payload = { email, password };
+      if (requires2FA) {
+        payload.totpCode = totpCode;
+      }
+      
+      const response = await api.post('/api/admin/login', payload);
+      
+      // Check if 2FA is required
+      if (response.data.requires2FA) {
+        setRequires2FA(true);
+        setLoading(false);
+        return;
+      }
+      
       if (response.data.adminId) {
         localStorage.setItem('adminId', response.data.adminId);
       } else {
@@ -41,9 +57,19 @@ function Login({ onLogin }) {
       onLogin(response.data.token);
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      // If 2FA code was wrong, keep the 2FA form visible
+      if (err.response?.data?.message?.includes('2FA') || err.response?.data?.message?.includes('TOTP')) {
+        setTotpCode('');
+      }
     } finally {
       setLoading(false);
     }
+  };
+  
+  const handleBack = () => {
+    setRequires2FA(false);
+    setTotpCode('');
+    setError('');
   };
 
   return (
@@ -121,10 +147,10 @@ function Login({ onLogin }) {
                 backgroundClip: 'text',
               }}
             >
-              Mani Me Admin
+              {requires2FA ? '2FA Verification' : 'Mani Me Admin'}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 4, textAlign: 'center' }}>
-              Sign in to access your dashboard
+              {requires2FA ? 'Enter your authenticator code' : 'Sign in to access your dashboard'}
             </Typography>
 
             {/* Error Alert */}
@@ -136,59 +162,99 @@ function Login({ onLogin }) {
 
             {/* Form */}
             <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                id="email"
-                label="Email Address"
-                name="email"
-                autoComplete="email"
-                autoFocus
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <EmailOutlinedIcon color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="password"
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LockOutlinedIcon color="action" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                        size="small"
-                      >
-                        {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ mb: 3 }}
-              />
+              {!requires2FA ? (
+                <>
+                  <TextField
+                    margin="normal"
+                    required
+                    fullWidth
+                    id="email"
+                    label="Email Address"
+                    name="email"
+                    autoComplete="email"
+                    autoFocus
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <EmailOutlinedIcon color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ mb: 2 }}
+                  />
+                  <TextField
+                    margin="normal"
+                    required
+                    fullWidth
+                    name="password"
+                    label="Password"
+                    type={showPassword ? 'text' : 'password'}
+                    id="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <LockOutlinedIcon color="action" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                            size="small"
+                          >
+                            {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ mb: 3 }}
+                  />
+                </>
+              ) : (
+                <>
+                  <Typography variant="body2" sx={{ mb: 2, textAlign: 'center', color: '#666' }}>
+                    Open your authenticator app and enter the 6-digit code
+                  </Typography>
+                  <TextField
+                    margin="normal"
+                    required
+                    fullWidth
+                    id="totpCode"
+                    label="Authentication Code"
+                    name="totpCode"
+                    autoFocus
+                    value={totpCode}
+                    onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    disabled={loading}
+                    placeholder="000000"
+                    inputProps={{ maxLength: 6, style: { textAlign: 'center', letterSpacing: '0.5em', fontSize: '1.5rem' } }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <KeyIcon color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ mb: 3 }}
+                  />
+                  <Button
+                    fullWidth
+                    variant="text"
+                    onClick={handleBack}
+                    sx={{ mb: 2 }}
+                  >
+                    ← Back to Login
+                  </Button>
+                </>
+              )}
               <Button
                 type="submit"
                 fullWidth

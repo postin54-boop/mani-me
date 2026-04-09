@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { user: User } = require('../models');
+const Session = require('../models/session');
 const { validatePassword, validateEmail, sanitizeInput } = require('../utils/validation');
 const { sendPasswordResetEmail, sendWelcomeEmail, sendVerificationSuccessEmail } = require('../utils/email');
 const logger = require('../utils/logger');
@@ -401,6 +402,66 @@ const resendVerificationCode = async ({ email }) => {
   return { message: 'Verification code sent to your email' };
 };
 
+/**
+ * Get active sessions for a user
+ */
+const getActiveSessions = async (userId) => {
+  const sessions = await Session.getActiveSessions(userId);
+  return sessions.map(session => ({
+    id: session._id,
+    deviceInfo: session.deviceInfo || {},
+    ipAddress: session.ipAddress,
+    lastActivity: session.lastActivity,
+    createdAt: session.createdAt,
+    isCurrent: false, // Will be set by controller
+  }));
+};
+
+/**
+ * Revoke a specific session
+ */
+const revokeSession = async (userId, sessionId) => {
+  const session = await Session.findOne({ _id: sessionId, userId });
+  if (!session) {
+    const error = new Error('Session not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  if (session.revokedAt) {
+    const error = new Error('Session already revoked');
+    error.statusCode = 400;
+    throw error;
+  }
+  await session.revoke('admin_revoke');
+  logger.info('Session revoked', { sessionId, userId });
+  return { success: true };
+};
+
+/**
+ * Revoke all sessions for a user except the current one
+ */
+const revokeAllSessions = async (userId, excludeToken = null) => {
+  const result = await Session.revokeAllForUser(userId, 'security', excludeToken);
+  logger.info('All sessions revoked', { userId, count: result.modifiedCount });
+  return result;
+};
+
+/**
+ * Logout - revoke current session
+ */
+const logout = async (token) => {
+  try {
+    const session = await Session.findOne({ token });
+    if (session && !session.revokedAt) {
+      await session.revoke('logout');
+      logger.info('Session logged out', { sessionId: session._id });
+    }
+  } catch (error) {
+    logger.error('Logout error:', { error: error.message });
+    // Don't throw - logout should always succeed
+  }
+};
+
 module.exports = {
   getCurrentUser,
   register,
@@ -414,4 +475,8 @@ module.exports = {
   resendVerificationCode,
   formatUser,
   generateToken,
+  getActiveSessions,
+  revokeSession,
+  revokeAllSessions,
+  logout,
 };

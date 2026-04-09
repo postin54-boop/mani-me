@@ -188,3 +188,65 @@ exports.resendVerification = async (req, res) => {
     res.status(error.statusCode || 500).json({ error: error.message || 'Server error' });
   }
 };
+
+/**
+ * GET /auth/sessions - Get active sessions for the current user
+ */
+exports.getSessions = async (req, res) => {
+  try {
+    const sessions = await authService.getActiveSessions(req.userId);
+    return res.json({ sessions });
+  } catch (error) {
+    logger.error('Get sessions error:', { error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message || 'Server error' });
+  }
+};
+
+/**
+ * DELETE /auth/sessions/:sessionId - Revoke a specific session
+ */
+exports.revokeSession = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    await authService.revokeSession(req.userId, sessionId);
+    return res.json({ message: 'Session revoked successfully' });
+  } catch (error) {
+    logger.error('Revoke session error:', { error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message || 'Server error' });
+  }
+};
+
+/**
+ * POST /auth/sessions/revoke-all - Revoke all sessions except current
+ */
+exports.revokeAllSessions = async (req, res) => {
+  try {
+    // Get current token from header to exclude it
+    const currentToken = req.headers.authorization?.split(' ')[1];
+    const result = await authService.revokeAllSessions(req.userId, currentToken);
+    return res.json({ 
+      message: 'All other sessions revoked', 
+      revokedCount: result.modifiedCount 
+    });
+  } catch (error) {
+    logger.error('Revoke all sessions error:', { error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message || 'Server error' });
+  }
+};
+
+/**
+ * POST /auth/logout - Logout and invalidate current session
+ */
+exports.logout = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token) {
+      await authService.logout(token);
+    }
+    return res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    logger.error('Logout error:', { error: error.message });
+    // Still return success even if session cleanup fails
+    return res.json({ message: 'Logged out successfully' });
+  }
+};

@@ -164,7 +164,7 @@ export default function OrdersScreen({ navigation }) {
         Promise.all([fetchParcels(), fetchStats()])
           .finally(() => { isFetchingRef.current = false; });
       }
-    }, 30000);
+    }, 60000);
 
     return () => {
       clearInterval(interval);

@@ -121,4 +121,70 @@ router.post('/update-push-token', verifyToken, validate(auth.updatePushToken), a
  */
 router.put('/update-profile', verifyToken, validate(auth.updateProfile), authController.updateProfile);
 
+/**
+ * @swagger
+ * /auth/sessions:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Get active sessions
+ *     description: List all active sessions for the authenticated user
+ *     responses:
+ *       200:
+ *         description: List of active sessions
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/sessions', verifyToken, authController.getSessions);
+
+/**
+ * @swagger
+ * /auth/sessions/{sessionId}:
+ *   delete:
+ *     tags: [Auth]
+ *     summary: Revoke a session
+ *     description: Revoke a specific session by ID
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Session revoked
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Session not found
+ */
+router.delete('/sessions/:sessionId', verifyToken, authController.revokeSession);
+
+/**
+ * @swagger
+ * /auth/sessions/revoke-all:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Revoke all sessions
+ *     description: Revoke all sessions except the current one
+ *     responses:
+ *       200:
+ *         description: All other sessions revoked
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/sessions/revoke-all', verifyToken, authController.revokeAllSessions);
+
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Logout
+ *     description: Logout and invalidate current session
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ */
+router.post('/logout', verifyToken, authController.logout);
+
 module.exports = router;

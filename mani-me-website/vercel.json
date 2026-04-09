@@ -10,6 +10,14 @@
     {
       "source": "/track/:tracking*",
       "destination": "/track.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html"
     }
   ],
   "redirects": [],

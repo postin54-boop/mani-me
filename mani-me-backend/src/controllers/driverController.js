@@ -75,11 +75,14 @@ exports.getAssignments = async (req, res) => {
 			? { pickup_driver_id: id }
 			: { delivery_driver_id: id };
 
-		const shipments = await Shipment.find(query)
-			.sort({ createdAt: -1 })
-			.skip(skip)
-			.limit(parseInt(limit))
-			.lean();
+		const [shipments, total] = await Promise.all([
+			Shipment.find(query)
+				.sort({ createdAt: -1 })
+				.skip(skip)
+				.limit(parseInt(limit))
+				.lean(),
+			Shipment.countDocuments(query),
+		]);
 
 		const assignments = shipments.map(s => ({
 			_id: s._id,

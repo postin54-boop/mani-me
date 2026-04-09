@@ -206,4 +206,7 @@ shipmentSchema.index({ receiver_phone: 1 }); // Receiver phone search
 // Compound index for admin dashboard
 shipmentSchema.index({ shipment_status: 1, pickup_city: 1, createdAt: -1 });
 
+// Legacy status field (used by getStats aggregate and customer queries)
+shipmentSchema.index({ status: 1, userId: 1 });
+
 module.exports = mongoose.model("Shipment", shipmentSchema);

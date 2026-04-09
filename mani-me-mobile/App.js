@@ -75,6 +75,7 @@ import ShopCartScreen from './screens/ShopCartScreen';
 import ShopCheckoutScreen from './screens/ShopCheckoutScreen';
 import GroceryShopScreen from './screens/GroceryShopScreen';
 import GroceryPaymentScreen from './screens/GroceryPaymentScreen';
+import GroceryOrderConfirmationScreen from './screens/GroceryOrderConfirmationScreen';
 import QRCodeScreen from './screens/QRCodeScreen';
 import ForgotPassword from './screens/ForgotPassword';
 import ResetPassword from './screens/ResetPassword';
@@ -271,6 +272,7 @@ function AppNavigator() {
         <Stack.Screen name="ShopCheckout" component={ShopCheckoutScreen} />
         <Stack.Screen name="GroceryShop" component={GroceryShopScreen} />
         <Stack.Screen name="GroceryPayment" component={GroceryPaymentScreen} />
+        <Stack.Screen name="GroceryOrderConfirmation" component={GroceryOrderConfirmationScreen} />
         <Stack.Screen name="PackagingShopScreen" component={PackagingShopScreen} />
         <Stack.Screen name="PackagingPayment" component={PackagingPaymentScreen} />
         <Stack.Screen name="QRCode" component={QRCodeScreen} />
@@ -314,13 +316,18 @@ export default function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
-          <UnifiedCartProvider>
-            <ShopShipCartProvider>
-              <UserProvider>
-                <AppNavigator />
-              </UserProvider>
-            </ShopShipCartProvider>
-          </UnifiedCartProvider>
+          <StripeProvider
+            publishableKey={STRIPE_PUBLISHABLE_KEY}
+            merchantIdentifier="merchant.manime.delivery"
+          >
+            <UnifiedCartProvider>
+              <ShopShipCartProvider>
+                <UserProvider>
+                  <AppNavigator />
+                </UserProvider>
+              </ShopShipCartProvider>
+            </UnifiedCartProvider>
+          </StripeProvider>
         </SafeAreaProvider>
       </QueryClientProvider>
     </ErrorBoundary>

@@ -6,7 +6,10 @@
       }
     },
     "ios": {
-      "bundleIdentifier": "com.postin54.manime"
+      "bundleIdentifier": "com.postin54.manime",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     }
   }
 }
