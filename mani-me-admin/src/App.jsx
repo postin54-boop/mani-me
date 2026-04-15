@@ -14,6 +14,7 @@ import GhanaDrivers from './pages/GhanaDrivers';
 import GroceryShop from './pages/GroceryShop';
 import PackagingShop from './pages/PackagingShop';
 import PackagingOrders from './pages/PackagingOrders';
+import GroceryOrders from './pages/GroceryOrders';
 import Settings from './pages/Settings';
 import Layout from './components/Layout';
 import ParcelPrices from './pages/ParcelPrices';
@@ -214,6 +215,16 @@ function App() {
               isAuthenticated ? 
               <Layout onLogout={handleLogout}>
                 <PackagingOrders />
+              </Layout> : 
+              <Navigate to="/login" replace />
+            }
+          />
+          <Route
+            path="/grocery-orders"
+            element={
+              isAuthenticated ? 
+              <Layout onLogout={handleLogout}>
+                <GroceryOrders />
               </Layout> : 
               <Navigate to="/login" replace />
             }

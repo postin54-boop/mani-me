@@ -28,31 +28,29 @@ import {
 } from '@mui/material';
 import {
   LocalShipping as DeliveryIcon,
-  Store as PickupIcon,
   ExpandMore as ExpandMoreIcon,
-  CheckCircle as CheckIcon,
   Print as PrintIcon,
 } from '@mui/icons-material';
 import api from '../api';
 import logger from '../utils/logger';
-import { getErrorMessage } from '../utils/errorHandler';
 
 const STATUS_COLORS = {
   pending: 'warning',
+  confirmed: 'info',
   processing: 'info',
-  ready: 'success',
+  shipped: 'primary',
+  in_transit: 'primary',
   delivered: 'success',
-  completed: 'default',
   cancelled: 'error',
 };
 
-export default function PackagingOrders() {
+export default function GroceryOrders() {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [printOrder, setPrintOrder] = useState(null);
-  const [updateData, setUpdateData] = useState({ status: '', payment_status: '', notes: '' });
+  const [updateData, setUpdateData] = useState({ order_status: '', payment_status: '', notes: '' });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -67,12 +65,12 @@ export default function PackagingOrders() {
     try {
       setLoading(true);
       const params = { page: page + 1, limit: rowsPerPage };
-      const res = await api.get('/api/shop/orders', { params });
+      const res = await api.get('/api/grocery/admin/orders', { params });
       const ordersData = res.data.orders || res.data;
       setOrders(Array.isArray(ordersData) ? ordersData : []);
       setTotalCount(res.data.pagination?.total || ordersData.length || 0);
     } catch (error) {
-      logger.error('Fetch orders error:', error);
+      logger.error('Fetch grocery orders error:', error);
       setOrders([]);
       setTotalCount(0);
     } finally {
@@ -83,7 +81,7 @@ export default function PackagingOrders() {
   const handleUpdateOrder = (order) => {
     setSelectedOrder(order);
     setUpdateData({
-      status: order.status,
+      order_status: order.order_status,
       payment_status: order.payment_status,
       notes: order.notes || ''
     });
@@ -92,11 +90,12 @@ export default function PackagingOrders() {
 
   const handleSaveUpdate = async () => {
     try {
-      const res = await api.put(`/api/shop/orders/${selectedOrder._id}`, updateData);
+      const res = await api.put(`/api/grocery/admin/orders/${selectedOrder._id}`, updateData);
       setOrders(orders.map(o => (o._id === res.data._id ? res.data : o)));
+      fetchOrders(); // Refresh to get updated data
       setDialogOpen(false);
     } catch (error) {
-      logger.error('Update order error:', error);
+      logger.error('Update grocery order error:', error);
     }
   };
 
@@ -171,7 +170,6 @@ export default function PackagingOrders() {
               letter-spacing: 2px;
             }
             .total { font-weight: bold; font-size: 14px; margin-top: 4px; }
-            .method { font-size: 12px; font-weight: bold; color: #333; margin-top: 4px; }
           </style>
         </head>
         <body>
@@ -191,17 +189,23 @@ export default function PackagingOrders() {
   const getTotalRevenue = () => {
     return orders
       .filter(o => o.payment_status === 'paid')
-      .reduce((sum, o) => sum + o.total_amount, 0)
+      .reduce((sum, o) => sum + (o.total_amount || 0), 0)
       .toFixed(2);
   };
 
   const getPendingOrders = () => {
-    return orders.filter(o => o.status === 'pending' || o.status === 'processing').length;
+    return orders.filter(o => ['pending', 'confirmed', 'processing'].includes(o.order_status)).length;
+  };
+
+  const formatAddress = (addr) => {
+    if (!addr) return 'No address';
+    const parts = [addr.street, addr.city, addr.region, addr.postcode, addr.country].filter(Boolean);
+    return parts.join(', ');
   };
 
   return (
     <Box>
-      <Typography variant="h4" sx={{ mb: 3 }}>Packaging Orders</Typography>
+      <Typography variant="h4" sx={{ mb: 3 }}>Grocery Orders</Typography>
 
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -234,7 +238,7 @@ export default function PackagingOrders() {
               <TableCell>Customer</TableCell>
               <TableCell>Items</TableCell>
               <TableCell>Total</TableCell>
-              <TableCell>Method</TableCell>
+              <TableCell>Delivery</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Payment</TableCell>
               <TableCell>Date</TableCell>
@@ -254,7 +258,7 @@ export default function PackagingOrders() {
               ))
             ) : orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} align="center">No orders found</TableCell>
+                <TableCell colSpan={9} align="center">No grocery orders found</TableCell>
               </TableRow>
             ) : (
               orders.map((order) => (
@@ -263,9 +267,14 @@ export default function PackagingOrders() {
                   <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
                     {order._id.slice(-8)}
                   </Typography>
+                  {order.tracking_number && (
+                    <Typography variant="caption" color="primary">
+                      {order.tracking_number}
+                    </Typography>
+                  )}
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2">{order.user_id?.name || 'Unknown'}</Typography>
+                  <Typography variant="body2">{order.user_id?.fullName || order.user_id?.name || 'Unknown'}</Typography>
                   <Typography variant="caption" color="text.secondary">
                     {order.user_id?.email}
                   </Typography>
@@ -290,34 +299,24 @@ export default function PackagingOrders() {
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  {order.fulfillment_method === 'delivery' ? (
-                    <Chip 
-                      icon={<DeliveryIcon />} 
-                      label="Delivery" 
-                      size="small" 
-                      color="primary" 
-                      variant="outlined"
-                    />
-                  ) : (
-                    <Chip 
-                      icon={<PickupIcon />} 
-                      label="Pickup" 
-                      size="small" 
-                      color="secondary" 
-                      variant="outlined"
-                    />
-                  )}
-                  {order.fulfillment_method === 'delivery' && order.delivery_address && (
-                    <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                      {order.delivery_address.city}, {order.delivery_address.postcode}
+                  <Chip 
+                    icon={<DeliveryIcon />} 
+                    label={order.delivery_address?.country || 'Ghana'} 
+                    size="small" 
+                    color="primary" 
+                    variant="outlined"
+                  />
+                  {order.delivery_address && (
+                    <Typography variant="caption" display="block" sx={{ mt: 0.5, maxWidth: 150 }}>
+                      {order.delivery_address.city}
                     </Typography>
                   )}
                 </TableCell>
                 <TableCell>
                   <Chip 
-                    label={order.status} 
+                    label={order.order_status} 
                     size="small" 
-                    color={STATUS_COLORS[order.status] || 'default'}
+                    color={STATUS_COLORS[order.order_status] || 'default'}
                   />
                 </TableCell>
                 <TableCell>
@@ -334,7 +333,7 @@ export default function PackagingOrders() {
                   </Typography>
                 </TableCell>
                 <TableCell align="right">
-                  <Tooltip title="Print Label">
+                  <Tooltip title="Print Shipping Label">
                     <IconButton 
                       size="small" 
                       onClick={() => handlePrintLabel(order)}
@@ -372,21 +371,25 @@ export default function PackagingOrders() {
                 Order ID: <strong>{selectedOrder._id.slice(-8)}</strong>
               </Typography>
               <Typography variant="body2" sx={{ mb: 2 }}>
-                Customer: <strong>{selectedOrder.user_id?.name}</strong>
+                Customer: <strong>{selectedOrder.user_id?.fullName || selectedOrder.user_id?.name}</strong>
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                Delivery: <strong>{formatAddress(selectedOrder.delivery_address)}</strong>
               </Typography>
               <TextField
                 fullWidth
                 select
                 label="Order Status"
-                value={updateData.status}
-                onChange={(e) => setUpdateData({ ...updateData, status: e.target.value })}
+                value={updateData.order_status}
+                onChange={(e) => setUpdateData({ ...updateData, order_status: e.target.value })}
                 margin="normal"
               >
                 <MenuItem value="pending">Pending</MenuItem>
+                <MenuItem value="confirmed">Confirmed</MenuItem>
                 <MenuItem value="processing">Processing</MenuItem>
-                <MenuItem value="ready">Ready for Pickup/Delivery</MenuItem>
+                <MenuItem value="shipped">Shipped</MenuItem>
+                <MenuItem value="in_transit">In Transit</MenuItem>
                 <MenuItem value="delivered">Delivered</MenuItem>
-                <MenuItem value="completed">Completed</MenuItem>
                 <MenuItem value="cancelled">Cancelled</MenuItem>
               </TextField>
               <TextField
@@ -437,22 +440,16 @@ export default function PackagingOrders() {
                   </div>
                   
                   <div className="section">
-                    <div className="section-title">Customer:</div>
-                    <div className="customer-name">{printOrder.user_id?.name || 'Customer'}</div>
-                    {printOrder.user_id?.email && <div className="address">{printOrder.user_id.email}</div>}
-                    {printOrder.user_id?.phone && <div className="address">Tel: {printOrder.user_id.phone}</div>}
-                  </div>
-
-                  {printOrder.fulfillment_method === 'delivery' && printOrder.delivery_address && (
-                    <div className="section">
-                      <div className="section-title">Ship To:</div>
-                      <div className="address">
-                        {printOrder.delivery_address.street && <div>{printOrder.delivery_address.street}</div>}
-                        {printOrder.delivery_address.city && <div>{printOrder.delivery_address.city}, {printOrder.delivery_address.postcode || ''}</div>}
-                        {printOrder.delivery_address.country && <div><strong>{printOrder.delivery_address.country}</strong></div>}
-                      </div>
+                    <div className="section-title">Ship To:</div>
+                    <div className="customer-name">{printOrder.user_id?.fullName || printOrder.user_id?.name || 'Customer'}</div>
+                    <div className="address">
+                      {printOrder.delivery_address?.street && <div>{printOrder.delivery_address.street}</div>}
+                      {printOrder.delivery_address?.city && <div>{printOrder.delivery_address.city}, {printOrder.delivery_address.region || ''}</div>}
+                      {printOrder.delivery_address?.postcode && <div>{printOrder.delivery_address.postcode}</div>}
+                      <div><strong>{printOrder.delivery_address?.country || 'Ghana'}</strong></div>
+                      {printOrder.delivery_address?.phone && <div>Tel: {printOrder.delivery_address.phone}</div>}
                     </div>
-                  )}
+                  </div>
                   
                   <div className="items-section">
                     <div className="section-title">Contents ({(printOrder.items || []).length} items):</div>
@@ -463,12 +460,11 @@ export default function PackagingOrders() {
                       <div className="item">... and {printOrder.items.length - 8} more items</div>
                     )}
                     <div className="total">Total: £{(printOrder.total_amount || 0).toFixed(2)}</div>
-                    <div className="method">Method: {printOrder.fulfillment_method === 'delivery' ? 'DELIVERY' : 'PICKUP'}</div>
                   </div>
                   
                   <div className="barcode">
-                    <div className="section-title">Order Reference</div>
-                    <div className="barcode-text">{printOrder._id.slice(-12).toUpperCase()}</div>
+                    <div className="section-title">Tracking Number</div>
+                    <div className="barcode-text">{printOrder.tracking_number || printOrder._id.slice(-12).toUpperCase()}</div>
                   </div>
                 </div>
               </div>

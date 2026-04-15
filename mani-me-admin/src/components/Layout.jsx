@@ -89,6 +89,7 @@ function Layout({ children, onLogout }) {
     { text: 'Grocery Shop', icon: <StorefrontIcon />, path: '/grocery-shop', badge: null },
     { text: 'Packaging Shop', icon: <InventoryIcon />, path: '/packaging-shop', badge: null },
     { text: 'Packaging Orders', icon: <ReceiptLongIcon />, path: '/packaging-orders', badge: null },
+    { text: 'Grocery Orders', icon: <ReceiptLongIcon />, path: '/grocery-orders', badge: null },
     { text: 'Parcel Prices', icon: <InventoryIcon />, path: '/parcel-prices', badge: null },
     { text: 'Parcel Items', icon: <InventoryIcon />, path: '/parcel-items', badge: null },
     { text: 'Marketing', icon: <CampaignIcon />, path: '/marketing', badge: null },
