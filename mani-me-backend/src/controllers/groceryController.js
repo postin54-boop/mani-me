@@ -283,7 +283,7 @@ exports.adminDeleteItem = async (req, res) => {
 
 exports.adminGetOrders = async (req, res) => {
   try {
-    const orders = await GroceryOrder.find().sort({ createdAt: -1 }).populate('user_id', 'name email phone').populate('items.item_id', 'name image_url').lean();
+    const orders = await GroceryOrder.find().sort({ createdAt: -1 }).populate('user_id', 'fullName email phone').populate('items.item_id', 'name image_url').lean();
     res.json(orders);
   } catch (error) {
     logger.error('Error fetching orders (admin)', { error: error.message });

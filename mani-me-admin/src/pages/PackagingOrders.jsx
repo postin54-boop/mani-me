@@ -265,7 +265,7 @@ export default function PackagingOrders() {
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2">{order.user_id?.name || 'Unknown'}</Typography>
+                  <Typography variant="body2">{order.user_id?.fullName || 'Unknown'}</Typography>
                   <Typography variant="caption" color="text.secondary">
                     {order.user_id?.email}
                   </Typography>
