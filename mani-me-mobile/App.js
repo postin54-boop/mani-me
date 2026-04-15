@@ -80,7 +80,6 @@ import QRCodeScreen from './screens/QRCodeScreen';
 import ForgotPassword from './screens/ForgotPassword';
 import ResetPassword from './screens/ResetPassword';
 import SavedAddressesScreen from './screens/SavedAddressesScreen';
-import ConnectionTest from './screens/ConnectionTest';
 import HelpSupportScreen from './screens/HelpSupportScreen';
 import TermsScreen from './screens/TermsScreen';
 import PrivacyScreen from './screens/PrivacyScreen';
@@ -257,7 +256,6 @@ function AppNavigator() {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} />
-        <Stack.Screen name="ConnectionTest" component={ConnectionTest} />
         <Stack.Screen name="Home" component={TabNavigator} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="More" component={MoreScreen} />

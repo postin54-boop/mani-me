@@ -371,14 +371,6 @@ export default function LoginScreen({ navigation }) {
               </TouchableOpacity>
             </View>
           </Animated.View>
-
-          {/* Test Connection (Debug) */}
-          <TouchableOpacity 
-            onPress={() => navigation.navigate("ConnectionTest")}
-            style={styles.debugButton}
-          >
-            <Text style={styles.debugText}>🔧 Test Connection</Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
@@ -548,13 +540,5 @@ const styles = StyleSheet.create({
     color: '#83C5FA',
     fontSize: 15,
     fontWeight: '700',
-  },
-  debugButton: {
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  debugText: {
-    color: 'rgba(131, 197, 250, 0.5)',
-    fontSize: 12,
   },
 });

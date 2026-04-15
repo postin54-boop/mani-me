@@ -103,12 +103,12 @@ export default function HomeScreen({ navigation }) {
     if (user) fetchDriverData();
   }, [user, fetchDriverData]);
 
-  // Poll for new assignments every 30 seconds
+  // Poll for new assignments every 60 seconds (reduced from 30s)
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(() => {
       fetchDriverData();
-    }, 30000);
+    }, 60000);
     return () => clearInterval(interval);
   }, [user, fetchDriverData]);
 
